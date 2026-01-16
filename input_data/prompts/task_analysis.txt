@@ -1,0 +1,49 @@
+<capability_analysis_prompt>
+<purpose>
+You will analyze a benchmark task to understand what capability level it represents for an LLM. This analysis will help establish a capability ceiling for hypothetical LLM assistance.
+</purpose>
+<inputs>
+We are analyzing a task from the following benchmark: {benchmark_description}
+- Task Name: {task_name}
+- Description: {task_description}
+{task_relevant_metrics_details}
+</inputs>
+<analysis_requirements>
+<section name="task_decomposition">
+<instruction>Break down the task into its fundamental components. Be accurate to the required level of detail. If this is a simple task, then keep it simple. If this is a complex task, then detail everything.</instruction>
+<questions>
+- What are the specific steps required to complete this task?
+- What technical skills or knowledge domains are required?
+</questions>
+</section>
+<section name="difficulty_assessment">
+<instruction>Evaluate the challenge level based on the provided metrics</instruction>
+<questions>
+- Based on the provided metrics, how challenging is this task?
+- What makes this task easy or difficult?
+- What types of errors or challenges might be encountered?
+</questions>
+</section>
+<section name="capability_correlation">
+<instruction>Analyze related capabilities and skill transfer</instruction>
+<questions>
+- What other tasks require similar fundamental abilities?
+- Given that capabilities tend to be correlated, what other tasks of similar or lower difficulty would an LLM at this level likely handle?
+- What does solving this task indicate about the more general capabilities of the LLM?
+</questions>
+</section>
+<section name="capability_boundaries">
+<instruction>Define the limits and extent of capabilities</instruction>
+<questions>
+- If an LLM could consistently solve this benchmark task, what does this suggest about its overall capability profile?
+- What classes of problems would likely be within reach?
+- What are the SIMPLEST problems that would likely be out of reach?
+- What would likely remain beyond this capability level?
+- Which capabilities remain highly uncertain or are not informed much by the solution of this task?
+</questions>
+</section>
+</analysis_requirements>
+<output_instructions>
+Provide a detailed analysis addressing each section above. Build a comprehensive picture of the capability level, focusing on understanding what abilities this benchmark indicates across different domains. Remember that capabilities are generally correlated, but uncertainty increases with distance from the benchmark domain.
+</output_instructions>
+</capability_analysis_prompt>

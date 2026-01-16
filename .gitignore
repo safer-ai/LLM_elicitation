@@ -1,0 +1,55 @@
+# Env file
+.env
+
+# Python virtual environments
+venv/
+env/
+.venv/
+.env/
+.pixi/
+
+# Python cache files
+__pycache__/
+*.pyc
+
+# Configuration and generated files
+*.log
+analysis_results.json
+*_rerun_config.yaml
+*.bak
+
+# IDE files
+.vscode/
+.idea/
+.cursor/
+.claude/
+.ruff_cache/
+
+# macOS files
+*.DS_Store
+**/.DS_Store
+
+records/
+
+llm_impact_analysis.log
+llm_impact_analysis.txt
+
+output_data/plots/*
+output_data/runs/*
+output_data/run_registry.json
+
+*ground_truth*.json
+
+data/
+
+src/__pycache__/
+
+__marimo__
+
+run
+
+/config*.yaml 
+!config_example.yaml
+
+# Temporary experiment data
+input_data/reruns/

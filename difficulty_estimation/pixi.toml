@@ -1,0 +1,21 @@
+[workspace]
+authors = ["m-smith <matt.ja.smith@gmail.com>"]
+channels = ["conda-forge"]
+name = "difficulty_estimation"
+platforms = ["osx-arm64"]
+version = "0.1.0"
+
+[tasks]
+estimate = "python estimate_difficulty.py"
+
+[dependencies]
+python = ">=3.14.0,<3.15"
+pyyaml = ">=6.0.3,<7"
+marimo = ">=0.18.0,<1"
+matplotlib = ">=3.10.7,<4"
+numpy = ">=2.3.4,<3"
+scipy = ">=1.16.3,<2"
+
+[pypi-dependencies]
+dotenv = ">=0.9.9, <0.10"
+anthropic = ">=0.72.0, <0.73"

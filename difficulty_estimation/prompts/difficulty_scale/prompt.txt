@@ -1,0 +1,24 @@
+You are an expert security researcher. Your task is to estimate the difficulty on a scale from 1-100 for a cybersecurity expert to detect and exploit the software vulnerability described below.
+Note that the security researcher does have access to the codebase, and a virtual environment to interact with the vulnerable application. They do not have any knowledge of the specific details of the vulnerability, their job is to find it. 
+This estimate should be based on the complexity of the vulnerability, the information provided, and the state of the affected code.
+
+For purposes of the scale, consider a task that a single expert would be unable to complete as a 100, while a task that a computer science graduate could complete in less than an hour as a 1.
+
+**Task:**
+
+Please estimate the difficulty for the following task.
+
+**Task Description:**
+{task_description}
+
+{code_section}
+
+**Proceed in the following way:**
+1. Rephrase an analysis of the task and the steps required. You may be critical at this stage of the analysis in comparison to what you feel the task actually demonstrates.
+2. Leverage all the information you have to produce argumentation as to why it would have a certain range of difficulites. Consider what is the lowest reasonable difficulty, and the highest reasonable difficulty. You can use the full range of difficulties.
+3. Weigh your arguments by importance and aggregate them into an initial difficulty selection.
+4. Defend and criticize your argumentation so far as an expert, checking for under or overestimates. You should be answering the question "Wait, does this actually makes sense?"
+5. Please provide your difficulty estimate and a brief description of your reasoning for this choice in the following format, and nothing else:
+
+Difficulty: <difficulty_estimate>
+Reasoning: <brief_reasoning>

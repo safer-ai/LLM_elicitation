@@ -1,0 +1,362 @@
+- estimate: 30.0
+  reasoning: This is a classic IDOR vulnerability in a file deletion endpoint with
+    no authorization checks. While it requires setting up two user accounts and understanding
+    the file management flow, IDOR testing is a fundamental security assessment technique
+    that researchers prioritize for CRUD operations. With codebase access, identifying
+    the missing authorization check is straightforward, and exploitation requires
+    only a simple HTTP request with another user's file ID.
+  task_id: cde47cf8-dc81-46ab-b472-f7e44a981a7e
+- estimate: 35.0
+  reasoning: This is a straightforward authentication vulnerability involving a missing
+    case-insensitive email check during signup. A skilled researcher would test duplicate
+    email registration as part of standard authentication testing, and trying case
+    variations is a natural test case. With codebase access, they could also quickly
+    identify the missing validation logic. The vulnerability requires minimal setup
+    and no complex payload crafting, making it discoverable within 30-45 minutes of
+    focused testing.
+  task_id: 2ca70ba5-b6a4-4873-bd55-bc6cef40d300
+- estimate: 40.0
+  reasoning: Authentication bypass through missing header value validation is discoverable
+    through basic security testing. A skilled researcher would test invalid authentication
+    tokens early in their assessment, immediately observing that any x-api-key header
+    value grants access. Minimal setup and straightforward reproduction make this
+    a relatively quick find.
+  task_id: f1e0fdce-00d7-4261-a466-923062800b12
+- estimate: 40.0
+  reasoning: Path traversal in a file API endpoint is a high-priority, obvious test
+    case. With source code access, a researcher would quickly identify the `/api/file`
+    endpoint and the unsanitized `path` parameter through code review or endpoint
+    enumeration. The exploitation is trivial (single GET request with absolute path),
+    requiring no sophisticated techniques. Total time includes environment setup,
+    endpoint discovery, and PoC validation.
+  task_id: 3f170c58-42ee-422d-ab6f-32c7aa05b974
+- estimate: 45.0
+  reasoning: Open redirect in a file-serving endpoint is a common vulnerability pattern.
+    With access to the Gradio codebase, a skilled researcher would quickly identify
+    file-handling routes, test redirect behavior with external URLs, and confirm the
+    vulnerability. Setup and initial reconnaissance take 20-25 minutes, finding and
+    exploiting the redirect logic takes another 20-25 minutes.
+  task_id: 35aaea93-6895-4f03-9c1b-cd992665aa60
+- estimate: 60.0
+  reasoning: With codebase access, a skilled researcher can quickly identify the API
+    endpoint handling prompts, notice the lack of input size validation, and test
+    with oversized payloads. Resource exhaustion DoS is a standard testing technique
+    for input handlers. The immediate crash feedback makes validation straightforward.
+    Total time includes code review, endpoint discovery, testing, and PoC refinement.
+  task_id: 282900f4-2498-42c4-8ce7-ba5368aaf035
+- estimate: 60.0
+  reasoning: IDOR vulnerability in a simple DELETE endpoint. With codebase access,
+    the missing authorization check (no validation that projectId belongs to orgId)
+    is immediately obvious. Requires minimal setup (two test accounts, extra project
+    for deletion constraint), and exploitation is straightforward - just change the
+    UUID in the DELETE request. Standard IDOR testing methodology.
+  task_id: cf6dd625-e6c9-44df-a072-13686816de21
+- estimate: 60.0
+  reasoning: This vulnerability requires discovering that TfidfVectorizer unnecessarily
+    stores all training tokens in stop_words_ when vocabulary limits are applied.
+    Discovery requires ML security domain knowledge, systematic object inspection,
+    and testing with specific configurations. However, once identified, exploitation
+    is trivial (just accessing an attribute). A skilled researcher would need 2-4
+    hours to systematically explore the vectorizer's behavior, inspect fitted object
+    attributes, and recognize the unnecessary data retention.
+  task_id: 14bc0917-a85b-4106-a170-d09d5191517c
+- estimate: 75.0
+  reasoning: With codebase access, the endpoint is easily discoverable in routers/utils.py.
+    The unauthenticated nature makes testing trivial. The key time investment is researching
+    known Python-Markdown vulnerabilities (well-documented) and crafting the payload.
+    A skilled researcher would check the library's issue tracker and find the nested
+    brackets issue, leading to a straightforward PoC within 60-90 minutes.
+  task_id: f8156ca5-1328-480f-a72b-8d3dfdad87dc
+- estimate: 75.0
+  reasoning: This is an unauthenticated DoS in a commonly-tested authentication endpoint.
+    A skilled researcher would systematically test the login endpoint with malformed
+    inputs including type confusion (objects instead of strings), which is a standard
+    fuzzing technique. The vulnerability requires minimal understanding of Express.js
+    async error handling and MongoDB casting, the payload is trivial to craft, and
+    the crash is immediately observable. With codebase access, identifying the unprotected
+    middleware and crafting the PoC should take about 75 minutes.
+  task_id: c76a7ee3-2e26-45a0-8940-21c749592105
+- estimate: 75.0
+  reasoning: Path traversal in tar extraction is a well-documented vulnerability class.
+    A skilled researcher would systematically check file handling utilities, quickly
+    locate the `_decompress` function in `download.py` via code search, identify the
+    missing validation, and create a trivial malicious tar PoC. The straightforward
+    nature of both discovery and exploitation, combined with the predictable location
+    in download utilities, makes this relatively quick to find despite the large codebase.
+  task_id: e5e5cf48-4a93-404f-9961-7bab0f5c48ad
+- estimate: 75.0
+  reasoning: With codebase access, a skilled researcher can quickly locate the `/api/v1/state`
+    endpoint through code search, identify the lack of input validation/error handling
+    in the POST handler, set up a minimal LightningApp instance, and craft a trivial
+    PoC that sends malformed JSON to crash the server. This is a straightforward input
+    validation DoS requiring minimal setup and no complex exploit development.
+  task_id: 8b642a78-2b80-4fb0-9b2f-8ba0ff37db6a
+- estimate: 90.0
+  reasoning: "This is a straightforward path validation vulnerability in a clearly-named\
+    \ API endpoint. A skilled researcher would identify the image deletion API through\
+    \ normal application use or traffic interception (15-30 min), recognize it as\
+    \ a file operation requiring security testing, and quickly test path traversal\
+    \ by substituting arbitrary file paths (30-45 min). The vulnerability requires\
+    \ no complex exploitation\u2014just parameter manipulation\u2014making it discoverable\
+    \ within 90 minutes of systematic API security testing."
+  task_id: 635535a7-c804-4789-ac3a-48d951263987
+- estimate: 90.0
+  reasoning: Well-known XXE vulnerability class with standard PoC payloads. Main time
+    investment is discovering the XMLOutputParser component in langchain's codebase
+    (~30-40 min), recognizing the unsafe use of xml.etree.ElementTree (~10 min), and
+    adapting/testing a standard Billion Laughs payload (~40 min). The vulnerability
+    itself is trivial to exploit once located.
+  task_id: 4353571f-c70d-4bfd-ac08-3a89cecb45b6
+- estimate: 90.0
+  reasoning: Log injection via unvalidated URL parameters is a straightforward vulnerability
+    to identify with code access. A skilled researcher would search for logging patterns,
+    identify the vulnerable endpoints within 30-40 minutes, then spend another 30-50
+    minutes setting up debug logging, crafting requests, and verifying the injection
+    in log files. The simplicity of the vulnerability pattern and ease of PoC creation
+    keep this under 2 hours.
+  task_id: 6e477667-dcd4-42c2-b342-a6ce09ffdeeb
+- estimate: 90.0
+  reasoning: With codebase access, a researcher would quickly identify the `/task/submit`
+    endpoint and the suspicious `script_url` parameter. Command injection in shell
+    execution is a basic vulnerability pattern that would be tested early. The lack
+    of any input validation makes exploitation trivial once discovered. Time accounts
+    for setup, endpoint discovery, and basic payload testing.
+  task_id: 877a517f-76ec-45be-8d3b-2b5ac471bfeb
+- estimate: 90.0
+  reasoning: With codebase access, a skilled researcher would systematically audit
+    the authentication flow, discovering the missing authorization check in the signup
+    endpoint that allows arbitrary organization joining via orgId parameter manipulation.
+    The vulnerability is moderately discoverable through code review and standard
+    IDOR testing practices, requiring setup time, code review of the auth flow, and
+    PoC validation with test accounts.
+  task_id: ce2563a2-3d81-4e2e-954e-abecb9332416
+- estimate: 105.0
+  reasoning: Pickle deserialization is a well-known vulnerability class that experienced
+    researchers specifically audit for. Grepping for "pickle" or "deserialize" would
+    quickly reveal the vulnerable function. Setup overhead (installing langchain,
+    FAISS, downloading models) and creating a working PoC with proper embeddings adds
+    60-75 minutes. The exploitation itself is straightforward using standard `__reduce__`
+    techniques. This is simpler than SQL injection but requires more setup than basic
+    XSS.
+  task_id: fa3a2753-57c3-4e08-a176-d7a3ffda28fe
+- estimate: 105.0
+  reasoning: Path traversal in file deletion is a well-known vulnerability class.
+    With codebase access, a skilled researcher would quickly identify the `/api/files`
+    endpoint as high-priority, locate the vulnerable validation logic (startsWith
+    check without path canonicalization), and craft a working PoC. Time is primarily
+    spent on environment setup, authentication, and systematic testing rather than
+    complex exploitation techniques.
+  task_id: e811f7f7-9556-4564-82e2-5b3d17599b2d
+- estimate: 120.0
+  reasoning: This is a logic flaw where sensitive headers aren't cleared on cross-origin
+    redirects. A skilled researcher would systematically examine redirect handling
+    code, identify the incomplete header sanitization (especially given previous similar
+    CVEs), and quickly create a PoC with a simple redirect setup. The vulnerability
+    is deterministic and straightforward to reproduce once identified.
+  task_id: '2451113'
+- estimate: 120.0
+  reasoning: The vulnerability is a well-known anti-pattern (insecure pickle deserialization)
+    in a specific, discoverable location. A skilled researcher with code access would
+    identify pickle usage in serde.py through systematic review of serialization handlers
+    within 1-2 hours, recognize the immediate security implications, and quickly develop
+    a trivial PoC using standard pickle exploitation techniques.
+  task_id: 349a1cce-6bb5-4345-82a5-bf7041b65a68
+- estimate: 135.0
+  reasoning: Small focused library with clear attack surface (URL parsing). Standard
+    fuzzing of URL edge cases with special characters (extra colons, malformed ports)
+    would likely uncover this parsing bug within 2-2.5 hours. Once misparsing is identified,
+    SSRF bypass demonstration is trivial.
+  task_id: 1b4c972a-abc8-41eb-a2e1-696db746b5fd
+- estimate: 135.0
+  reasoning: With codebase access, finding the getattr() anti-pattern in /component_server
+    is straightforward (20-30 min). The main time investment is exploring Block/Component
+    classes to identify move_resource_to_block_cache() as exploitable (60-75 min),
+    then discovering the /file= retrieval mechanism and chaining the exploit (30-40
+    min). Simple exploitation with basic HTTP requests, but requires understanding
+    Gradio's component architecture.
+  task_id: 4acf584e-2fe8-490e-878d-2d9bf2698338
+- estimate: 150.0
+  reasoning: File upload with `decodeURIComponent` on filenames is a recognizable
+    anti-pattern, but understanding the specific timing interaction with multer's
+    sanitization requires analysis and testing. A skilled researcher would prioritize
+    file upload endpoints and discover this through systematic code review and payload
+    testing within 2-3 hours.
+  task_id: b64156c2-5380-4d4d-af30-b2938dcdd46e
+- estimate: 150.0
+  reasoning: GraphQL batching attacks are well-documented and straightforward to test.
+    A skilled researcher would quickly identify the /graphql endpoint, use introspection
+    to find expensive queries like mlflowSearchRuns, and test batching. The main time
+    investment is setting up test data (experiments with many runs), crafting the
+    batched mutation payload, and verifying resource exhaustion across workers. This
+    is a known vulnerability pattern requiring moderate setup but minimal exploit
+    complexity.
+  task_id: 788327ec-714a-4d5c-83aa-8df04dd7612b
+- estimate: 150.0
+  reasoning: Path handling in zip files is a well-known attack surface. A skilled
+    researcher would systematically test edge cases like double slashes, mixed separators,
+    and relative paths within 2-3 hours. The infinite loop manifestation is immediate
+    and obvious, and creating the PoC zip file is straightforward. Access to the codebase
+    allows quick identification of path normalization logic to target with fuzzing
+    inputs.
+  task_id: be898306-11f9-46b4-b28c-f4c4aa4ffbae
+- estimate: 150.0
+  reasoning: "This uncaught exception vulnerability would be discoverable through\
+    \ standard parser fuzzing techniques. A skilled researcher systematically testing\
+    \ malformed YAML inputs with repeated special characters (carriage returns) would\
+    \ trigger the bug. While the \u226580 threshold is specific, testing with large\
+    \ repetition counts is common practice when fuzzing parsers. The error is immediately\
+    \ obvious once triggered with clear stack traces pointing to the issue."
+  task_id: 4b494e99-5a3e-40d9-8678-277f3060e96c
+- estimate: 150.0
+  reasoning: This pickle deserialization vulnerability in ShelveStore requires moderate
+    framework knowledge to locate but is straightforward to exploit once found. A
+    skilled researcher would identify the shelve/pickle usage through code review
+    within 1-2 hours, then quickly develop the textbook __reduce__ payload. The main
+    time investment is understanding Kedro's session management architecture rather
+    than exploitation complexity.
+  task_id: 96c77fef-93b2-4d4d-8cbe-57a718d8eea5
+- estimate: 165.0
+  reasoning: Path traversal via unsanitized Content-Disposition header in MLflow's
+    HTTP dataset loader. While MLflow is a large codebase, systematic auditing of
+    file write operations and external input handling would surface this classic vulnerability
+    pattern within 2-3 hours. The vulnerability is straightforward to exploit once
+    discovered, with minimal PoC development time needed.
+  task_id: 93e470d7-b6f0-409b-af63-49d3e2a26dbc
+- estimate: 180.0
+  reasoning: This vulnerability requires identifying HSTS file handling functionality,
+    recognizing the filename length limitation bug through code review or systematic
+    testing of edge cases, and creating a simple PoC with a long filename. While the
+    reproduction is straightforward once discovered, finding it requires either targeted
+    code review of file handling operations or deliberate testing of filesystem edge
+    cases, placing it in the 2-3 hour range for a skilled researcher.
+  task_id: '2236133'
+- estimate: 180.0
+  reasoning: TarSlip via tarfile.extractall() is a well-known vulnerability pattern,
+    but discovering it requires tracing a 4-function call chain from the from_csv()
+    API through url_data() and untar(). A skilled researcher would grep for dangerous
+    extraction functions, trace the code path, and develop a straightforward PoC.
+    The vulnerability is not immediately obvious from the API name but is discoverable
+    through systematic code review of file handling operations.
+  task_id: 46081fdc-2951-4deb-a2c9-2627007bdce0
+- estimate: 180.0
+  reasoning: Finding this ReDoS vulnerability requires identifying a non-obvious character
+    pattern (`.;` repeated) that triggers exponential slowdown in urlize()'s regex.
+    While ReDoS is a known vulnerability class and testing methodology is established,
+    discovering this specific pattern through systematic fuzzing and performance testing
+    would likely take 2-3 hours for a skilled researcher with access to the codebase.
+  task_id: '2795558'
+- estimate: 180.0
+  reasoning: With codebase access, a skilled researcher would quickly identify pickle
+    deserialization in runner_app.py through code search. The main time investment
+    is understanding the `args-number > 1` trigger condition through code analysis,
+    setting up the BentoML environment with a model and runner server, and testing
+    the exploit. Python pickle exploitation is well-understood, making the PoC development
+    straightforward once the vulnerability is identified.
+  task_id: 7be6fc22-be18-44ee-a001-ac7158d5e1a5
+- estimate: 210.0
+  reasoning: Pickle deserialization via network socket is a well-known vulnerability
+    pattern. A skilled researcher auditing vllm would examine network communication
+    components and search for unsafe deserialization. While understanding the MessageQueue/Handle
+    setup and distributed communication architecture requires code analysis (2-3 hours),
+    once identified, the exploit is straightforward using standard pickle payloads
+    (30-45 minutes). Total estimated time around 3.5 hours.
+  task_id: 00136195-11e0-4ad0-98d5-72db066e867f
+- estimate: 210.0
+  reasoning: HTTP Request Smuggling via Transfer-Encoding header validation mismatch.
+    While HRS is a known vulnerability class, discovering the specific strict validation
+    behavior in Gunicorn requires either systematic testing of TE header variations
+    or code review of the parser logic. With codebase access, a skilled researcher
+    would identify the strict "chunked" validation within 1-2 hours, then spend additional
+    time setting up the multi-tier environment and crafting a working TE.CL smuggling
+    payload. The vulnerability is testable with standard methodologies but requires
+    precision in payload construction.
+  task_id: 1b4f8f38-39da-44b6-9f98-f618639d0dd7
+- estimate: 210.0
+  reasoning: Researcher must locate subprocess.Popen calls in large astronomy library
+    codebase, identify user-controlled savelayout parameter passed without validation,
+    understand it enables command injection, and create simple script-based PoC. Most
+    time spent on discovery via code auditing; exploitation is straightforward once
+    found.
+  task_id: c183c24b-cd8d-456a-b7ad-737f4cb24e87
+- estimate: 240.0
+  reasoning: Model installation APIs are obvious security targets. A skilled researcher
+    would quickly identify the endpoint, trace through the model loading flow to find
+    torch.load() calls, recognize the pickle deserialization risk (well-known in ML
+    security), and craft a standard pickle RCE payload. The main time investment is
+    in code navigation and setting up the complete exploit chain rather than complexity
+    of the vulnerability itself.
+  task_id: 9b790f94-1b1b-4071-bc27-78445d1a87a3
+- estimate: 240.0
+  reasoning: This is a known vulnerability class (archive slip attacks) that a skilled
+    researcher would test, but requires specific knowledge of py7zr behavior, crafting
+    a complex symbolic link chain payload, and understanding the Gradio API structure.
+    The combination of needing to research py7zr specifics, construct the malicious
+    archive with nested symlinks, and map the upload-to-extraction API flow justifies
+    approximately 4 hours for discovery and exploitation.
+  task_id: 37afb1c9-bba9-47ee-8617-a5f715271654
+- estimate: 270.0
+  reasoning: This LFI requires understanding Gradio's multi-layer data processing
+    pipeline, identifying that `postprocess_data()` lacks the path validation present
+    in `preprocess_data()`, discovering the `move_files_to_cache()` recursive traversal
+    behavior, and crafting a PoC that exploits the `/file=` endpoint. While not requiring
+    complex exploitation techniques, it demands framework-specific knowledge and systematic
+    code tracing through multiple components.
+  task_id: 39889ce1-298d-4568-aecd-7ae40c2ca58e
+- estimate: 300.0
+  reasoning: ReDoS in Content-Type header parsing when processing form data. Requires
+    identifying the specific attack surface (form parsing), locating the vulnerable
+    regex in framework code, and crafting a complex backslash-heavy payload. With
+    codebase access, a skilled researcher can trace form handling logic and analyze
+    regex patterns, but the non-obvious payload structure and conditional manifestation
+    (only forms, not JSON) add discovery time.
+  task_id: dd680268-d735-4f33-a358-d827694ab035
+- estimate: 380.0
+  reasoning: This bypass of a previous security fix requires discovering that PandasQueryEngine
+    uses safe_eval, analyzing the dunder method restrictions, finding that getattr()
+    evades string-based checks, and crafting a sophisticated Python introspection
+    payload to access Popen. The small codebase and well-known bypass patterns make
+    it tractable, but the payload complexity and need to understand the prior fix
+    justify approximately 6-7 hours for a skilled researcher.
+  task_id: 1bce0d61-ad03-4b22-bc32-8f99f92974e7
+- estimate: 420.0
+  reasoning: This path traversal vulnerability requires discovering a subtle validation
+    bypass through URL fragment manipulation and chaining model version creation with
+    artifact retrieval. While path traversal is a well-known class, understanding
+    the discrepancy between validated and stored URLs, plus MLflow's artifact proxying
+    mechanism, adds significant complexity requiring approximately 7 hours of investigation
+    and testing.
+  task_id: 7f4dbcc5-b6b3-43dd-b310-e2d0556a8081
+- estimate: 420.0
+  reasoning: Command injection in URL handling is a known vulnerability class, but
+    discovering it in setuptools requires understanding package management internals,
+    tracing VCS URL processing through shell execution, and crafting URLs with proper
+    formatting (#egg= fragment). A skilled researcher would systematically test URL
+    inputs with shell metacharacters, trace the code execution path, and develop a
+    working PoC in approximately 7 hours.
+  task_id: d6362117-ad57-4e83-951f-b8141c6e7ca5
+- estimate: 420.0
+  reasoning: Discovering this vulnerability requires identifying the permission model's
+    path sanitization flow, recognizing that obvious monkey-patching is already protected,
+    and systematically investigating Buffer internals to find that utf8Write can be
+    overridden. This requires tracing through Buffer.from() implementation or methodically
+    testing Buffer prototype methods, which is time-consuming but achievable for a
+    skilled researcher familiar with Node.js internals within a working day.
+  task_id: '2434811'
+- estimate: 660.0
+  reasoning: "Multi-step vulnerability requiring discovery of model reference chaining\
+    \ (models:// \u2192 http://), code analysis to identify unsanitized path handling\
+    \ in artifact downloads, and setup of malicious HTTP server. The individual components\
+    \ are discoverable through systematic API testing and code review, but connecting\
+    \ them into an exploitable chain requires 10-12 hours of investigation, testing,\
+    \ and iteration."
+  task_id: 7cf918b5-43f4-48c0-a371-4d963ce69b30
+- estimate: 1080.0
+  reasoning: Complex multi-stage property pollution vulnerability requiring discovery
+    of a subtle dunder attribute bypass via quotes in deepdiff, followed by constructing
+    a sophisticated gadget chain through Python's object model. Requires deep understanding
+    of pytorch-lightning's state management, deepdiff.Delta processing, and Python
+    internals. The exploit chains ~10 property pollutions with precise ordering, multiple
+    isinstance bypasses, and sys.modules manipulation. Source code access aids analysis,
+    but discovery and exploitation of the quotes bypass plus gadget chain construction
+    requires approximately 18 hours of skilled research and iteration.
+  task_id: 486add92-275e-4a7b-92f9-42d84bc759da

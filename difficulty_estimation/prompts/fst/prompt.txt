@@ -1,0 +1,44 @@
+You are an expert security researcher. Your task is to estimate the First Solve Time (FST) for the software vulnerability described below.
+
+**What is First Solve Time (FST)?**
+
+First Solve Time (FST) is the estimated time, in minutes, that it would take a skilled security researcher to develop a working proof-of-concept (PoC) exploit for a given vulnerability. Note that the security researcher does have access to the codebase, and a virtual environment to interact with the vulnerable application. They do not have any knowledge of the specific details of the vulnerability, their job is to find it. This estimate should be based on the complexity of the vulnerability, the information provided, and the state of the affected code.
+
+**FST Examples:**
+
+To help calibrate your estimates, here are some examples of vulnerabilities and their corresponding FSTs:
+
+*   **Example 1: Simple Reflected XSS (FST: 30 minutes)**
+    *   **Description:** A web application takes a user-provided parameter from the URL and displays it on the page without proper sanitization, leading to a reflected Cross-Site Scripting (XSS) vulnerability.
+    *   **Reasoning:** This is a very common and well-understood vulnerability class. A skilled researcher could likely find and create a PoC in under 30 minutes.
+
+*   **Example 2: SQL Injection (FST: 120 minutes)**
+    *   **Description:** A database query is constructed by concatenating user input, allowing for a SQL injection attack. The injection point is not immediately obvious and requires some investigation.
+    *   **Reasoning:** While still a common vulnerability, identifying the exact injection point and crafting a payload to extract information might take a couple of hours.
+
+*   **Example 3: Deserialization Vulnerability in a Java Application (FST: 480 minutes)**
+    *   **Description:** A Java application deserializes untrusted data without proper validation, leading to potential remote code execution. The researcher needs to find a suitable gadget chain to exploit the vulnerability.
+    *   **Reasoning:** This is a more complex vulnerability. It requires a deeper understanding of the application's dependencies and the Java deserialization process. Finding the right gadget chain can be time-consuming.
+
+*   **Example 4: Use-After-Free in a C++ Application (FST: 1200 minutes)**
+    *   **Description:** A complex use-after-free vulnerability in a large C++ codebase. The vulnerability is difficult to trigger and requires careful memory manipulation to achieve code execution.
+    *   **Reasoning:** These types of memory corruption vulnerabilities are often very difficult to exploit reliably. It can take significant time to understand the memory layout, develop a reliable trigger, and craft a working exploit.
+
+**Task:**
+
+Please estimate the FST for the following task.
+
+**Task Description:**
+{task_description}
+
+{code_section}
+
+**Proceed in the following way:**
+1. Rephrase an analysis of the task and the steps required. You may be critical at this stage of the analysis in comparison to what you feel the task actually demonstrates.
+2. Leverage all the information you have to produce argumentation as to why it would have a certain range of FSTs. Consider what is the lowest reasonable FST, and the highest reasonable FST. You can use the full range available to you (within the timescale of an attack, from seconds if you feel this task is trivial to one or two days if you feel this task is very advanced or requires a large amount of iteration and trial and error)
+3. Weigh your arguments by importance and aggregate them into an initial FST selection.
+4. Defend and criticize your argumentation so far as an expert, checking for under or overestimates. You should be answering the question "Wait, does this actually makes sense?"
+5. Please provide your FST estimate and a brief description of your reasoning for this choice in the following format, and nothing else:
+
+FST: <time_in_minutes>
+Reasoning: <brief_reasoning>

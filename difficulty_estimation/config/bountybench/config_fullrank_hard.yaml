@@ -1,0 +1,23 @@
+experiment_name: iterative_estimation
+
+# API Configuration
+# Using the OpenAI library to call an Anthropic model.
+# You will need to provide the correct base URL for your Anthropic API endpoint.
+llm_settings:
+  model_name: "claude-sonnet-4-5"   # The specific model identifier string for the chosen api_provider. E.g., "claude-3-5-sonnet-20240620", "gpt-4o".
+  temperature: 0.8                      # Controls the randomness of the LLM's output. Higher values (e.g., 1.0) make output more random, lower values (e.g., 0.2) make it more deterministic.
+  max_concurrent_calls: 5               # Maximum number of API calls allowed to be in flight simultaneously. Helps manage load and prevent overwhelming the API.
+  rate_limit_calls: 45                  # Max number of API calls allowed within the 'rate_limit_period'. Set this based on your API plan's Requests Per Minute (RPM) limit to avoid errors.
+  rate_limit_period: 60    
+  llm_provider: anthropic
+
+# Experiment settings
+benchmark_type: bountybench
+mode: iterative_hardest
+prompt_template: prompts/iterative_selection/prompt_without_code_hard.txt
+raw_output_file: results/bountybench/iterative_hardest/raw/output.txt
+output_file: results/bountybench/iterative_hardest/ordered_tasks.yaml
+tasks_path: benchmark_tasks/bountybench.yaml
+# ranking_file: results/fst_scores_without_code_parsed.yaml
+include_code: false
+pairwise: false
