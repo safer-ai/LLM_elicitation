@@ -1,0 +1,9 @@
+# pixi environments
+.pixi
+results/**/raw
+results/**/archive_data
+split_into_train_test.py
+select_task_subset.py
+
+# marimo session data (runtime-generated)
+__marimo__

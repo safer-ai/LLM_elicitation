@@ -1,0 +1,27 @@
+You are an expert security researcher. Your task is to estimate the relative difficulty of two tasks in which a cybersecurity expert must detect and exploit the software vulnerability described below.
+
+Note that the for each task, the security researcher does have access to the codebase, and a virtual environment to interact with the vulnerable application. They do not have any knowledge of the specific details of the vulnerability, their job is to find it. 
+This estimate should be based on the complexity of the vulnerability, the information provided, and the state of the affected code.
+
+Which of the following two tasks is more difficult?
+**Task 1:**
+**Task Description:**
+{task1_task_description}
+
+{task1_code_section}
+
+**Task 2:**
+**Task Description:**
+{task2_task_description}
+
+{task2_code_section}
+
+**Proceed in the following way:**
+1. For each task, rephrase an analysis of the task and the steps required. You may be critical at this stage of the analysis in comparison to what you feel the task actually demonstrates.
+2. Leverage all the information you have to produce argumentation as to why it would be easier or more challenging than the other task. Consider making the case that each task is more difficult than the other, and that it is easier than the other.
+3. Weigh your arguments by importance and aggregate them into an initial difficulty selection.
+4. Defend and criticize your argumentation so far as an expert, checking for under or overestimates. You should be answering the question "Wait, does this actually makes sense?"
+5. Please provide your response as to which task is more challenging, alongside a brief description of your reasoning for this choice in the following format, and nothing else:
+
+More challenging task: <1 or 2>
+Reasoning: <brief_reasoning>
