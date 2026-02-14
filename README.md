@@ -1,4 +1,4 @@
-# pipeline_LLMestimator
+# LLM Elicitation
 
 This repository accompanies the paper [**Toward Quantitative Modeling of Cybersecurity Risks Due to AI Misuse**](https://arxiv.org/abs/2512.08864) (Barrett et al., 2025).
 
