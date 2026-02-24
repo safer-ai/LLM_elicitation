@@ -1,0 +1,23 @@
+You are an expert software engineer with vast experience in debugging, problem-solving, and software maintenance.
+
+There are a set of software bugs in various codebases. It is your job to estimate how difficult it would be to identify the root cause and fix these bugs.
+
+Assume the engineer is skilled with access to the codebase, a development environment, and the issue descriptions provided. They need to understand each problem, locate the faulty code, implement a fix, and verify it works.
+
+**Task:**
+
+Of the below tasks, it is your job to decide which one is the most difficult to fix.
+
+**Task Descriptions:**
+{task_description}
+
+**Proceed in the following way:**
+1. Rephrase an analysis of each task and the steps required to fix it. Consider both diagnostic complexity and implementation difficulty.
+2. For each task, estimate which quartile in terms of task difficulty it falls into among the listed tasks. Formulate an argument as to why this placement makes sense.
+3. Weigh your arguments by importance and aggregate them to form an initial ranking list. The specific order is not critical at this point but the relative rankings of various tasks should make sense.
+4. For tasks within the most difficult quartile, defend and criticize your argumentation so far as an expert, checking for under or overestimates. You should be answering the question "Wait, does this actually make sense?"
+5. Rerank the most difficult quartile of tasks based on your analysis and arguments. Now the specific ordering of this quartile is very important so pay attention to the relative rankings of the tasks based on your arguments so far.
+6. Please provide the task number of the most difficult bug to fix in the list, and a brief description of your reasoning for this choice in the following format, and nothing else:
+
+Hardest Task: <task_number>
+Reasoning: <brief_reasoning>

@@ -1,0 +1,60 @@
+# Constants Configuration
+# This file contains all magic numbers and constants used in the data preprocessing pipeline
+
+# Beta Distribution Fitting Parameters
+beta_fitting:
+  # Initial guesses for alpha and beta parameters
+  # Each tuple represents (alpha, beta) starting values for optimization
+  initial_guesses:
+    - [2, 8]    # Right-skewed distribution
+    - [3, 10]   # More right-skewed
+    - [5, 5]    # Symmetric distribution
+    - [1, 3]    # Very right-skewed
+    - [8, 2]    # Left-skewed
+
+  # Maximum iterations for Nelder-Mead optimization
+  max_iterations: 10000
+
+  # Weight factor for median/mode error in objective function
+  # The central tendency (median or mode) is weighted more heavily than CI bounds
+  central_tendency_weight: 2
+
+# Support Bounds Calculation
+bounds_calculation:
+  # Skew extrapolation factor used in calculate_support_bounds_skewed function
+  # Formula uses: (p * skew_factor + skew) where p = 0.9 / ci
+  # The value 1.6 approximates the relationship between IQR and full range for normal distributions
+  skew_factor: 1.6
+
+  # Minimum value floor (probabilities and rates cannot be negative)
+  min_value_floor: 0
+
+# Probability Sanitization Thresholds
+# These prevent numerical issues with beta distributions at boundary values
+sanitization:
+  # Standard lower bound for probabilities (close to 0 but not exactly 0)
+  prob_min: 0.00001
+
+  # Lower bound specifically for best guess / central tendency values
+  central_min: 0.0001
+
+  # Standard upper bound for probabilities (close to 1 but not exactly 1)
+  prob_max: 0.99999
+
+  # Upper bound specifically for best guess / central tendency values
+  central_max: 0.9999
+
+# Small Adjustments for Edge Cases
+# These handle cases where estimates create degenerate or invalid distributions
+adjustment_epsilons:
+  # Standard small adjustment for bounds and central values
+  default: 0.0001
+
+  # Larger adjustment for fallback scenarios (e.g., linear extrapolation)
+  fallback: 0.001
+
+  # Last resort for critical failures (e.g., ZeroDivisionError)
+  critical: 0.01
+
+  # Relative adjustment when low_ci equals high_ci
+  relative_equal: 0.000001

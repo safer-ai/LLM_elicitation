@@ -124,7 +124,7 @@ steps:
     assumptions: |
       - The threat actor has already succeeded at the previous step (Discovery).
       - The threat actor has full, uninhibited access to the LLM's capabilities and can use the LLM in any way.
-      - The threat actor alone, with no help from the LLM, has a 65% chance of success at this step. Interpret this as the mode of the expert belief distribution for this value, with the 5th percentile of the expert's belief distribution being {low_ci} and the 95th percentile being {high_ci}.
+      - The threat actor alone, with no help from the LLM, has a 65% chance of success at this step. Interpret this as the mode of the expert belief distribution for this value, with the 5th percentile of the expert's belief distribution being 40% and the 95th percentile being 85%.
       - Sources: Dragos has observed extensive use of SMB for traversal inside OT zones, noting that over 50% of their service engagements found significant segmentation flaws that would allow this.
  
   - name: "T1105 - Lateral Movement: Ingress Tool Transfer"

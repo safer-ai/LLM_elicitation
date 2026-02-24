@@ -15,7 +15,7 @@ scenario_level_metrics:
       - The baseline estimation of attack attempts per actor group per year is 3. Interpret this as the mode of the expert belief distribution for this value, with the 5th percentile of the expert's belief distribution being 1 and the 95th percentile being 7.
       - This figure is a triangulation based on several constraints:
       - 1. Historical Data: Publicly documented attacks at this level (e.g., Stuxnet, SolarWinds) are rare, averaging about one major success across all actors per year. The number of attempts is higher.
-      - 2. Operational Capacity: These are multi-year campaigns requiring immense r Interpret this as the mode of the expert belief distribution for this value, with the 5th percentile of the expert's belief distribution being 1 and the 95th percentile being 7.
+      - 2. Operational Capacity: These are multi-year campaigns requiring immense resources. Interpret this as the mode of the expert belief distribution for this value, with the 5th percentile of the expert's belief distribution being 1 and the 95th percentile being 7.
       - sources, planning, and hands-on management, limiting the number of parallel operations an agency can run.
       - 3. Non-Public Activity: The estimate is adjusted upwards to account for a significant number of undisclosed or undetected attempts and breaches.
       - The final figure is derived by estimating the total annual attempts (10-15) and dividing by the number of active actor groups (5).
@@ -23,7 +23,7 @@ scenario_level_metrics:
     benchmark_file: "input_data/benchmark/bountybench_ordered.yaml"
     assumptions: |
       - The baseline estimation of economic damage per successful attack is $530,000,000. Interpret this as the mode of the expert belief distribution for this value, with the 5th percentile of the expert's belief distribution being $346.4m and the 95th percentile being $729.9m.
-      - This total cost comes from estimated modes for four key impact areas:
+      - This total cost is the sum of four key impact areas:
       - Incident Response & Recovery ($100M): Covers expert forensics, system rebuilding, and supply-chain hardening. SolarWinds customers' IR costs were estimated at $90M.
       - Business Interruption ($100M): Includes losses from operational downtime, paused production, and project delays.
       - Regulatory & Contractual Liabilities ($60M): Fines for non-compliance with defense regulations (e.g., DFARS), breach disclosure penalties, and contractual claw-backs.

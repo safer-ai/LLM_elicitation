@@ -1,0 +1,655 @@
+- estimate: 71 / 100
+  reasoning: This requires changing a single character in a regex pattern from `$`
+    to `\Z`. It's a well-documented fix for the regex quirk where `$` matches before
+    a trailing newline. The fix is unambiguous, has no side effects, and requires
+    minimal code understanding - simply locate the regex pattern in the validator
+    and change the terminal anchor.
+  task_id: django__django-11099
+- estimate: 86 / 99
+  reasoning: The complete implementation of `_print_Indexed` is provided in the description.
+    It's a simple addition of a new method to PythonCodePrinter with straightforward
+    string formatting logic, requiring no modification of existing code and minimal
+    risk of breaking anything.
+  task_id: sympy__sympy-16766
+- estimate: 76 / 98
+  reasoning: This is a simple typo fix where an undefined variable name 'cotm' needs
+    to be corrected to 'cot'. The error traceback clearly shows a NameError, and the
+    fix is a single-word change with no additional logic or side effects to consider.
+    It requires no deep understanding of the codebase, just fixing an obvious typo.
+  task_id: sympy__sympy-13480
+- estimate: 37 / 97
+  reasoning: Adding `__len__` to Pipeline requires only returning `len(self.steps)`
+    - a single line delegation to an existing attribute with no edge cases, no complex
+    logic, and clear semantics.
+  task_id: scikit-learn__scikit-learn-13439
+- estimate: 62 / 96
+  reasoning: This requires changing a single attribute access from `request.path_info`
+    to `request.path` in the `catch_all_view()` function. Both attributes already
+    exist on the request object, no new logic or validation is needed, and the fix
+    is a literal one-word change that makes the function respect the FORCE_SCRIPT_NAME
+    setting.
+  task_id: django__django-14404
+- estimate: 66 / 95
+  reasoning: The fix is explicitly stated in the description - add a single `using=db`
+    parameter to an existing `save()` call. The location is identified (line in migrations
+    code), the exact change is specified, and it's a one-line modification with no
+    side effects. The context already uses `with transaction.atomic(using=db):`, making
+    it clear this parameter was simply forgotten.
+  task_id: django__django-11066
+- estimate: 86 / 94
+  reasoning: TASK 86 requires only passing an already-computed value (self.prog_name)
+    as a single parameter (prog=self.prog_name) to an existing CommandParser constructor
+    call. No logic changes, no edge cases, no side effects - just ensuring the parser
+    uses the correct program name that was already carefully computed.
+  task_id: django__django-13658
+- estimate: 23 / 93
+  reasoning: Implementing `__iter__` for Paginator requires only 3 lines of code to
+    iterate over `page_range` and yield pages. It's a textbook implementation of the
+    iterator protocol with no edge cases, side effects, or complex logic - just a
+    straightforward method that yields `self.page(page_num)` for each page number.
+  task_id: django__django-9296
+- estimate: 27 / 92
+  reasoning: The fix requires adding a single parameter `ensure_ascii=False` to a
+    `json.dumps()` call to prevent Chinese characters from being displayed as ASCII
+    escape sequences. This is a one-line change with no side effects, no backward
+    compatibility concerns, and no complex interactions with other systems.
+  task_id: django__django-13512
+- estimate: 84 / 91
+  reasoning: Simply adding `disabled=True` as a default parameter to `ReadOnlyPasswordHashField.__init__()`.
+    This is a one-line change that sets an existing, well-documented Field parameter
+    to prevent the need for custom `clean_password` methods. No complex logic, no
+    side effects to consider, just setting a boolean property that already exists
+    in the Django forms framework.
+  task_id: django__django-13741
+- estimate: 15 / 90
+  reasoning: The fix is explicitly provided in the description - simply change `del
+    deconstruction[2]['to']` to `deconstruction[2].pop('to', None)` to handle the
+    missing key gracefully. This is a one-line change with no complex logic, no need
+    to understand intricate system internals, and the solution is already validated.
+  task_id: django__django-15104
+- estimate: 4 / 89
+  reasoning: The exact code patch is provided in the issue description - it's a simple
+    conditional check to use tick.labelcolor instead of tick.color when labelcolor
+    is not 'inherit'. The fix is literally specified as a diff, requiring minimal
+    diagnostic work and a straightforward implementation in a single location.
+  task_id: matplotlib__matplotlib-25287
+- estimate: 21 / 88
+  reasoning: This requires changing a single return statement from `return False`
+    to `return NotImplemented` in comparison methods. The issue is clearly specified,
+    the fix is a one-word change, and the behavior is well-defined by Python's data
+    model. No complex debugging, no subsystem knowledge required, and minimal testing
+    needed.
+  task_id: sympy__sympy-13091
+- estimate: 48 / 87
+  reasoning: The fix requires adding a single null check (`if result is not None:`)
+    before accessing the array element. The error traceback clearly identifies the
+    problem line, the root cause is obvious (empty query result), and the solution
+    has no side effects or API implications.
+  task_id: django__django-13089
+- estimate: 71 / 86
+  reasoning: This is a pure cosmetic fix requiring only proper whitespace insertion
+    in SQL string generation. The code already works functionally; it just produces
+    "name"DESC instead of "name" DESC. This requires changing 1-2 lines of string
+    concatenation with zero logic changes and minimal risk.
+  task_id: django__django-12039
+- estimate: 34 / 85
+  reasoning: The fix requires only adding a simple conditional check (`if sys.path[0]
+    in ("", ".", os.getcwd())`) before removing the first sys.path element. The issue
+    clearly identifies the problem, the exact line needing change, and the specific
+    condition to check. It's a pure defensive programming addition with no complex
+    logic, no API changes, and minimal risk of breaking existing functionality.
+  task_id: pylint-dev__pylint-7277
+- estimate: 80 / 84
+  reasoning: The bug is that `as_expr(*symbols)` accepts a symbols parameter but ignores
+    it, always using `self.ring.symbols` instead. The fix is a trivial one-line change
+    to actually use the passed symbols when provided. No complex logic, edge cases,
+    or system understanding required - just use the parameter the function already
+    accepts.
+  task_id: sympy__sympy-24539
+- estimate: 81 / 83
+  reasoning: "The warm_start functionality already exists and works in IsolationForest\
+    \ through inheritance from BaseBagging. The fix only requires adding the parameter\
+    \ to the `__init__` signature, copying documentation from similar classes, and\
+    \ adding a test. No logic changes or bug investigation needed\u2014it's purely\
+    \ exposing existing, working functionality."
+  task_id: scikit-learn__scikit-learn-13496
+- estimate: 68 / 82
+  reasoning: Simply removing an obsolete `__file__` attribute check that prevents
+    namespace packages from working with migrations. The issue description explains
+    that this check was needed for old migration discovery code but the new implementation
+    using `pkgutil.iter_modules()` doesn't require it. It's a straightforward deletion
+    of 1-2 lines of validation code with clear justification and no complex side effects.
+  task_id: django__django-11141
+- estimate: 51 / 81
+  reasoning: The fix requires changing a single type-checking call from `inspect.isfunction`
+    to a check that also handles properties (e.g., `callable` or checking for `property`
+    type). This is a one-line change in the InheritDocstrings metaclass with a clear
+    cause, clear location, and clear solution.
+  task_id: astropy__astropy-7166
+- estimate: 35 / 80
+  reasoning: The fix requires adding a single if-statement (`if self.max_length is
+    not None:`) before creating the MaxLengthValidator in CharField.__init__. The
+    problem is clearly identified, the solution is specified in the description, all
+    tests already pass with the change, and it follows the pattern already used in
+    BinaryField. This is the most minimal, lowest-risk change in the entire list.
+  task_id: django__django-15277
+- estimate: 8 / 79
+  reasoning: The NumPy deprecation fix requires changing three constant assignments
+    to use values that fit within uint8 range (0-255) or proper casting. The error
+    messages pinpoint exact lines, the fix is mechanical with no algorithmic complexity,
+    and it's a well-defined deprecation issue with an obvious solution.
+  task_id: matplotlib__matplotlib-24970
+- estimate: 31 / 78
+  reasoning: "This requires only changing the output format string in the Mathematica\
+    \ code printer from Python-style `Max(args)` to Mathematica-style `Max[args]`.\
+    \ It's a pure formatting issue with no complex logic, state management, or system\
+    \ interactions\u2014just modifying how one function formats its output string."
+  task_id: sympy__sympy-15345
+- estimate: 74 / 77
+  reasoning: The issue is a direct ValueError from using "in" operator on a numpy
+    array in boolean context. The fix requires changing a single comparison in line
+    94 of _pytest/compat.py from `p.new in sentinels` to an identity check that doesn't
+    trigger array truth value evaluation, such as `any(p.new is s for s in sentinels)`.
+    This is the most isolated, straightforward fix with a clear error location and
+    minimal code change.
+  task_id: pytest-dev__pytest-5631
+- estimate: 40 / 76
+  reasoning: The fix requires adding OverflowError to existing exception handling
+    in a single method (value_from_datadict), wrapping the datetime.date() call that
+    already catches AttributeError. This is a localized, straightforward change with
+    clear error condition and no side effects or backward compatibility concerns.
+  task_id: django__django-16667
+- estimate: 46 / 75
+  reasoning: This requires only wrapping the file-writing code in a conditional check
+    (`if not options['check']:`). The fix is a single-line addition with no complex
+    logic, no need to understand intricate subsystems, and the expected behavior is
+    explicitly documented. It's more straightforward than even the pure refactoring
+    in TASK 47 because there's no method signature to design.
+  task_id: django__django-16116
+- estimate: 73 / 74
+  reasoning: This requires only adding a simple None check before setting a header
+    value (if value is None, delete the key instead of setting it). It's a 2-3 line
+    change in a single location with no complex dependencies, no need to understand
+    intricate systems, and the fix is immediately obvious from the bug description.
+  task_id: psf__requests-1921
+- estimate: 61 / 73
+  reasoning: The fix requires only adding a conditional check (`if thresholds.max()
+    <= 1`) and clipping the array (`np.clip(thresholds, 0, 1)`) when dealing with
+    probability estimates. The issue is clearly identified, the solution is straightforward
+    (2-3 lines), and it doesn't require deep understanding of complex algorithms or
+    architecture - just boundary validation for thresholds that should represent probabilities.
+  task_id: scikit-learn__scikit-learn-26194
+- estimate: 3 / 72
+  reasoning: "Simple try-except wrapper around existing IDNA encoding to catch UnicodeError\
+    \ and raise InvalidUrl instead. The fix location is clear, a similar pattern exists\
+    \ in the codebase (#4168), and it requires no logic changes\u2014just defensive\
+    \ error handling with no edge cases to consider."
+  task_id: psf__requests-5414
+- estimate: 51 / 71
+  reasoning: Simply needs to change a return value from returning self (Contains object)
+    to returning an appropriate set representation. It's a single method with a clear
+    incorrect return statement, requires no complex logic, no backwards compatibility
+    concerns, and the correct behavior is obvious from the issue description.
+  task_id: sympy__sympy-23950
+- estimate: 54 / 70
+  reasoning: This requires literally moving one line of code - calling `settings.ROOT_URLCONF`
+    before the memoized `get_resolver` function instead of inside it. This ensures
+    the cache key is consistent rather than alternating between None and the actual
+    urlconf value. No complex logic, no edge cases, just proper cache key management.
+  task_id: django__django-11333
+- estimate: 56 / 69
+  reasoning: The issue is explicitly identified at line 295 where `get_current_timezone_name()`
+    is called instead of using the provided `self.tzinfo` parameter. The fix is a
+    single-line change to use the tzinfo parameter when provided, with a clear fallback.
+    No complex logic, edge cases, or architectural changes required.
+  task_id: django__django-13363
+- estimate: 11 / 68
+  reasoning: This is a pure type-checking fix in a single method
+  task_id: django__django-14238
+- estimate: 10 / 67
+  reasoning: Requires only checking if the function is a functools.partial object
+    and unwrapping it to access the underlying function in ResolverMatch.__init__().
+    This is a single-location fix with no edge cases, backward compatibility concerns,
+    or complex logic - just a simple isinstance check and attribute access to get
+    partial.func.
+  task_id: django__django-14155
+- estimate: 43 / 66
+  reasoning: 'This is a straightforward refactoring that extracts an existing code
+    block into a new method with no logic changes. The user provides the exact solution
+    - move the dictionary comprehension `{''id'': str(getattr(obj, to_field_name)),
+    ''text'': str(obj)}` into a `serialize_result()` method. This is pure code reorganization
+    for extensibility with zero risk of breaking existing functionality.'
+  task_id: django__django-14752
+- estimate: 27 / 65
+  reasoning: The bug is a straightforward edge case where floatformat crashes on "0.00"
+    with 0 decimal places due to invalid Decimal precision. The error message explicitly
+    identifies the problem, the issue is localized to a single function, and the fix
+    is likely a simple conditional check to handle the zero precision case before
+    attempting Decimal operations. No API changes or cross-component interactions
+    required.
+  task_id: django__django-16485
+- estimate: 10 / 64
+  reasoning: This requires only passing the `value` parameter to ValidationError constructors
+    in built-in validators. It's a pure addition with no breaking changes, no complex
+    logic, and the use case is already documented. The fix is localized to validator
+    implementations and simply enables using %(value)s placeholders in custom error
+    messages.
+  task_id: django__django-13212
+- estimate: 6 / 63
+  reasoning: 'The fix requires only adding a None check in the fit() method to use
+    the instance''s copy_X attribute when no argument is provided. This is a 2-3 line
+    change with clear logic: `if copy_X is None: copy_X = self.copy_X`. No complex
+    API changes, no edge cases, just simple parameter precedence handling.'
+  task_id: scikit-learn__scikit-learn-12973
+- estimate: 43 / 62
+  reasoning: 'The wspace and hspace parameters are already defined in the subfigures
+    function signature but simply not being used in the layout calculation. The fix
+    is trivial: pass these existing parameters to the underlying layout engine. No
+    edge cases, no backward compatibility concerns, no complex logic - just connect
+    already-defined parameters to their intended use.'
+  task_id: matplotlib__matplotlib-25960
+- estimate: 29 / 61
+  reasoning: This task only requires renaming the 'dim' parameter to 'coord' in DataArray.integrate()
+    for API consistency with Dataset.integrate(). It's a pure interface change with
+    no logic modifications needed, though may benefit from a deprecation warning for
+    the old parameter name.
+  task_id: pydata__xarray-3993
+- estimate: 54 / 60
+  reasoning: "This is a pure display/rendering bug in Sphinx where default values\
+    \ for positional-only parameters aren't being shown in the signature. The information\
+    \ already exists in the parsed function signature; it just needs to be included\
+    \ in the output formatting. It's the most localized fix with no logic changes\
+    \ or side effects\u2014simply ensuring that default values are rendered correctly\
+    \ for this parameter type."
+  task_id: sphinx-doc__sphinx-7757
+- estimate: 52 / 59
+  reasoning: The fix is a single conditional check before validation runs. The error
+    traceback clearly shows Point2D.__new__ raising ValueError during validation when
+    evaluate=False. The solution is simply wrapping the "Imaginary coordinates" check
+    with `if evaluate:` to skip validation when evaluate=False, matching SymPy's evaluation
+    contract.
+  task_id: sympy__sympy-22714
+- estimate: 50 / 58
+  reasoning: This requires only adding the samesite parameter (and potentially httponly,
+    secure) to the existing self.set_cookie() call within delete_cookie(). The method
+    already supports these parameters, making this a trivial one-line change with
+    minimal risk and no architectural considerations.
+  task_id: django__django-13195
+- estimate: 40 / 57
+  reasoning: This task requires only adding a conditional check to detect when an
+    AlterField operation on SQLite changes only the 'choices' parameter, which doesn't
+    affect the database schema. Since the description explicitly states this should
+    be a "noop" and the operation is already database-aware, the fix is simply adding
+    a condition to skip SQL generation for this specific case on SQLite.
+  task_id: django__django-15561
+- estimate: 54 / 56
+  reasoning: Adding the `fill_value` parameter to `IterativeImputer` is the simplest
+    fix - it only requires adding a parameter to the `__init__` method and passing
+    it through to the existing `SimpleImputer` instance that already supports this
+    parameter. This is a straightforward parameter passthrough with no complex logic,
+    edge cases, or system interactions to consider.
+  task_id: scikit-learn__scikit-learn-25232
+- estimate: 43 / 55
+  reasoning: This is a classic missing reverse operator case (__rmul__). The fix is
+    simply adding a method that delegates to the existing __mul__ implementation -
+    likely just 1-3 lines of code. The error clearly shows multiplication works in
+    one direction but not the other, which is the textbook signature of a missing
+    reverse operator in Python.
+  task_id: sympy__sympy-17655
+- estimate: 33 / 54
+  reasoning: This is a pure consistency fix requiring only that the signature mode
+    create the same kind of cross-reference link for None that the description mode
+    already creates. No complex logic, no edge cases, just making two code paths behave
+    identically for a single type.
+  task_id: sphinx-doc__sphinx-7454
+- estimate: 19 / 53
+  reasoning: Simple attribute name collision where Django's `check_filterable()` incorrectly
+    interprets a model field named "filterable" as a special filter control attribute.
+    The fix requires only modifying the attribute check to be more specific about
+    what types of objects should be tested for filterability, avoiding false positives
+    from user-defined model fields. Most localized change with clearest root cause.
+  task_id: django__django-13028
+- estimate: 1 / 52
+  reasoning: TASK 1 has the clearest diagnosis (IndexError with specific line number),
+    simplest reproducer, and most straightforward fix - a boundary condition check
+    for single-feature trees in export_text. The error is localized, well-understood,
+    and requires minimal system knowledge to fix.
+  task_id: scikit-learn__scikit-learn-14053
+- estimate: 13 / 51
+  reasoning: This is explicitly an optimization task with a clear pattern to match
+    (CreateModel followed by AlterModelManagers). Similar optimization code already
+    exists in the codebase for CreateModel + AlterModelOptions, providing a template
+    to follow. The task is purely additive (an optimization that doesn't change behavior),
+    involves straightforward pattern matching, and has well-defined semantics with
+    no complex edge cases to handle.
+  task_id: django__django-15499
+- estimate: 8 / 50
+  reasoning: The fix is explicitly stated (convert domain to punycode), the location
+    is identified (django.core.mail), a test case is provided, and it's a single localized
+    change with no complex interactions. The solution is a standard practice (IDNA
+    encoding) with well-defined Python library support.
+  task_id: django__django-11532
+- estimate: 42 / 49
+  reasoning: Clear regression between pytest 5.4.3 and 6.0.0rc1 where carriage returns
+    are converted to newlines in captured output. The fix is highly localized (likely
+    in capture.py), requires minimal code changes (probably removing a text normalization
+    step), has a trivial reproduction case, and is easy to verify. No complex logic
+    or edge cases involved.
+  task_id: pytest-dev__pytest-7521
+- estimate: 22 / 48
+  reasoning: The fix requires a simple conditional change in a single function (numberformat.format)
+    - when decimal_pos is specified and the number is below the threshold, return
+    formatted zeros instead of exponential notation. The issue is well-defined, highly
+    localized, has no cross-component dependencies, and the solution is straightforward.
+  task_id: django__django-11206
+- estimate: 25 / 47
+  reasoning: The issue is a false positive validation error where Django's model check
+    system incorrectly rejects the `isnull` lookup in ordering fields, despite the
+    ordering working correctly in actual queries. The fix is simply updating the validation
+    logic to allow lookups like `isnull` that aren't transforms. The problem is well-isolated
+    to validation code, requires no complex SQL generation changes, and the test case
+    already demonstrates the functionality works - only the check needs adjustment.
+  task_id: django__django-12858
+- estimate: 24 / 46
+  reasoning: The fix requires only ensuring proper function attribute preservation
+    using functools.wraps() in a single decorator function - a standard, well-understood
+    Python pattern with minimal dependencies and clear, localized implementation.
+  task_id: django__django-14787
+- estimate: 14 / 45
+  reasoning: The fix is simply adding 'finite' (and related assumptions) to the list
+    of assumptions that posify preserves when creating new symbols. This is a direct,
+    one-location code change with clear intent and minimal side effects.
+  task_id: sympy__sympy-16450
+- estimate: 8 / 44
+  reasoning: The issue explicitly states that xarray's `apply_ufunc` already has `keep_attrs`
+    infrastructure. The fix is simply passing this parameter through to the underlying
+    function call - likely a 1-2 line change adding a parameter. No complex logic,
+    no edge cases, just parameter forwarding.
+  task_id: pydata__xarray-4687
+- estimate: 7 / 43
+  reasoning: The colorbar edge drawing issue has a visually obvious problem (missing
+    black lines at extremities), a well-isolated fix location (colorbar drawing code),
+    and requires only adding edge lines at the extended portions. No complex framework
+    knowledge, state management, or algorithmic changes needed - just straightforward
+    drawing logic.
+  task_id: matplotlib__matplotlib-22865
+- estimate: 16 / 42
+  reasoning: The bug has a clear AttributeError with exact location, the solution
+    is explicitly described (check for MultiOutputClassifier and use estimators_[i].classes_),
+    and it requires only a simple conditional attribute access change without complex
+    state management or algorithm understanding.
+  task_id: scikit-learn__scikit-learn-14629
+- estimate: 36 / 41
+  reasoning: The reporter explicitly states they already have a fix ready and identifies
+    the specific offending line from Django 2.0. This is a simple argument parsing
+    bug in template tag decorators where keyword-only arguments with defaults are
+    not handled correctly. The fix involves updating the argument validation logic
+    in simple_tag/inclusion_tag decorators, which is straightforward compared to issues
+    involving complex query generation, pickling, or cross-module introspection.
+  task_id: django__django-12262
+- estimate: 5 / 40
+  reasoning: The bug is a presentation/formatting issue where symbols ending with
+    numbers become invisible in MathML output. The fix likely involves ensuring numeric
+    suffixes are properly wrapped in MathML subscript tags. The scope is localized
+    to the MathML printer, the expected behavior is obvious (symbols should be visible),
+    and it's a straightforward formatting correction without complex logic or edge
+    cases.
+  task_id: sympy__sympy-15976
+- estimate: 33 / 39
+  reasoning: "Clear regression between versions 3.4\u21923.5 in matplotlib's SpanSelector\
+    \ widget. Issue is localized to the interactive parameter incorrectly forcing\
+    \ axis limits to include 0. The bug report identifies the exact parameter and\
+    \ version where it broke, making it straightforward to find the relevant code\
+    \ change and fix the axis limit handling logic."
+  task_id: matplotlib__matplotlib-20676
+- estimate: 36 / 38
+  reasoning: The bug is a simple operator precedence issue in code generation where
+    `-Mod(x, y)` is incorrectly converted to `-x % y` instead of `-(x % y)`. The fix
+    requires only adding parentheses around the modulo operation in one specific location
+    in the lambdify code generation logic. No complex architectural understanding
+    is needed, and the reproduction case clearly demonstrates the exact problem.
+  task_id: sympy__sympy-22080
+- estimate: 6 / 37
+  reasoning: The ticket provides the complete, working solution with detailed explanation
+    of the logic. The fix involves simply reordering existing checks in _check_list_display_item()
+    to try get_field() even when hasattr() is False, with all necessary code already
+    specified in the bug report.
+  task_id: django__django-11551
+- estimate: 22 / 36
+  reasoning: The fix is a simple validation check to ensure Expression.compile() doesn't
+    use Python reserved keywords like "False", "True", or "None" as variable names.
+    This requires adding a single conditional check against Python's keyword list
+    before compilation, with a clear error location and obvious solution.
+  task_id: pytest-dev__pytest-7324
+- estimate: 33 / 35
+  reasoning: The exact problematic line (641) is identified in the issue, the problem
+    is clearly understood (objects with `.values` property are incorrectly coerced),
+    and the fix is a simple adjustment to the conditional logic that checks for the
+    `.values` attribute. The issue provides a clear minimal example and even identifies
+    the specific PR that introduced the regression, making diagnosis trivial and implementation
+    straightforward.
+  task_id: pydata__xarray-2905
+- estimate: 30 / 34
+  reasoning: The issue is precisely defined (RFC 1738 compliance), the fix is localized
+    to a single regex pattern, there are clear test cases for validation, and a PR
+    already exists as reference. No complex system interactions or architectural understanding
+    required.
+  task_id: django__django-10097
+- estimate: 25 / 33
+  reasoning: The issue is clearly identified (from_db_value not called for RETURNING
+    fields on insert), the location is known (insert code path), and the fix is straightforward
+    (call the field converter on the returned primary key value). This is the most
+    localized fix with the clearest solution.
+  task_id: django__django-14007
+- estimate: 22 / 32
+  reasoning: The bug has a trivial 3-line reproduction, clear expected behavior (preserve
+    int32 dtype), and requires a highly localized fix - likely just adding an explicit
+    dtype parameter when creating the MultiIndex in xarray's stack() method. No complex
+    logic or multiple code paths to handle.
+  task_id: pydata__xarray-7393
+- estimate: 18 / 31
+  reasoning: The issue is a simple precedence problem where custom translation files
+    are correctly created but ignored in favor of built-in translations. The fix involves
+    adjusting the translation loading order to check user-provided translations before
+    built-in ones - a localized configuration change requiring no algorithm modifications
+    or complex debugging.
+  task_id: sphinx-doc__sphinx-8120
+- estimate: 6 / 30
+  reasoning: Clear IndexError with exact traceback location, simple array shape mismatch
+    when refit=False, requires only conditional array access logic, no complex subsystem
+    interactions, complete minimal reproduction case provided.
+  task_id: scikit-learn__scikit-learn-14087
+- estimate: 4 / 29
+  reasoning: The bug is clearly identified (StrPrinter settings not passed to Eq and
+    Limit subexpressions), the fix is straightforward (ensure recursive printer calls
+    pass settings through), it's highly localized to the printer implementation, and
+    verification is trivial using the provided examples.
+  task_id: sympy__sympy-14531
+- estimate: 11 / 28
+  reasoning: 'The issue explicitly states that field order determines behavior when
+    one field has `parent_link=True`. The fix is straightforward: prioritize checking
+    for the explicit `parent_link=True` attribute before applying other heuristics.
+    This is a simple conditional logic reordering with minimal risk and clear test
+    case provided in the issue description.'
+  task_id: django__django-12325
+- estimate: 12 / 27
+  reasoning: TASK 12 has a clear, well-understood cause (weakref cannot be pickled),
+    a specific error message pointing to the problem, and standard Python solutions
+    (implement pickle methods or avoid weakrefs). The scope is limited to the align_labels()
+    functionality, making it the most isolated and straightforward fix.
+  task_id: matplotlib__matplotlib-25332
+- estimate: 23 / 26
+  reasoning: 'The bug has a clear description stating it''s "very similar to #33018"
+    which provides a reference implementation. It''s an isolated edge case where filtering
+    on an Exists subquery with an empty queryset incorrectly removes the WHERE clause.
+    The fix likely involves adding a simple conditional check in the query building
+    logic to handle empty querysets in Exists expressions, making it the most straightforward
+    to diagnose and fix.'
+  task_id: django__django-15382
+- estimate: 11 / 25
+  reasoning: The bug is a single incorrect conditional check in `lookup_allowed()`
+    that mistakenly treats foreign keys used as primary keys as concrete inheritance.
+    The issue is precisely localized, well-tested, and requires only fixing one logical
+    condition rather than complex refactoring or cross-component interactions.
+  task_id: django__django-16661
+- estimate: 10 / 24
+  reasoning: A patch is already provided in the issue description, the problem is
+    well-understood (multiple search words causing redundant JOINs due to chained
+    filter() calls), the fix is localized to admin changelist query building, and
+    verification is straightforward by inspecting the generated SQL. This is primarily
+    a performance optimization rather than a correctness bug, making it lower risk.
+  task_id: django__django-15022
+- estimate: 20 / 23
+  reasoning: This is a regression where dynamic xfail markers worked in pytest 5.x
+    but stopped working in 6.0. The reproduction is trivial (6 lines), the expected
+    behavior is clear, and since it worked before, the fix likely involves ensuring
+    dynamically-added markers go through the same evaluation path as static markers.
+    Regression fixes are typically localized and can be found by comparing versions.
+  task_id: pytest-dev__pytest-7490
+- estimate: 10 / 22
+  reasoning: 'The error explicitly states what''s wrong (exp() argument should be
+    dimensionless but isn''t detected as such), the fix location is known (_collect_factor_and_dimension),
+    and the solution is straightforward: add proper handling to verify exp() arguments
+    are dimensionless before evaluation. This is a highly targeted fix with minimal
+    scope for complications.'
+  task_id: sympy__sympy-24066
+- estimate: 15 / 21
+  reasoning: This is a straightforward configuration interaction bug between Sphinx's
+    autodoc and Napoleon where return types are not appearing with a specific config
+    flag. The issue is well-defined, reproducible, and likely requires only ensuring
+    that Napoleon's return type processing respects the `autodoc_typehints_description_target`
+    configuration option - probably a simple conditional check or flag propagation.
+  task_id: sphinx-doc__sphinx-9673
+- estimate: 1 / 20
+  reasoning: It's a regression between two specific matplotlib versions (3.4.1 to
+    3.4.2) with a trivial reproduction case. The engineer can git diff the versions
+    to identify the exact change that caused the issue, and the expected behavior
+    is clearly defined by the working 3.4.1 version. Regressions with clear before/after
+    states are typically the easiest to diagnose and fix.
+  task_id: matplotlib__matplotlib-20826
+- estimate: 3 / 19
+  reasoning: The bug produces objectively malformed SQL (`SELECT FROM (SELECT ...)`
+    missing columns) that's easy to locate in Django's SQL compiler. The fix is straightforward
+    - ensure proper column selection when combining aggregate with default parameter
+    after annotate. The issue is highly localized with clear expected behavior.
+  task_id: django__django-15375
+- estimate: 5 / 18
+  reasoning: The XOR bug has a clear mathematical definition (parity vs exactly-one),
+    explicit test cases showing expected behavior, references the introducing PR (#29865)
+    for easy location, and requires only a localized logic fix in Q object XOR handling
+    without complex system interactions.
+  task_id: django__django-16901
+- estimate: 5 / 17
+  reasoning: Clear visual reproduction showing Matrix.col_insert() produces obviously
+    wrong output - identity matrix shifted to wrong rows when inserting columns. Almost
+    certainly a simple indexing or slicing error in the col_insert implementation,
+    making it straightforward to locate and fix.
+  task_id: sympy__sympy-13647
+- estimate: 1 / 16
+  reasoning: The bug is a simple string path generation error where the migration
+    serializer fails to include the parent class name for nested classes. The fix
+    is localized to the migration serializer's path building logic - just need to
+    correctly traverse the class hierarchy to generate "Profile.Capability.default"
+    instead of "Capability.default". This is a straightforward string manipulation
+    fix with a clear problem statement and obvious solution.
+  task_id: django__django-17087
+- estimate: 9 / 15
+  reasoning: TASK 9 is a localized logic bug in SymPy's is_zero property for complex
+    expressions. The issue shows that simplify() already fixes it, indicating the
+    solution is likely adding simplification or improving evaluation logic in the
+    Add class's is_zero check - a straightforward, well-scoped fix with clear expected
+    behavior.
+  task_id: sympy__sympy-15875
+- estimate: 7 / 14
+  reasoning: Clear reproduction case, exact error location and fix approach explicitly
+    provided by reporter (increment alias suffix until not in existing map to avoid
+    collision), straightforward algorithmic fix with immediate verification possible.
+  task_id: django__django-15128
+- estimate: 5 / 13
+  reasoning: Pure logic bug in diophantine's permutation handling with deterministic
+    reproduction. The function works correctly with one symbol order but fails with
+    another, indicating a simple conditional or ordering issue in the permutation
+    generation code. Most contained scope with straightforward testing.
+  task_id: sympy__sympy-18189
+- estimate: 8 / 12
+  reasoning: 'Feature request with clear scope - add a parameter to model formsets
+    to disable object creation and enforce it during form processing. The implementation
+    path is straightforward: add a flag to the formset factory, check it during form
+    instantiation/validation, and reject attempts to create new objects. No complex
+    debugging, no environment-specific issues, and Django''s formset code has clear
+    extension points for this functionality.'
+  task_id: django__django-14725
+- estimate: 9 / 11
+  reasoning: The issue is clearly scoped with exact reproduction steps, and the fix
+    is conceptually simple - make type annotation resolution use the same lookup logic
+    as explicit cross-references. This is a consistency fix between two code paths
+    rather than solving an architectural problem, making it the most straightforward
+    to implement and verify.
+  task_id: sphinx-doc__sphinx-8551
+- estimate: 8 / 10
+  reasoning: The root cause is explicitly identified (split_exclude doesn't copy FilteredRelation
+    annotations to the new query), the fix location is known, and there's a clear
+    test case. The fix is localized and involves ensuring annotations are preserved
+    when cloning queries - likely just a few lines to copy the filtered_relation data
+    structure.
+  task_id: django__django-11265
+- estimate: 5 / 9
+  reasoning: The issue is precisely defined with exact SQL output showing unnecessary
+    JOINs and incorrect sort order. The user has identified the specific pattern (ordering
+    by "_id" suffix on self-referencing foreign keys) and provided working workarounds.
+    The fix is highly localized to Django's order_by field resolution logic where
+    it needs to recognize this pattern and use direct column references instead of
+    creating joins.
+  task_id: django__django-13033
+- estimate: 0 / 8
+  reasoning: The root cause is completely diagnosed by the reporter, the fix location
+    in Sphinx's autodoc is identified, and Python 3.10's implementation of `__wrapped__`
+    attribute provides a clear solution path. The fix involves adding special-case
+    handling for classmethod+property combinations in autodoc's type introspection,
+    which is a localized change with straightforward testing.
+  task_id: sphinx-doc__sphinx-9461
+- estimate: 1 / 7
+  reasoning: TASK 1 has deterministic reproduction, a clear root cause (queryset values()
+    state not preserved during pickling), and a straightforward fix location (Query
+    serialization methods). The fix involves ensuring the values_select attribute
+    is included in __getstate__/__setstate__, which is a localized change that's easy
+    to verify with the provided test case.
+  task_id: django__django-13406
+- estimate: 0 / 6
+  reasoning: Clear error message with specific location in normalization code, isolated
+    scope, straightforward fix to handle non-finite values from log transformation
+    of huge ranges, and immediate verification with the failing test. No complex system
+    interactions or architectural changes required.
+  task_id: matplotlib__matplotlib-20488
+- estimate: 2 / 5
+  reasoning: The root cause is already identified (ThreadedWSGIServer not waiting
+    for thread termination), a workaround exists, and the fix is likely as simple
+    as setting `daemon_threads = False` or adding proper thread cleanup. This is standard
+    thread lifecycle management, unlike the other tasks which require deep system
+    understanding or architectural changes.
+  task_id: django__django-14011
+- estimate: 1 / 4
+  reasoning: Clear reproduction provided, straightforward fix involving making auto-linking
+    more conservative or scope-aware, no version-specific complications, and conceptually
+    simpler than debugging proxy authentication security changes or modifying complex
+    ORM internals.
+  task_id: sphinx-doc__sphinx-8638
+- estimate: 0 / 3
+  reasoning: TASK 0 has a perfect reproduction case with no external dependencies,
+    a highly specific SQL error message that pinpoints the issue location, and represents
+    a contained bug in query compilation rather than an architectural limitation.
+    Despite Django ORM complexity, the diagnostic path is straightforward.
+  task_id: django__django-10554
+- estimate: 1 / 2
+  reasoning: This is a version-specific compatibility issue with clear symptoms (407
+    error in Python 3.8.12), a narrow scope (proxy authentication), and the user has
+    already identified the likely cause. The fix is probably a small, localized change
+    in requests/urllib3's authentication handling, whereas Task 0 requires architectural
+    changes to Django's core ORM.
+  task_id: psf__requests-6028
+- estimate: 0 / 1
+  reasoning: This is the only task provided. While it requires Django ORM knowledge,
+    the error is clear, the issue is well-documented, and the fix likely involves
+    queryset cloning before internal filter application - a relatively contained change
+    in Django's prefetch machinery.
+  task_id: django__django-15957

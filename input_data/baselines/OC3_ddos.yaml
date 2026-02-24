@@ -1,0 +1,104 @@
+# OC3 DDoS Attack Scenario Baselines
+# These values represent expert estimates for a distributed denial of service attack
+
+# Data source and output configuration
+estimate_csv: OC3_ddos_estimates.csv
+output_path: OC3_DDOS/
+description: "OC3 DDoS attack estimates"
+
+baselines:
+  Damage:
+    low_ci: 3500000
+    high_ci: 103300000
+    central_value: 18100000
+    confidence: 0.9
+    value_type: mode
+    description: "Expected financial damage in USD"
+
+  NumActors:
+    low_ci: 7
+    high_ci: 30
+    central_value: 15
+    confidence: 0.9
+    value_type: mode
+    description: "Number of threat actors involved"
+
+  NumAttacks:
+    low_ci: 50
+    high_ci: 300
+    central_value: 150
+    confidence: 0.9
+    value_type: mode
+    description: "Number of attack attempts"
+
+  "Defense Evasion: Masquerading":
+    low_ci: 0.5
+    high_ci: 0.85
+    central_value: 0.7
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of successful masquerading for defense evasion"
+
+  "Impact: Direct Network Flood":
+    low_ci: 0.2
+    high_ci: 0.60
+    central_value: 0.4
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of successful direct network flood attack"
+
+  "Impact: Reflection/Amplification Attack":
+    low_ci: 0.5
+    high_ci: 0.9
+    central_value: 0.7
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of successful reflection/amplification attack"
+
+  "Defense Evasion: Non-Standard Port":
+    low_ci: 0.2
+    high_ci: 0.6
+    central_value: 0.4
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of using non-standard ports for evasion"
+
+  "Resource Development: Acquire Botnet":
+    low_ci: 0.85
+    high_ci: 0.95
+    central_value: 0.9
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of successfully acquiring a botnet"
+
+  "Resource Development: Build/Compromise Botnet":
+    low_ci: 0.4
+    high_ci: 0.85
+    central_value: 0.6
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of building/compromising own botnet"
+
+  "Reconnaissance: Gather Victim Network Information":
+    low_ci: 0.5
+    high_ci: 0.9
+    central_value: 0.7
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of successfully gathering victim network info"
+
+  "Reconnaissance: Active Scanning":
+    low_ci: 0.7
+    high_ci: 0.9
+    central_value: 0.8
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of successful active scanning"
+
+  "Command-and-Control":
+    low_ci: 0.4
+    high_ci: 0.9
+    central_value: 0.7
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of establishing C2 (missing uplift)"

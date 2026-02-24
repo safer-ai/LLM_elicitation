@@ -1,10 +1,10 @@
-# LLM Elicitation
+# LLM_Elicitation
 
 This repository accompanies the paper [**Toward Quantitative Modeling of Cybersecurity Risks Due to AI Misuse**](https://arxiv.org/abs/2512.08864) (Barrett et al., 2025).
 
 ## Repository Structure
 
-This repository contains **two independent tools** for LLM-based capability evaluation:
+This repository contains **three independent tools** for LLM-based security assessment and capability evaluation:
 
 ### 1. Risk Scenario Estimation (`src/`)
 
@@ -14,7 +14,15 @@ This repository contains **two independent tools** for LLM-based capability eval
 
 The main tool simulates a Delphi-like estimation process using LLMs as expert personas. It assesses cyber risk scenarios by breaking them down into steps and evaluating probability of success against benchmark tasks.
 
-### 2. Difficulty Estimation Pipeline (`difficulty_estimation/`)
+### 2. Intra-Benchmark Calibration (`intra_benchmark_calibration/`)
+
+**Purpose:** Calibrate LLM predictions against benchmark task difficulty distributions  
+**Run:** `cd intra_benchmark_calibration && python run_calibration.py -c config_example.yaml`  
+**Docs:** See `intra_benchmark_calibration/README.md`
+
+This tool predicts conditional probabilities P(j|i) = "probability a model can solve tasks in bin j, given it solved all tasks in bin i", using LLM expert panels to estimate capability progression across difficulty levels.
+
+### 3. Difficulty Estimation Pipeline (`difficulty_estimation/`)
 
 **Purpose:** LLM-based vulnerability difficulty ranking using multiple methodologies  
 **Run:** `cd difficulty_estimation && pixi run python estimate_difficulty.py --config config.yaml`  

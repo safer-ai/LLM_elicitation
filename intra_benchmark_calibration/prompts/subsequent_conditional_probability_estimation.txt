@@ -1,0 +1,126 @@
+We're refining our conditional probability estimate based on feedback from other expert perspectives. This is a Delphi-style deliberation where experts iteratively improve their estimates by considering alternative viewpoints.
+
+<benchmark_context>
+{benchmark_description}
+</benchmark_context>
+
+<solved_tasks_context>
+The following tasks represent the hardest tasks the model can solve consistently:
+
+{solved_tasks_list}
+
+These tasks represent the capability ceiling of the model. The model has demonstrated the ability to solve these tasks consistently, and it is also likely that it can solve many easier tasks with lower difficulty scores and of different nature.
+</solved_tasks_context>
+
+<target_task>
+We are estimating the probability that this model can ALSO solve the following target task:
+
+Task Name: {target_task_name}
+Description: {target_task_description}
+Difficulty Metrics: {target_task_metrics}
+
+</target_task>
+
+<reminder>
+**You are estimating a CONDITIONAL PROBABILITY:**
+
+P(model can solve target task | model can solve the representative tasks shown above)
+
+Given that the model has demonstrated a capability ceiling by solving the representative tasks shown above (and likely can solve many easier tasks below this ceiling), what is the probability it can also solve the target task?
+</reminder>
+
+<previous_round_feedback>
+Here are the estimates and reasoning from other experts in the previous round:
+
+{context}
+</previous_round_feedback>
+
+<refinement_task>
+Please review your previous estimate in light of the other experts' perspectives:
+
+**Consider the following:**
+
+1. **Points of Agreement:** Where do the expert estimates cluster? What reasoning do multiple experts share?
+
+2. **Points of Disagreement:** Where do estimates diverge significantly? What explains these differences in perspective?
+
+3. **New Insights:** Did other experts identify factors you overlooked? Did they interpret the difficulty gap differently?
+
+4. **Reassess Your Position:**
+   - Should you adjust your estimate based on compelling arguments from others?
+   - Or do you maintain your position because you have strong justification?
+   - Be willing to change your mind if presented with better reasoning
+   - But also be willing to hold your ground if you have solid justification
+
+5. **Convergence Check:**
+   - Are we converging toward a consensus? If so, what probability range?
+   - If not, what core disagreements remain about task difficulty or capability transfer?
+
+**You may:**
+- Increase your estimate if others convinced you of stronger capability transfer
+- Decrease your estimate if others identified capability gaps you missed
+- Maintain your estimate if you have strong justification and disagree with others' reasoning
+- Narrow or widen your uncertainty bounds based on the discussion
+</refinement_task>
+
+<reasoning_structure>
+Please follow this structured refinement process:
+
+**Step 1: Synthesis of Group Reasoning**
+- What are the main arguments and evidence from other experts?
+- Which arguments are most compelling? Which are less convincing?
+- What is the emerging consensus (if any)?
+
+**Step 2: Critical Comparison to Your Previous Estimate**
+- How does your previous estimate compare to the group?
+- If you're an outlier, what explains the difference? Are you considering something others missed, or did you overlook something?
+- If you're in the mainstream, do the arguments strengthen or weaken your confidence?
+
+**Step 3: Updated Probability Assessment**
+- Based on the full discussion, what is your revised probability estimate?
+- How has your uncertainty changed? (narrower or wider bounds?)
+- What key factors drive your final estimate?
+
+**Step 4: Justification**
+- Explain your reasoning: Why this estimate?
+- Address key disagreements: Why do you agree or disagree with outlier positions?
+- What would it take to change your estimate further?
+</reasoning_structure>
+
+<distribution_fitting_note>
+**Important**: Your estimates will be used to fit a Beta distribution with support [0, 1] to characterise your subjective probability distribution. We elicit three percentiles:
+- **25th percentile**: The lower quartile - 25% of the probability mass lies below this value
+- **50th percentile**: The median - the midpoint of your distribution
+- **75th percentile**: The upper quartile - 75% of the probability mass lies below this value
+
+Together, the 25th and 75th percentiles encompass the inner 50% of your probability mass, providing a meaningful uncertainty interval around your median estimate.
+</distribution_fitting_note>
+
+<output_format>
+Please provide your refined estimate in the following format:
+
+**Step 1 - Group Synthesis:**
+[Your synthesis of other experts' arguments]
+
+**Step 2 - Comparison to Previous Estimate:**
+[How your previous estimate compares and what you're reconsidering]
+
+**Step 3 - Updated Assessment:**
+[Your reasoning for your revised (or maintained) estimate]
+
+**Step 4 - Justification:**
+[Why you're updating or maintaining your position]
+
+**Percentile Estimates:**
+Based on your analysis, provide three percentiles that characterise your probability distribution:
+- 25th percentile: [0.xx]
+- 50th percentile (median): [0.xx]
+- 75th percentile: [0.xx]
+
+**Rationale:**
+[2-3 sentence summary: What convinced you to update (or not)? What are the key factors driving your estimate? Where do you agree or disagree with the group?]
+</output_format>
+
+<important_note>
+Remember: This is not about conforming to the group. If you have strong justification for a different estimate, maintain your position and explain why. The goal is to improve accuracy through deliberation, not to achieve artificial consensus. However, be genuinely open to updating your views if others present compelling evidence or reasoning you hadn't considered.
+</important_note>

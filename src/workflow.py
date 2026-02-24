@@ -165,11 +165,11 @@ async def _run_expert_round(
             else:
                  parsed_estimation = parse_probability_response(estimation_text)
                  expert_result["parsed_estimation"] = parsed_estimation
-                 # --- CORRECTED KEY MAPPINGS ---
+                 # --- PERCENTILE KEY MAPPINGS ---
                  expert_result["estimate"] = parsed_estimation.get("estimate")
-                 expert_result["minimum"] = parsed_estimation.get("minimum")
-                 expert_result["maximum"] = parsed_estimation.get("maximum")
-                 expert_result["confidence"] = parsed_estimation.get("confidence")
+                 expert_result["percentile_25th"] = parsed_estimation.get("percentile_25th")
+                 expert_result["percentile_50th"] = parsed_estimation.get("percentile_50th")
+                 expert_result["percentile_75th"] = parsed_estimation.get("percentile_75th")
                  expert_result["rationale"] = parsed_estimation.get("rationale", "")
                  if expert_result["estimate"] is None and not expert_result.get("error"):
                       logger.warning(f"R1 ProbEst - Expert '{ename}' probability estimation parsing failed for Task '{task.name}', Step '{scenario_step.name}'.")
@@ -199,16 +199,22 @@ async def _run_expert_round(
                 prompt_data["technical_analysis"] = "N/A"
 
             context_lines = [f"--- Your Previous Response (Round {round_num-1}) ---"]
-            context_lines.append(f"Estimate: {own_prev.get('estimate', 'N/A'):.4f}")
+            p25 = own_prev.get('percentile_25th')
+            p50 = own_prev.get('percentile_50th') or own_prev.get('estimate')
+            p75 = own_prev.get('percentile_75th')
+            context_lines.append(f"25th percentile: {p25:.4f}" if p25 is not None else "25th percentile: N/A")
+            context_lines.append(f"50th percentile (median): {p50:.4f}" if p50 is not None else "50th percentile (median): N/A")
+            context_lines.append(f"75th percentile: {p75:.4f}" if p75 is not None else "75th percentile: N/A")
             context_lines.append(f"Rationale: {own_prev.get('rationale', 'N/A')}")
             context_lines.append(f"\n--- Other Experts' Valid Responses (Round {round_num-1}) ---")
             if others_prev:
                  for r in others_prev:
                       other_rationale_short = r.get('rationale', 'N/A')[:150] + ('...' if len(r.get('rationale', '')) > 150 else '')
-                      context_lines.append(f"- {r['expert']}: Estimate {r.get('estimate', 'N/A'):.4f}, Rationale: {other_rationale_short}")
+                      r_p50 = r.get('percentile_50th') or r.get('estimate')
+                      context_lines.append(f"- {r['expert']}: Median estimate {r_p50:.4f}, Rationale: {other_rationale_short}" if r_p50 is not None else f"- {r['expert']}: Median estimate N/A, Rationale: {other_rationale_short}")
             else:
                  context_lines.append("(No other valid responses received in the previous round)")
-            context_lines.append("\n---\nReview the information and provide your updated four-point probability estimate and rationale.\n---")
+            context_lines.append("\n---\nReview the information and provide your updated percentile probability estimates and rationale.\n---")
 
             prompt_data["context"] = "\n".join(context_lines)
 
@@ -228,11 +234,11 @@ async def _run_expert_round(
             else:
                  parsed_estimation = parse_probability_response(estimation_text)
                  expert_result["parsed_estimation"] = parsed_estimation
-                 # --- CORRECTED KEY MAPPINGS ---
+                 # --- PERCENTILE KEY MAPPINGS ---
                  expert_result["estimate"] = parsed_estimation.get("estimate")
-                 expert_result["minimum"] = parsed_estimation.get("minimum")
-                 expert_result["maximum"] = parsed_estimation.get("maximum")
-                 expert_result["confidence"] = parsed_estimation.get("confidence")
+                 expert_result["percentile_25th"] = parsed_estimation.get("percentile_25th")
+                 expert_result["percentile_50th"] = parsed_estimation.get("percentile_50th")
+                 expert_result["percentile_75th"] = parsed_estimation.get("percentile_75th")
                  expert_result["rationale"] = parsed_estimation.get("rationale", "")
                  if expert_result["estimate"] is None and not expert_result.get("error"):
                      logger.warning(f"R{round_num} ProbEst - Expert '{ename}' probability estimation parsing failed for Task '{task.name}', Step '{scenario_step.name}'.")
@@ -354,9 +360,9 @@ async def _run_expert_round_for_scenario_metric(
                 parsed_estimation = metric_parser_func(estimation_text)
                 expert_result["parsed_estimation"] = parsed_estimation
                 expert_result["estimate"] = parsed_estimation.get("estimate")
-                expert_result["minimum"] = parsed_estimation.get("minimum")
-                expert_result["maximum"] = parsed_estimation.get("maximum")
-                expert_result["confidence"] = parsed_estimation.get("confidence")
+                expert_result["percentile_25th"] = parsed_estimation.get("percentile_25th")
+                expert_result["percentile_50th"] = parsed_estimation.get("percentile_50th")
+                expert_result["percentile_75th"] = parsed_estimation.get("percentile_75th")
                 expert_result["rationale"] = parsed_estimation.get("rationale", "")
                 if expert_result["estimate"] is None and not expert_result.get("error"):
                     logger.warning(f"R1 {metric_name_logging}Est - Expert '{ename}' quantity estimation parsing failed for MetricTask '{task_from_dedicated_benchmark.name}'.")
@@ -377,23 +383,29 @@ async def _run_expert_round_for_scenario_metric(
                 return expert_result
 
             others_prev = [r for r in prev_round_responses_for_this_metric_task if r.get("expert") != ename and r.get("estimate") is not None and "error" not in r]
-            
+
             if own_prev.get("parsed_analysis"):
                 prompt_data["technical_analysis"] = own_prev["parsed_analysis"].get("technical_capabilities", "N/A")
             else:
                 prompt_data["technical_analysis"] = "N/A"
 
             context_lines = [f"--- Your Previous Response (Round {round_num-1}) ---"]
-            context_lines.append(f"Estimated Value: {own_prev.get('estimate', 'N/A')}")
+            p25 = own_prev.get('percentile_25th')
+            p50 = own_prev.get('percentile_50th') or own_prev.get('estimate')
+            p75 = own_prev.get('percentile_75th')
+            context_lines.append(f"25th percentile: {p25}" if p25 is not None else "25th percentile: N/A")
+            context_lines.append(f"50th percentile (median): {p50}" if p50 is not None else "50th percentile (median): N/A")
+            context_lines.append(f"75th percentile: {p75}" if p75 is not None else "75th percentile: N/A")
             context_lines.append(f"Rationale: {own_prev.get('rationale', 'N/A')}")
             context_lines.append(f"\n--- Other Experts' Valid Responses (Round {round_num-1}) ---")
             if others_prev:
                  for r in others_prev:
                       other_rationale_short = r.get('rationale', 'N/A')[:150] + ('...' if len(r.get('rationale', '')) > 150 else '')
-                      context_lines.append(f"- {r['expert']}: Estimated Value {r.get('estimate', 'N/A')}, Rationale: {other_rationale_short}")
+                      r_p50 = r.get('percentile_50th') or r.get('estimate')
+                      context_lines.append(f"- {r['expert']}: Median estimate {r_p50}, Rationale: {other_rationale_short}" if r_p50 is not None else f"- {r['expert']}: Median estimate N/A, Rationale: {other_rationale_short}")
             else:
                  context_lines.append("(No other valid responses received in the previous round)")
-            context_lines.append("\n---\nReview the information and provide your updated estimated value and rationale using 'Final Estimated Value: {integer}' and 'Rationale: ...' format.\n---")
+            context_lines.append("\n---\nReview the information and provide your updated percentile estimates and rationale.\n---")
 
             prompt_data["context"] = "\n".join(context_lines)
 
@@ -414,9 +426,9 @@ async def _run_expert_round_for_scenario_metric(
                 parsed_estimation = metric_parser_func(estimation_text)
                 expert_result["parsed_estimation"] = parsed_estimation
                 expert_result["estimate"] = parsed_estimation.get("estimate")
-                expert_result["minimum"] = parsed_estimation.get("minimum")
-                expert_result["maximum"] = parsed_estimation.get("maximum")
-                expert_result["confidence"] = parsed_estimation.get("confidence")
+                expert_result["percentile_25th"] = parsed_estimation.get("percentile_25th")
+                expert_result["percentile_50th"] = parsed_estimation.get("percentile_50th")
+                expert_result["percentile_75th"] = parsed_estimation.get("percentile_75th")
                 expert_result["rationale"] = parsed_estimation.get("rationale", "")
                 if expert_result["estimate"] is None and not expert_result.get("error"):
                     logger.warning(f"R{round_num} {metric_name_logging}Est - Expert '{ename}' quantity estimation parsing failed for MetricTask '{task_from_dedicated_benchmark.name}'.")

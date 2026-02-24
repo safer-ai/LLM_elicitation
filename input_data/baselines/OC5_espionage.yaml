@@ -1,0 +1,168 @@
+# OC5 Espionage Campaign Scenario Baselines
+# These values represent expert estimates for a nation-state espionage campaign
+
+# Data source and output configuration
+estimate_csv: OC5_espionage_estimates.csv
+output_path: OC5_Espionage_LLM/
+description: "OC5 Nation-state espionage with LLM uplift"
+
+baselines:
+  NumActors:
+    low_ci: 3
+    high_ci: 8
+    central_value: 5
+    confidence: 0.9
+    value_type: mode
+    description: "Number of threat actors involved"
+
+  NumAttacks:
+    low_ci: 1
+    high_ci: 7
+    central_value: 3
+    confidence: 0.9
+    value_type: mode
+    description: "Number of attack attempts"
+
+  "Privilege Escalation: Process Injection":
+    low_ci: 0.5
+    high_ci: 0.8
+    central_value: 0.65
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of process injection for privilege escalation"
+
+  "Privilege Escalation: Exploitation for Priv-Esc":
+    low_ci: 0.6
+    high_ci: 0.9
+    central_value: 0.75
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of exploitation for privilege escalation"
+
+  "Privilege Escalation: Access-Token Manipulation":
+    low_ci: 0.5
+    high_ci: 0.75
+    central_value: 0.6
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of access token manipulation for privilege escalation"
+
+  "C2: Web Protocols (HTTPS)":
+    low_ci: 0.75
+    high_ci: 0.95
+    central_value: 0.9
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of establishing C2 via HTTPS"
+
+  "C2: DNS-over-HTTPS":
+    low_ci: 0.75
+    high_ci: 0.95
+    central_value: 0.85
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of establishing C2 via DNS-over-HTTPS"
+
+  "C2: Multi-hop Proxy":
+    low_ci: 0.65
+    high_ci: 0.95
+    central_value: 0.75
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of establishing C2 via multi-hop proxy"
+
+  "Initial Access: External Remote Services":
+    low_ci: 0.4
+    high_ci: 0.6
+    central_value: 0.5
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of gaining access via external remote services"
+
+  "Initial Access: Supply-Chain Compromise":
+    low_ci: 0.5
+    high_ci: 0.8
+    central_value: 0.65
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of gaining access via supply chain compromise"
+
+  "Initial Access: Spear-phishing Attachment":
+    low_ci: 0.4
+    high_ci: 0.75
+    central_value: 0.6
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of successful spear-phishing attachment"
+
+  Execution:
+    low_ci: 0.8
+    high_ci: 0.9
+    central_value: 0.85
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of successful execution"
+
+  Persistence:
+    low_ci: 0.75
+    high_ci: 0.95
+    central_value: 0.8
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of establishing persistence"
+
+  Discovery:
+    low_ci: 0.75
+    high_ci: 0.95
+    central_value: 0.8
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of successful discovery"
+
+  "Lateral Movement":
+    low_ci: 0.75
+    high_ci: 0.95
+    central_value: 0.8
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of successful lateral movement"
+
+  Collection:
+    low_ci: 0.9
+    high_ci: 0.95
+    central_value: 0.92
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of successful collection"
+
+  Exfiltration:
+    low_ci: 0.6
+    high_ci: 0.9
+    central_value: 0.8
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of successful exfiltration"
+
+  "Resource Development":
+    low_ci: 0.85
+    high_ci: 0.95
+    central_value: 0.9
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of successful resource development"
+
+  Reconnaissance:
+    low_ci: 0.9
+    high_ci: 0.99
+    central_value: 0.95
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of successful reconnaissance"
+
+  Damage:
+    low_ci: 346371687
+    high_ci: 729916309
+    central_value: 531556679
+    confidence: 0.9
+    value_type: mode
+    description: "Expected financial damage in USD (needs uplift)"

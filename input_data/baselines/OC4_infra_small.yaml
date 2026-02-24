@@ -1,0 +1,128 @@
+# OC4 Small Infrastructure Attack Scenario Baselines
+# These values represent expert estimates for attacks on small critical infrastructure
+
+# Data source and output configuration
+estimate_csv: OC4_infra_small_estimates.csv
+output_path: OC4_Infra_Small_LLM/
+description: "OC4 Small infrastructure attack with LLM uplift"
+
+baselines:
+  "Initial Access: External Remote Services":
+    low_ci: 0.20
+    high_ci: 0.7
+    central_value: 0.4
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of gaining access via external remote services"
+
+  "Initial Access: Exploit Public-Facing App":
+    low_ci: 0.30
+    high_ci: 0.7
+    central_value: 0.5
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of exploiting public-facing applications"
+
+  "Initial Access: Spear-phishing Attachment":
+    low_ci: 0.10
+    high_ci: 0.5
+    central_value: 0.3
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of successful spear-phishing attachment"
+
+  "Privilege Escalation: Local Exploit":
+    low_ci: 0.15
+    high_ci: 0.50
+    central_value: 0.30
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of local exploit for privilege escalation"
+
+  "Privilege Escalation: Process Injection":
+    low_ci: 0.3
+    high_ci: 0.60
+    central_value: 0.50
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of process injection for privilege escalation"
+
+  "Privilege Escalation: Token Manipulation":
+    low_ci: 0.25
+    high_ci: 0.60
+    central_value: 0.40
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of token manipulation for privilege escalation"
+
+  "Credential Access":
+    low_ci: 0.45
+    high_ci: 0.9
+    central_value: 0.7
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of successful credential access"
+
+  "Lateral Movement":
+    low_ci: 0.50
+    high_ci: 0.90
+    central_value: 0.7
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of successful lateral movement"
+
+  "Impact: Loss of Control":
+    low_ci: 0.03
+    high_ci: 0.30
+    central_value: 0.16
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of causing loss of control (ICS/OT impact)"
+
+  "Impact: Modify Controller Tasking":
+    low_ci: 0.03
+    high_ci: 0.35
+    central_value: 0.16
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of modifying controller tasking (ICS/OT impact)"
+
+  "Impact: Loss of View":
+    low_ci: 0.02
+    high_ci: 0.25
+    central_value: 0.1
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of causing loss of view (ICS/OT impact)"
+
+  "Impact: Change Operating Mode":
+    low_ci: 0.04
+    high_ci: 0.45
+    central_value: 0.20
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of changing operating mode (ICS/OT impact)"
+
+  Damage:
+    low_ci: 19584008
+    high_ci: 56680599
+    central_value: 36381470
+    confidence: 0.9
+    value_type: mode
+    description: "Expected financial damage in USD"
+
+  NumAttacks:
+    low_ci: 1
+    high_ci: 10
+    central_value: 5
+    confidence: 0.9
+    value_type: mode
+    description: "Number of attack attempts"
+
+  NumActors:
+    low_ci: 15
+    high_ci: 80
+    central_value: 40
+    confidence: 0.9
+    value_type: mode
+    description: "Number of threat actors involved"
