@@ -23,14 +23,14 @@ llm_settings:
   rate_limit_calls: 45                  # Max number of API calls allowed within the 'rate_limit_period'. Set this based on your API plan's Requests Per Minute (RPM) limit to avoid errors.
   rate_limit_period: 60                 # The duration (in seconds) of the sliding time window used to enforce 'rate_limit_calls'. Typically set to 60 to match RPM limits.
   thinking:
-    enabled: True
+    enabled: False
     budget_tokens: 6000
 # --- Delphi Workflow Settings ---
 # Controls the execution parameters of the Delphi estimation process.
 workflow_settings:
-  num_tasks: 4                         # Maximum number of tasks to process *from each step's benchmark*. Set to null to process all tasks. Uses the first N tasks from that benchmark.
-  scenario_steps: null                  # List of specific step names from the scenario file to run probability estimation on. Set to null to process all steps, or an empty list [] to skip probability estimation. 
-  num_experts: 5                        # Maximum number of expert personas to simulate from the expert_profiles_file. Set to null or remove to use all experts. Uses the first N experts.
+  num_tasks: 1                         # Maximum number of tasks to process *from each step's benchmark*. Set to null to process all tasks. Uses the first N tasks from that benchmark.
+  scenario_steps: ["TA0002 - Execution"]                  # List of specific step names from the scenario file to run probability estimation on. Set to null to process all steps, or an empty list [] to skip probability estimation. 
+  num_experts: 1                        # Maximum number of expert personas to simulate from the expert_profiles_file. Set to null or remove to use all experts. Uses the first N experts.
   delphi_rounds: 1                      # The total number of iterative refinement rounds to perform. A value of 1 means only the initial estimation is done, with no refinement.
   convergence_threshold: 0.05           # Threshold for standard deviation of expert estimates in a round. If std dev falls below this, the Delphi process for that task stops early. Set high (e.g., 1.0 or 100.0) to effectively disable early stopping and always run all delphi_rounds.
 
@@ -38,9 +38,9 @@ workflow_settings:
   # Set these to true to enable estimation of these additional metrics alongside probability.
   # These estimations are conditioned on the LLM's capability level (indicated by the benchmark task)
   # and use the full scenario as context.
-  estimate_num_actors_per_task_benchmark: true  # Default to false
-  estimate_num_attacks_per_task_benchmark: true # Default to false
-  estimate_damage_per_task_benchmark: true      # Default to false
+  estimate_num_actors_per_task_benchmark: false  # Default to false
+  estimate_num_attacks_per_task_benchmark: false # Default to false
+  estimate_damage_per_task_benchmark: false      # Default to false
 
   # Include examples of easier tasks from the benchmark in the prompt to help guide the LLM.
   include_easier_tasks: true

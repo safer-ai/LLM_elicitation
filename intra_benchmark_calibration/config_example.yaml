@@ -71,7 +71,7 @@ llm_settings:
 workflow_settings:
   # Number of experts to simulate (null = use all experts from expert_profiles_file)
   # For calibration experiments, recommend 5-10 experts for diverse perspectives
-  num_experts: 5
+  num_experts: 1
 
   # Maximum number of Delphi deliberation rounds
   # Round 1: Initial independent estimates
