@@ -1,0 +1,90 @@
+# OC1 Phishing Campaign Scenario Baselines
+# These values represent expert estimates for a phishing attack scenario
+# Format: low_ci, high_ci, central_value, confidence
+# value_type indicates whether central_value represents mode (most likely) or median (50th percentile)
+
+# Data source and output configuration
+estimate_csv: OC1_phishing_estimates.csv
+output_path: OC1_Phishing/
+description: "OC1 Phishing campaign estimates"
+
+baselines:
+  Damage:
+    low_ci: 30000
+    high_ci: 130000
+    central_value: 70000
+    confidence: 0.9
+    value_type: mode
+    description: "Expected financial damage in USD"
+
+  NumActors:
+    low_ci: 2500
+    high_ci: 15000
+    central_value: 5000
+    confidence: 0.9
+    value_type: mode
+    description: "Number of threat actors involved"
+
+  NumAttacks:
+    low_ci: 10
+    high_ci: 150
+    central_value: 70
+    confidence: 0.9
+    value_type: mode
+    description: "Number of attack attempts"
+
+  "Impact: Stored Data Manipulation":
+    low_ci: 0.15
+    high_ci: 0.7
+    central_value: 0.4
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of successful data manipulation"
+
+  "Impact: Financial Theft":
+    low_ci: 0.3
+    high_ci: 0.75
+    central_value: 0.6
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of financial theft success"
+
+  "Initial Access":
+    low_ci: 0.4
+    high_ci: 0.6
+    central_value: 0.53
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of successful initial access"
+
+  Persistence:
+    low_ci: 0.35
+    high_ci: 0.65
+    central_value: 0.5
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of establishing persistence"
+
+  Discovery:
+    low_ci: 0.3
+    high_ci: 0.9
+    central_value: 0.6
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of successful discovery phase"
+
+  Execution:
+    low_ci: 0.25
+    high_ci: 0.7
+    central_value: 0.56
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of successful execution (needs uplift)"
+
+  "Resource Development":
+    low_ci: 0.6
+    high_ci: 0.95
+    central_value: 0.8
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of successful resource development"

@@ -1,0 +1,761 @@
+- estimate: 8.0
+  reasoning: This is a straightforward method extraction refactoring with a clear
+    problem statement and provided solution. The change involves moving a single-line
+    dictionary comprehension into a new method with minimal risk. The issue description
+    explicitly shows the exact code changes needed, making this a near-trivial task
+    for any engineer familiar with basic refactoring patterns. A junior developer
+    could complete this in 1-2 hours; an experienced engineer in 15-30 minutes.
+  task_id: django__django-14752
+- estimate: 8.0
+  reasoning: The bug location is directly indicated by the stack trace, the issue
+    is clearly explained with examples, and the fix is a trivial one-liner changing
+    from raising NotImplementedError to returning self.args[1] (the set argument).
+    The only minor complexity is understanding SymPy's args convention, but this is
+    easily discovered through minimal investigation. A competent engineer could diagnose
+    and fix this in 15-30 minutes.
+  task_id: sympy__sympy-23950
+- estimate: 8.0
+  reasoning: This is a trivial typo fix with a clear NameError pointing to the exact
+    line. The correct variable name `cothm` is defined just 3 lines above the error,
+    making it immediately obvious. A junior developer could identify and fix this
+    in under 30 minutes. The only effort required is navigating to the file and running
+    basic verification tests.
+  task_id: sympy__sympy-13480
+- estimate: 8.0
+  reasoning: The issue description provides the exact problem, location, and solution.
+    The fix requires adding a single parameter to a constructor call. An engineer
+    needs minimal time to understand the context (prog_name computation vs usage),
+    locate the code, implement the trivial fix, and verify it works. A junior developer
+    familiar with Python could complete this in under an hour.
+  task_id: django__django-13658
+- estimate: 10.0
+  reasoning: With the extremely detailed bug report providing exact location, reproduction
+    case, and suggested fix, this is nearly trivial. The work involves reading the
+    issue, making a one-line defensive programming change (del to pop), and verifying
+    with the provided test. Only slightly above minimal difficulty due to needing
+    basic Django migrations knowledge and proper testing.
+  task_id: django__django-15104
+- estimate: 10.0
+  reasoning: This is a straightforward feature addition with the implementation explicitly
+    provided in the description. It requires only adding a 4-line `__iter__` method
+    to the Paginator class. The task involves minimal code navigation, no debugging
+    or root cause analysis, and leverages basic Python iterator protocol knowledge.
+    A competent developer could complete this in under 30 minutes including writing
+    tests.
+  task_id: django__django-9296
+- estimate: 10.0
+  reasoning: This is a trivial bug fix requiring only a 4-line `__len__` method that
+    returns `len(self.steps)`. The issue is clearly described, the reproduction case
+    is provided, the location is obvious from context, and the implementation follows
+    a standard Python pattern. A junior developer could complete this in 30-60 minutes
+    including setup and verification.
+  task_id: scikit-learn__scikit-learn-13439
+- estimate: 10.0
+  reasoning: The issue is explicitly documented with the exact location, problem,
+    and solution. The fix requires changing two characters in two lines. Main effort
+    is understanding the Python regex quirk (`$` vs `\Z`), making the trivial code
+    change, and writing tests to verify. A competent engineer could complete this
+    in 30-45 minutes.
+  task_id: django__django-11099
+- estimate: 10.0
+  reasoning: The issue provides the exact solution code, the fix is a simple 4-line
+    method addition following an obvious pattern, and testing is straightforward.
+    The only effort required is locating the file, understanding the basic printer
+    pattern, and verifying the fix works. A junior developer could complete this in
+    under an hour.
+  task_id: sympy__sympy-16766
+- estimate: 12.0
+  reasoning: The bug report provides the exact location, root cause, and reproduction
+    steps. The fix is a simple 2-line try-except block catching OverflowError. The
+    main challenge is understanding Django's form validation flow to choose the appropriate
+    error response ("0-0-0"), but this is minimal. A competent junior developer could
+    complete this in under an hour.
+  task_id: django__django-16667
+- estimate: 12.0
+  reasoning: The bug location is explicitly provided, the logic error is obvious (else
+    clause should check if symbols is empty), and the fix requires only reordering
+    the conditional logic. Even a junior developer could identify and fix this within
+    30-60 minutes including testing. The only minor complexity is understanding the
+    polynomial ring context, but the issue description makes the expected behavior
+    crystal clear.
+  task_id: sympy__sympy-24539
+- estimate: 18.0
+  reasoning: This is a straightforward bug fix with clear reproduction steps, an obvious
+    location (referenced in the issue), and a simple one-line solution following an
+    existing pattern. The main effort is understanding the existing validation logic
+    and verifying the fix works. An experienced engineer could complete this in 20-30
+    minutes; even a junior developer could handle it within an hour.
+  task_id: psf__requests-5414
+- estimate: 18.0
+  reasoning: The issue description provides complete diagnosis and proposed solution.
+    The fix is a simple parameter resolution pattern (default to None, fall back to
+    instance attribute) requiring only 3 lines of logic. Main effort is in verification
+    and testing. An experienced engineer could complete this in 1-1.5 hours. The straightforward
+    nature and excellent documentation push this into the "easy" range despite requiring
+    understanding of parameter shadowing and backwards compatibility.
+  task_id: scikit-learn__scikit-learn-12973
+- estimate: 18.0
+  reasoning: Clear reproduction case, simple one-line arithmetic fix in easily locatable
+    code. The indexing logic error is straightforward to diagnose with the provided
+    example. Main effort is navigating to the right function and understanding the
+    three-branch conditional, but the bug itself is a classic off-by-one calculation
+    error that becomes obvious when tracing through with the test case.
+  task_id: sympy__sympy-13647
+- estimate: 18.0
+  reasoning: The bug report provides the exact problematic line, clear reproduction
+    steps, and explicit expected behavior. The fix is a simple 3-line conditional
+    check before removing from sys.path. Main effort is understanding Python's sys.path
+    mechanics and writing tests for edge cases. A competent engineer could diagnose
+    and fix this in 1-2 hours.
+  task_id: pylint-dev__pylint-7277
+- estimate: 18.0
+  reasoning: This is a straightforward API consistency fix requiring a parameter rename
+    with a deprecation cycle. The issue is clearly described, the solution pattern
+    (deprecation warning) is standard, and the code changes are mechanical. An expert
+    could complete this in 1-2 hours, but it requires understanding deprecation patterns,
+    updating documentation, and writing tests for backward compatibility. The low
+    complexity and clear requirements place this firmly in the "easy" category for
+    an experienced engineer.
+  task_id: pydata__xarray-3993
+- estimate: 18.0
+  reasoning: Clear issue description with straightforward fix requiring minimal code
+    changes (moving exit condition before file writes). Main challenge is understanding
+    Django's migration command structure and locating the relevant code sections,
+    but the logic change itself is simple. An experienced engineer should complete
+    this in 1-2 hours including testing.
+  task_id: django__django-16116
+- estimate: 18.0
+  reasoning: The issue description explicitly identifies the root cause (inspect.isfunction
+    doesn't work for properties), making diagnosis trivial. The fix is a simple one-line
+    modification to add an additional type check. The main challenge is knowing or
+    discovering that `isdatadescriptor` is the appropriate function to use, which
+    requires moderate Python expertise but can be found through documentation or experimentation.
+    An experienced engineer could complete this in under an hour.
+  task_id: astropy__astropy-7166
+- estimate: 18.0
+  reasoning: The fix is a trivial one-line change clearly described in the issue.
+    The main challenge is understanding the difference between request.path and request.path_info
+    in Django's URL handling, but the issue description explicitly identifies this.
+    With a linked patch and clear problem statement, even engineers unfamiliar with
+    FORCE_SCRIPT_NAME can quickly locate and fix the bug. The diagnostic work is essentially
+    done by the issue reporter.
+  task_id: django__django-14404
+- estimate: 18.0
+  reasoning: This is a straightforward missing Python magic method (`__rmul__`) issue
+    with a clear error message pointing to the exact file. An experienced Python developer
+    would recognize this pattern immediately and implement the trivial 4-line fix.
+    The main difficulty is understanding Python's operator overloading protocol, but
+    the solution is obvious once identified. A junior might take an hour or two; an
+    expert could fix this in 15-30 minutes.
+  task_id: sympy__sympy-17655
+- estimate: 18.0
+  reasoning: The issue description provides exact line references and the expected
+    solution method. The fix is mechanical (two identical one-line changes replacing
+    `timezone.get_current_timezone_name()` with `self.get_tzname()`). While it requires
+    understanding Django ORM's timezone handling and inheritance structure, the problem
+    is well-defined and the solution pattern already exists in the codebase. An experienced
+    engineer could complete this in under an hour.
+  task_id: django__django-13363
+- estimate: 18.0
+  reasoning: The issue description pinpoints the exact problematic line and PR, making
+    diagnosis trivial. The fix is a straightforward conditional check (4 lines) to
+    only extract `.values` from pandas types rather than all objects. Testing is simple
+    with the provided example. An engineer familiar with Python could implement and
+    verify this fix in 1-2 hours, though understanding pandas integration adds minor
+    complexity.
+  task_id: pydata__xarray-2905
+- estimate: 18.0
+  reasoning: 'This is a straightforward parameter pass-through task with clear requirements
+    and a well-defined solution. An expert engineer can quickly identify the pattern
+    by examining existing parameters like `initial_strategy`, add the new `fill_value`
+    parameter to the constructor, validation config, and propagate it to `SimpleImputer`.
+    The main effort involves understanding sklearn''s conventions and ensuring proper
+    documentation. Total time: 30-60 minutes for an expert.'
+  task_id: scikit-learn__scikit-learn-25232
+- estimate: 18.0
+  reasoning: This is a straightforward feature exposure task where functionality already
+    exists in the parent class. The changes are mechanical (add parameter to signature,
+    docstring, and super() call), the issue provides explicit instructions, and the
+    diff shows minimal code changes. Main effort is understanding sklearn's structure
+    and writing a simple test to verify tree preservation with warm_start. An expert
+    could complete this in 1-2 hours.
+  task_id: scikit-learn__scikit-learn-13496
+- estimate: 22.0
+  reasoning: Well-documented bug with clear reproduction, provided patch showing exact
+    location and logic needed. The fix involves a simple conditional check in two
+    locations (XAxis and YAxis). Main effort is understanding matplotlib's rcParams
+    inheritance system and verifying the fix. A mid-level engineer could complete
+    this in 1-2 hours.
+  task_id: matplotlib__matplotlib-25287
+- estimate: 22.0
+  reasoning: The bug report provides the exact location and nature of the fix (changing
+    `in` to `issubclass()` in `AutoFieldMeta.__subclasscheck__`), making this a one-line
+    change. The main complexity is understanding Python metaclasses and the distinction
+    between membership checking vs inheritance checking. The clear traceback, explicit
+    hint in the description, and simple fix make this manageable for an intermediate
+    engineer within an hour, though the metaclass concept prevents it from being trivial.
+  task_id: django__django-14238
+- estimate: 22.0
+  reasoning: Clear bug report with minimal reproduction case, small localized fix
+    in a single function, existing infrastructure for `keep_attrs` parameter already
+    present in `apply_ufunc`. Main challenge is understanding xarray's attribute preservation
+    conventions and why `attrs[1]` is used. An experienced engineer should complete
+    this in 2-3 hours including testing.
+  task_id: pydata__xarray-4687
+- estimate: 22.0
+  reasoning: The extraordinarily detailed bug report with truth table, root cause
+    analysis, and working solution reduces this to primarily a verification and implementation
+    task. Main effort is understanding descriptor behavior and validating the fix
+    doesn't reintroduce previous bugs. A competent Django developer could complete
+    this in 1-2 hours.
+  task_id: django__django-11551
+- estimate: 22.0
+  reasoning: This is a straightforward pattern replication task where an identical
+    optimization pattern for AlterModelOptions already exists in the same method.
+    The engineer needs to locate the reduce() method, understand the existing pattern,
+    and replicate it for AlterModelManagers. The code change is only 13 lines and
+    follows the exact structure above it. Most time would be spent understanding the
+    migration optimizer concept initially, but the implementation itself is mechanical
+    once the pattern is recognized.
+  task_id: django__django-15499
+- estimate: 22.0
+  reasoning: Clear bug description with reproduction steps, easily locatable code,
+    and a simple one-line fix. Main challenge is understanding SymPy's assumption
+    system (`assumptions0` attribute) and verifying the fix preserves all necessary
+    assumptions without breaking existing behavior. An experienced engineer could
+    complete this in under an hour, though someone unfamiliar with SymPy might need
+    2-3 hours.
+  task_id: sympy__sympy-16450
+- estimate: 22.0
+  reasoning: Clear reproduction case with helpful error message pointing to precision
+    handling. The bug is a simple boundary condition error (< vs <=) in readable code.
+    Main challenge is understanding the floatformat logic and variable meanings, but
+    stack trace guides directly to the problematic code path. An experienced engineer
+    could diagnose and fix this in under an hour.
+  task_id: django__django-16485
+- estimate: 22.0
+  reasoning: Simple one-line fix (adding null check before validator creation) in
+    a clearly identified location. The issue description provides extensive detail,
+    but even without it, the error is traceable through stack traces, the fix follows
+    existing patterns in the codebase (BinaryField), and the change is low-risk. A
+    competent engineer familiar with Django could diagnose and fix this in 1-2 hours.
+  task_id: django__django-15277
+- estimate: 22.0
+  reasoning: Clear error message and issue description make diagnosis straightforward.
+    The fix is a simple one-line logical condition addition. Main challenge is understanding
+    Django's distinction between field transforms and lookups, but the error context
+    makes the solution obvious once the code location is found. Searchable error code
+    (E015) leads directly to the problematic validation logic.
+  task_id: django__django-12858
+- estimate: 22.0
+  reasoning: The bug has excellent reproduction steps and a trivial fix (5 lines),
+    but requires navigating an unfamiliar codebase (Sphinx) and understanding domain-specific
+    concepts (pending_xref, reftype differences). The main challenge is locating the
+    `_parse_annotation` function in the Python domain code, which should take 1-2
+    hours for an expert engineer unfamiliar with Sphinx internals.
+  task_id: sphinx-doc__sphinx-7454
+- estimate: 22.0
+  reasoning: The issue explicitly identifies the problematic line and root cause.
+    The fix is a simple one-line change (replacing `thresholds[0] + 1` with `np.inf`),
+    plus documentation updates. While it requires understanding ROC curve mechanics
+    and verifying no downstream breakage, the problem is well-scoped and the solution
+    straightforward. An experienced engineer could complete this in 1-2 hours.
+  task_id: scikit-learn__scikit-learn-26194
+- estimate: 22.0
+  reasoning: The bug description provides exceptional detail including the exact file,
+    line number, and root cause (empty strings in col_suffixes causing unwanted whitespace).
+    The fix is straightforward - adding conditional checks for non-empty suffixes
+    before concatenation. While some Django ORM knowledge is helpful, the localized
+    nature of the change and clear problem statement make this a relatively easy task
+    completable in 1-2 hours by a competent engineer.
+  task_id: django__django-12039
+- estimate: 22.0
+  reasoning: The issue description clearly identifies the problem (delete_cookie doesn't
+    preserve samesite), the root cause (missing parameter), and even suggests a solution.
+    The fix requires adding one parameter to a method signature, updating 2-3 call
+    sites, and handling the security edge case where samesite=none requires secure=True.
+    An experienced engineer could complete this in 1-2 hours. The main complexity
+    is understanding the SameSite cookie attribute behavior and ensuring the secure
+    flag logic is correct.
+  task_id: django__django-13195
+- estimate: 22.0
+  reasoning: The fix is a trivial one-word change in a single conditional, and the
+    error message leads directly to the problematic line. However, the engineer needs
+    to understand Django's template tag argument parsing logic and the distinction
+    between keyword-only parameters and general keyword arguments. With clear reproduction
+    steps and a straightforward search for the error string, an expert could likely
+    complete this in under an hour, but it requires more than junior-level understanding
+    of the codebase.
+  task_id: django__django-12262
+- estimate: 22.0
+  reasoning: The fix itself is trivial (one line addition), but requires understanding
+    Django's form field `disabled` attribute and confidence that it replaces the custom
+    `clean_password` logic in authentication code. An expert can verify this through
+    documentation and testing in under an hour, but must exercise caution due to the
+    security-sensitive nature of the code.
+  task_id: django__django-13741
+- estimate: 25.0
+  reasoning: Clear bug report with reproduction code and straightforward IndexError.
+    Main challenge is understanding that leaf nodes in sklearn's tree structure have
+    TREE_UNDEFINED for features, requiring some investigation of internal tree representation.
+    Once identified, the fix is a simple conditional check. Estimated 1-2 hours for
+    an engineer unfamiliar with sklearn internals.
+  task_id: scikit-learn__scikit-learn-14053
+- estimate: 25.0
+  reasoning: The issue is clearly described with a suggested approach, the code change
+    is small and localized to one method, and the solution is straightforward (detect
+    functools.partial and use repr()). However, it requires understanding Django's
+    URL resolver internals and functools.partial behavior. An experienced engineer
+    could complete this in 1-2 hours including testing, making it low-to-moderate
+    difficulty.
+  task_id: django__django-14155
+- estimate: 25.0
+  reasoning: 'This is a straightforward, mechanical change requiring the addition
+    of `params={''value'': value}` to all ValidationError calls in validators. While
+    it requires systematic identification of all affected locations and understanding
+    Django''s error message placeholder system, the pattern is clear and repetitive.
+    The main complexity comes from ensuring completeness and handling the non-obvious
+    DecimalField.validate() removal. An expert engineer would complete this in 1-2
+    hours.'
+  task_id: django__django-13212
+- estimate: 25.0
+  reasoning: "The issue description explicitly identifies the root cause and location,\
+    \ making diagnosis trivial. The fix is straightforward\u2014adding a `classes_`\
+    \ attribute to `MultiOutputClassifier` by aggregating from sub-estimators. However,\
+    \ it requires understanding scikit-learn's API conventions, navigating the codebase,\
+    \ properly overriding the `fit` method, and writing appropriate documentation.\
+    \ An experienced engineer could complete this in 1-2 hours; a junior might take\
+    \ 3-4 hours."
+  task_id: scikit-learn__scikit-learn-14629
+- estimate: 25.0
+  reasoning: Clear issue description with reproducible example, localized code change
+    in a single utility function, and straightforward conceptual fix. Main challenges
+    are correctly constructing the Decimal cutoff value and understanding the interaction
+    with existing scientific notation logic. An experienced engineer could complete
+    this in 2-3 hours including testing.
+  task_id: django__django-11206
+- estimate: 25.0
+  reasoning: The bug report explicitly identifies the problematic line and suggests
+    the exact fix (adding `using=db` parameter). The implementation is trivial (one-line
+    change), but requires understanding Django's multi-database architecture and setting
+    up proper test environments to verify. A competent Django engineer could diagnose
+    and fix this in 1-3 hours given the detailed issue description.
+  task_id: django__django-11066
+- estimate: 25.0
+  reasoning: The issue provides exceptional detail including stack trace, problematic
+    commit, and exact error location. The fix is straightforward (replacing `in` checks
+    with `is` identity checks) but requires understanding Python's operator overloading
+    behavior with array-like objects and the concept of sentinel values. An expert
+    engineer could diagnose and fix this in 1-2 hours given the detailed issue description.
+  task_id: pytest-dev__pytest-5631
+- estimate: 25.0
+  reasoning: Clear bug report with reproduction steps, minimal one-line fix, well-structured
+    codebase, but requires understanding the header merge logic and recognizing that
+    None values need filtering after the merge operation. An expert engineer should
+    locate and fix this in 1-2 hours.
+  task_id: psf__requests-1921
+- estimate: 28.0
+  reasoning: Clear deprecation warnings pinpoint exact lines and issue (out-of-bound
+    integer assignment to uint8). Fix requires understanding that casting to int must
+    happen before assigning sentinel values (256+), not after. Restructuring is straightforward
+    but requires careful placement of type conversion and context manager. A competent
+    engineer could diagnose and fix this in 1-2 hours with proper testing.
+  task_id: matplotlib__matplotlib-24970
+- estimate: 28.0
+  reasoning: The bug has excellent reproduction steps and clear visual evidence. The
+    fix is localized to a single function with simple conditional logic for array
+    slicing. However, it requires understanding matplotlib's colorbar internals and
+    the relationship between extensions and divider segments. An expert engineer could
+    diagnose and fix this in 2-3 hours with the provided information.
+  task_id: matplotlib__matplotlib-22865
+- estimate: 28.0
+  reasoning: Clear error message with explicit fix guidance (convert to Punycode),
+    test case provided, and similar patterns exist in codebase. Main challenge is
+    identifying all 4 locations needing the fix and creating a reusable utility function.
+    An experienced engineer would complete this in 2-3 hours with proper testing.
+  task_id: django__django-11532
+- estimate: 28.0
+  reasoning: The task is well-defined with clear guidance and mostly mechanical changes
+    across multiple files. While requiring understanding of Python's comparison protocol
+    and careful attention to context (distinguishing when to return NotImplemented
+    vs False), the pattern is repetitive and straightforward. An experienced engineer
+    could complete this in 2-3 hours, making it accessible but not trivial due to
+    the scope across 15+ files.
+  task_id: sympy__sympy-13091
+- estimate: 28.0
+  reasoning: Well-documented bug with clear reproduction steps and narrow scope. The
+    fix requires understanding Django's ORM query compilation and the mathematical
+    difference between "exactly one" and "parity" semantics for XOR, but the code
+    location is easily findable and the change itself is straightforward (wrapping
+    a sum in a modulo operation). An experienced engineer could diagnose and fix this
+    in 2-4 hours.
+  task_id: django__django-16901
+- estimate: 28.0
+  reasoning: Clear issue with straightforward fix requiring changes in two locations.
+    Main challenge is identifying both admin display (`display_for_field`) and form
+    preparation (`prepare_value`) code paths. The fix itself is trivial (adding `ensure_ascii=False`),
+    but requires basic Django admin/forms knowledge. An experienced Django developer
+    could complete this in 2-3 hours including testing.
+  task_id: django__django-13512
+- estimate: 28.0
+  reasoning: Clear stack trace and helpful issue description point directly to the
+    problem in `check_filterable()`. The bug is a subtle naming collision between
+    a user's model field and Django's internal `filterable` attribute. Fix requires
+    understanding Django expressions and adding a discriminator check (`resolve_expression`),
+    but the solution is simple once the root cause is identified. An expert could
+    solve this in 1-2 hours with debugging.
+  task_id: django__django-13028
+- estimate: 28.0
+  reasoning: This is a simple parameter propagation bug with a one-line fix. The clear
+    reproduction case showing inconsistent behavior with permute=True makes diagnosis
+    straightforward. The main challenge is tracing through the symbol reordering logic
+    to find the recursive call that's missing the permute parameter, which should
+    take 1-2 hours for a competent engineer familiar with debugging techniques.
+  task_id: sympy__sympy-18189
+- estimate: 28.0
+  reasoning: The fix is a straightforward one-line change using functools.wraps, a
+    standard Python pattern. The main challenge is understanding Django's method_decorator
+    implementation and recognizing that partial objects need wrapper assignments preserved.
+    An experienced Python developer familiar with decorators could complete this in
+    under 2 hours, but it requires moderate knowledge of method binding and functools.
+    The clear error message and provided reproduction case significantly reduce diagnostic
+    difficulty.
+  task_id: django__django-14787
+- estimate: 28.0
+  reasoning: The bug location and cause are clearly identified in the issue description.
+    The fix is straightforward (add a null check before subscripting). Main challenges
+    are understanding the cache culling context and reproducing the sporadic issue,
+    but the test case reveals this can be forced with `_max_entries = -1`. An experienced
+    engineer could diagnose and fix this in 1-2 hours with the provided information.
+  task_id: django__django-13089
+- estimate: 28.0
+  reasoning: The fix is a simple one-line change, and the issue provides a clear reproduction
+    case. However, it requires understanding SymPy's three-valued logic for `is_zero`,
+    navigating to the correct method in `Add`, and comprehending the subtle logic
+    of when to return `None` vs `False`. An expert engineer could locate and fix this
+    in 2-4 hours, making it a low-moderate difficulty task.
+  task_id: sympy__sympy-15875
+- estimate: 28.0
+  reasoning: The fix is trivial (2 lines, adding 'returns' alongside 'return'), but
+    requires understanding the interaction between Napoleon and autodoc typehints
+    processing. An expert would need 1-2 hours to reproduce the issue, trace through
+    how Napoleon transforms Google-style docstrings into field nodes, locate the hardcoded
+    'return' checks, and verify the fix. The main challenge is the detective work,
+    not the implementation.
+  task_id: sphinx-doc__sphinx-9673
+- estimate: 28.0
+  reasoning: Straightforward feature addition with clear requirements and simple implementation.
+    Main challenges are navigating Django's formset architecture and identifying the
+    correct injection points for the `edit_only` parameter. The actual logic (conditional
+    skipping of new object saves) is trivial. An experienced engineer could complete
+    this in 2-4 hours.
+  task_id: django__django-14725
+- estimate: 28.0
+  reasoning: Clear issue description with root cause analysis, simple refactoring
+    solution (extract cached function and normalize input), minimal code changes across
+    2 files. Main challenge is understanding Django's URL resolver lifecycle, but
+    fix implementation is straightforward for an experienced engineer. Estimated 1-2
+    hours total work.
+  task_id: django__django-11333
+- estimate: 28.0
+  reasoning: Well-defined issue with clear examples and RFC specification. Single-line
+    regex fix in easily located file. Main complexity is understanding URL validation
+    regex and testing edge cases, but explicit problem description and existing test
+    infrastructure significantly reduce difficulty. An expert engineer should complete
+    this in 1-2 hours.
+  task_id: django__django-10097
+- estimate: 28.0
+  reasoning: Well-documented issue with clear historical context and small, localized
+    code change. Main challenge is understanding Python namespace packages and Django's
+    migration loader logic. The fix involves removing an obsolete check and subtly
+    reorganizing when apps are marked as migrated/unmigrated. With the detailed issue
+    description, an experienced Django engineer could diagnose and fix this in 2-4
+    hours.
+  task_id: django__django-11141
+- estimate: 28.0
+  reasoning: Clear bug report with reproducer, single-line fix adding `newline=""`
+    to TextIOWrapper. Main challenge is recognizing Python's automatic newline translation
+    behavior and locating the file object creation in capture.py. Expert engineer
+    with Python knowledge would identify and fix within 1-2 hours.
+  task_id: pytest-dev__pytest-7521
+- estimate: 30.0
+  reasoning: The fix is a trivial one-word change (__name__ to __qualname__), but
+    requires understanding Django's migration serialization system and knowing about
+    Python's __qualname__ attribute for nested classes. The excellent issue description
+    significantly reduces diagnostic difficulty, making this a moderate task that
+    a competent Django developer could complete in 2-4 hours.
+  task_id: django__django-17087
+- estimate: 30.0
+  reasoning: Clear problem with mechanical fix pattern, but requires systematic discovery
+    of 20+ affected methods across one file and careful verification. An experienced
+    engineer would complete this in 1.5-2.5 hours through pattern recognition and
+    systematic search, while the conceptual understanding is straightforward once
+    the delegation pattern is identified.
+  task_id: sympy__sympy-14531
+- estimate: 30.0
+  reasoning: Clear bug report with specific expected output, small localized fix in
+    well-structured code, but requires understanding the printer dispatch mechanism
+    and class hierarchy to identify that both known_functions entries and _print_MinMaxBase
+    method are needed. The solution is only a few lines but finding the right approach
+    requires moderate codebase navigation and architecture understanding.
+  task_id: sympy__sympy-15345
+- estimate: 30.0
+  reasoning: Clear bug report with reproduction case, but requires understanding matplotlib's
+    widget system and tracing through initialization to identify that `self.extents`
+    (which defaults to including 0) should be replaced with axis bounds. The fix itself
+    is straightforward (~7 lines), but diagnosing the root cause requires navigating
+    the widget infrastructure and understanding the distinction between extents and
+    axis bounds. An experienced engineer could solve this in 2-4 hours.
+  task_id: matplotlib__matplotlib-20676
+- estimate: 32.0
+  reasoning: Clear visual bug with good reproduction case makes diagnosis straightforward.
+    The fix requires non-trivial refactoring of DOM element creation logic across
+    multiple branches, but the pattern is consistent once identified. Requires moderate
+    understanding of MathML/DOM but is highly debuggable through inspection of generated
+    output. An experienced engineer should complete this in 2-4 hours.
+  task_id: sympy__sympy-15976
+- estimate: 32.0
+  reasoning: The fix is trivial (2 lines), and the bug report provides an excellent
+    reproduction case. However, identifying that `_iterable_class` needs to be synchronized
+    with `query.values_select` requires understanding Django's QuerySet internals.
+    An experienced developer could diagnose and fix this in 2-3 hours by tracing through
+    the code and understanding how values() querysets differ from regular ones.
+  task_id: django__django-13406
+- estimate: 32.0
+  reasoning: The bug has a clear reproduction case and a trivial one-line fix (removing
+    a parameter). However, diagnosing it requires understanding Sphinx's Python domain
+    system, particularly how `rolename` affects cross-referencing behavior in field
+    lists. An engineer unfamiliar with Sphinx internals would need a few hours to
+    trace the issue, but the localized nature of the fix and good test case keep this
+    in the lower-moderate range.
+  task_id: sphinx-doc__sphinx-8638
+- estimate: 32.0
+  reasoning: Well-documented bug with clear reproduction and test case. The fix is
+    trivial (reordering a list), but requires understanding that gettext catalog precedence
+    is determined by directory order. An engineer needs to locate the i18n initialization
+    code and recognize that built-in locale directories should come after user-provided
+    ones. The diagnosis is moderately challenging without i18n domain knowledge, but
+    the excellent bug report and small code surface area make this achievable in a
+    few hours.
+  task_id: sphinx-doc__sphinx-8120
+- estimate: 32.0
+  reasoning: The error message explicitly identifies the problem (using Python keywords
+    as identifiers in AST), and the reproducer is trivial. An expert engineer needs
+    to understand Python AST basics and locate the expression compiler in pytest's
+    codebase. The fix is conceptually straightforward (prefix identifiers) but requires
+    coordinated changes in two locations. The small scope and clear error message
+    make this moderately easy for an expert, though it requires some specialized knowledge
+    of AST compilation.
+  task_id: pytest-dev__pytest-7324
+- estimate: 32.0
+  reasoning: The issue has a clear MVCE and the fix is simple (adding dtype preservation
+    in one method), but locating the root cause in `PandasMultiIndexingAdapter.__array__()`
+    requires understanding xarray's MultiIndex implementation and tracing through
+    the stack operation. An expert could identify and fix this in 2-4 hours through
+    systematic debugging, making it moderate difficulty.
+  task_id: pydata__xarray-7393
+- estimate: 33.0
+  reasoning: Clear reproduction case with exact error location makes diagnosis straightforward.
+    Requires moderate understanding of parameter interactions and array indexing patterns.
+    The fix is small and localized but involves understanding the difference between
+    user parameters and resolved internal variables. An experienced engineer should
+    complete this in 2-4 hours.
+  task_id: scikit-learn__scikit-learn-14087
+- estimate: 35.0
+  reasoning: The stack trace clearly points to LogNorm receiving invalid (non-positive)
+    values. The fix is localized and small, but requires understanding the subtle
+    edge case where resampling can produce zero or slightly negative values that need
+    clamping for LogNorm. The intermittent CI-only failure adds diagnostic complexity,
+    but the logic error (missing `s_vmin == 0` case and flawed max() logic) is discoverable
+    through code inspection once the problem area is identified.
+  task_id: matplotlib__matplotlib-20488
+- estimate: 35.0
+  reasoning: The fix is small (3 lines) and the bug report is detailed, but diagnosing
+    the root cause requires understanding Sphinx's domain system, cross-reference
+    resolution, and context propagation. An engineer needs to trace through the call
+    chain between docfields.py and python.py to realize that environment context isn't
+    being passed to make_xref. While straightforward once identified, discovering
+    this without the solution requires 4-8 hours of architectural understanding and
+    debugging.
+  task_id: sphinx-doc__sphinx-8551
+- estimate: 38.0
+  reasoning: The issue is well-described and localized to admin search query construction.
+    The fix is conceptually simple (accumulate Q objects before filtering), but requires
+    understanding Django ORM JOIN behavior and subtle semantic implications. An expert
+    would diagnose this in ~1-2 hours, with the main challenge being recognizing the
+    semantic change in how multi-term searches interact with related fields rather
+    than the code change itself.
+  task_id: django__django-15022
+- estimate: 38.0
+  reasoning: Clear error message about unpicklable weakref makes diagnosis straightforward.
+    Solution requires understanding pickle protocol and weak references, then implementing
+    standard `__getstate__`/`__setstate__` pattern. The fix is localized (~15 lines)
+    but requires tracing through codebase to find the `Grouper` class and understanding
+    its weak reference usage. Moderate complexity for an expert, manageable in a few
+    hours.
+  task_id: matplotlib__matplotlib-25332
+- estimate: 38.0
+  reasoning: The bug is well-defined with clear reproduction steps and an explicit
+    error message pointing to the problem area. The fix is small and localized. However,
+    it requires understanding SymPy's physics units system and the non-obvious insight
+    that dimensionless dimensions need normalization to Dimension(1) when passed to
+    functions. An expert could solve this in 1-2 hours, making it moderate difficulty.
+  task_id: sympy__sympy-24066
+- estimate: 38.0
+  reasoning: This requires navigating Django's complex ORM query compiler to find
+    a subtle bug in field name resolution for self-referential foreign keys. While
+    the fix is a one-line change and the bug report is excellent, locating the exact
+    issue in `find_ordering_name` and understanding why `pieces[-1]` vs `name` matters
+    requires deep Django ORM knowledge. An expert would need 2-4 hours to diagnose
+    and fix, placing this in the moderate difficulty range.
+  task_id: django__django-13033
+- estimate: 38.0
+  reasoning: The bug requires navigating Django's complex ORM query compilation system
+    to find where `Exists.as_sql` doesn't properly handle `EmptyResultSet` exceptions
+    in negated cases. While the fix itself is simple (catch exception, return empty
+    string), locating the root cause requires understanding ORM internals and exception
+    flow. The clear reproduction case, reference to similar bug, and searchable exception
+    name make this tractable for an expert in under 2 hours.
+  task_id: django__django-15382
+- estimate: 38.0
+  reasoning: The bug location is clearly identified by the stack trace, and the fix
+    is a single line. However, understanding WHY the check fails under `evaluate(False)`
+    requires knowledge of SymPy's evaluation system and three-valued logic. The conceptual
+    challenge of recognizing that `im(a)` returns an unevaluated expression (which
+    is truthy) versus checking if it's definitively non-zero elevates this above a
+    trivial fix. An experienced engineer could diagnose and fix this in 2-4 hours
+    through debugging and experimentation.
+  task_id: sympy__sympy-22714
+- estimate: 40.0
+  reasoning: Clear reproduction and version regression info help locate the issue,
+    but understanding why grid keyword preservation fixes shared axis tick label visibility
+    requires matplotlib-specific knowledge. The fix is small but non-obvious, requiring
+    investigation of the relationship between tick keywords and axis sharing behavior.
+    An experienced engineer could solve this in 4-6 hours.
+  task_id: matplotlib__matplotlib-20826
+- estimate: 40.0
+  reasoning: Requires understanding Django's schema migration internals to locate
+    `_field_should_be_altered` method, recognizing that `choices` should be in the
+    non-database attributes list, and implementing the refactoring to move the list
+    to `Field.non_db_attrs`. The fix itself is straightforward but finding it requires
+    moderate Django knowledge. The subtle detail of handling both old and new field
+    attributes adds minor complexity.
+  task_id: django__django-15561
+- estimate: 40.0
+  reasoning: Requires understanding pytest's hook system and execution timing to realize
+    xfail marks are evaluated before they're dynamically added. The fix is localized
+    and relatively simple (re-evaluate after test execution), but identifying the
+    root cause requires tracing through hook execution order. Clear reproduction case
+    and small code change reduce difficulty, but pytest internals knowledge is necessary.
+  task_id: pytest-dev__pytest-7490
+- estimate: 42.0
+  reasoning: Well-documented issue with clear reproduction and suggested solution
+    significantly reduces diagnosis difficulty. However, requires understanding Django
+    ORM's complex alias management system and careful implementation to avoid breaking
+    existing query combination logic. Small, localized changes but in critical infrastructure
+    code with high regression risk. An experienced engineer could complete in 3-6
+    hours with the provided context.
+  task_id: django__django-15128
+- estimate: 42.0
+  reasoning: Clear bug report with reproduction case significantly reduces diagnostic
+    complexity. Fix requires moderate Django ORM knowledge to locate SQLInsertCompiler.execute_sql()
+    and recognize that field converters need to be applied to returning values. The
+    implementation is straightforward once the location is found, as converter infrastructure
+    already exists. An experienced engineer could complete this in 3-5 hours.
+  task_id: django__django-14007
+- estimate: 42.0
+  reasoning: While the bug location is clearly identified and reproduction is straightforward,
+    fixing requires understanding matplotlib's layout engine system, GridSpec behavior,
+    and bbox transformations. The fix involves non-obvious geometric calculations
+    and conditional logic based on layout engine presence. An expert engineer would
+    need 3-6 hours to understand the layout system, identify why spacing is ignored
+    during instantiation, and implement the manual bbox adjustment solution.
+  task_id: matplotlib__matplotlib-25960
+- estimate: 42.0
+  reasoning: The issue description provides clear diagnostic information pointing
+    to `split_exclude()` as the problem. The primary fix (copying `_filtered_relations`)
+    is straightforward once identified. However, the complete solution requires understanding
+    Django ORM internals and recognizing that filtered relation joins shouldn't be
+    trimmed, which adds moderate complexity. An experienced engineer could complete
+    this in 2-4 hours.
+  task_id: django__django-11265
+- estimate: 43.0
+  reasoning: Race condition involving threaded WSGI server not closing database connections.
+    Issue description provides strong clues pointing to ThreadedWSGIServer, but requires
+    understanding Django's connection management, Python threading model, and identifying
+    the correct cleanup hook (close_request). Solution is architecturally straightforward
+    but requires careful integration with threading lifecycle. Estimated 3-4 hours
+    for an expert engineer.
+  task_id: django__django-14011
+- estimate: 47.0
+  reasoning: Requires navigating complex Django ORM metaclass initialization code
+    to identify that parent_links dictionary is incorrectly populated with all OneToOneFields
+    instead of only those with parent_link=True. The fix is small (2 locations) but
+    finding it requires tracing through intricate model inheritance logic. An experienced
+    Django developer could solve this in 3-5 hours, but the core ORM complexity and
+    need to understand MTI internals elevates it above trivial bugs.
+  task_id: django__django-12325
+- estimate: 47.0
+  reasoning: The bug is well-documented and localized to a single function, but requires
+    understanding Python 3.8's positional-only arguments, AST parsing, and the non-trivial
+    alignment between right-aligned defaults and multiple parameter type lists. The
+    indexing logic is tricky with significant risk of off-by-one errors. An experienced
+    engineer could fix this in 2-4 hours with careful testing.
+  task_id: sphinx-doc__sphinx-7757
+- estimate: 48.0
+  reasoning: Requires understanding Sphinx's autodoc architecture and Python descriptor
+    protocol, but the bug report provides exceptional detail including root cause
+    analysis. The fix spans multiple interconnected systems (documenter, domain, introspection)
+    requiring careful coordination, but follows existing patterns (like abstractmethod
+    handling). An expert engineer would need 6-10 hours to understand the context,
+    implement across 3 files, and verify the fix works correctly with inheritance
+    chains.
+  task_id: sphinx-doc__sphinx-9461
+- estimate: 48.0
+  reasoning: The excellent bug report and simple fix reduce difficulty, but finding
+    that a missing `is_summary` attribute causes malformed SQL requires deep Django
+    ORM knowledge and methodical debugging through query compilation layers. An experienced
+    Django developer could solve this in 4-8 hours, but the non-obvious connection
+    between the symptom and root cause prevents this from being straightforward.
+  task_id: django__django-15375
+- estimate: 48.0
+  reasoning: 'The explicit error message and stack trace significantly aid diagnosis,
+    but the fix requires deep understanding of Django''s ORM query compiler internals,
+    particularly how union queries handle ORDER BY clauses. The solution is elegant
+    but non-obvious: detecting when ORDER BY references columns not in the select
+    list and adding them. An experienced Django developer could solve this in several
+    hours, while someone less familiar with ORM internals would need 1-2 days of exploration.'
+  task_id: django__django-10554
+- estimate: 48.0
+  reasoning: "The bug requires tracing through multiple layers (lambdify \u2192 code\
+    \ printing \u2192 precedence system) to identify that Mod lacks a precedence entry\
+    \ and unary minus needs special handling. While the fix is localized and clean,\
+    \ discovering that unary minus needs a computed precedence weight between Pow\
+    \ and Mul is a non-trivial insight. An experienced engineer would need 2-4 hours\
+    \ to diagnose, implement, and test this fix."
+  task_id: sympy__sympy-22080
+- estimate: 48.0
+  reasoning: The explicit hint about Python 3.8.12 changes significantly narrows the
+    search space, but the engineer still needs to trace through proxy handling code
+    to find where authentication credentials are being lost during URL parsing. The
+    fix itself is simple (4 lines), but discovering that `prepend_scheme_if_needed`
+    strips auth info requires understanding changes in Python's URL parsing behavior
+    and systematic debugging. Estimated 6-10 hours for an experienced engineer.
+  task_id: psf__requests-6028
+- estimate: 58.0
+  reasoning: The issue is clearly described with a failing test, and the bug location
+    is identifiable in a single method. However, fixing it requires deep understanding
+    of Django's model inheritance system, the distinction between concrete inheritance
+    and foreign keys as primary keys, and familiarity with Django's meta API (_meta.parents,
+    auto_field, to_fields). The solution involves replacing subtle conditional logic
+    with equally subtle but correct logic, which would require significant debugging
+    and Django ORM knowledge to derive independently.
+  task_id: django__django-16661
+- estimate: 62.0
+  reasoning: Requires deep Django ORM knowledge to understand query slicing internals
+    and the non-obvious insight to use window functions with partitioning to replace
+    slice-then-filter with filter-using-row-numbers. The solution is architecturally
+    sound but conceptually advanced, touching multiple relationship descriptors. An
+    expert could solve it in 6-12 hours, but the window function approach is not immediately
+    obvious from the error message.
+  task_id: django__django-15957

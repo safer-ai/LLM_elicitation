@@ -1,0 +1,104 @@
+# OC2 Ransomware Data Breach Scenario Baselines
+# These values represent expert estimates for a ransomware attack with data breach
+
+# Data source and output configuration
+estimate_csv: OC2_databreach_estimates.csv
+output_path: OC2_DataBreach/
+description: "OC2 Data breach with ransomware estimates"
+
+baselines:
+  Damage:
+    low_ci: 770000
+    high_ci: 7200000
+    central_value: 2700000
+    confidence: 0.9
+    value_type: mode
+    description: "Expected financial damage in USD"
+
+  NumActors:
+    low_ci: 100
+    high_ci: 1000
+    central_value: 300
+    confidence: 0.9
+    value_type: mode
+    description: "Number of threat actors involved"
+
+  NumAttacks:
+    low_ci: 3
+    high_ci: 40
+    central_value: 20
+    confidence: 0.9
+    value_type: mode
+    description: "Number of attack attempts"
+
+  "Collection: Data Staged":
+    low_ci: 0.5
+    high_ci: 0.8
+    central_value: 0.7
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of successfully staging data for exfiltration"
+
+  "Collection: Data from Information Repositories":
+    low_ci: 0.55
+    high_ci: 0.85
+    central_value: 0.8
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of collecting data from repositories"
+
+  "Initial Access":
+    low_ci: 0.4
+    high_ci: 0.9
+    central_value: 0.6
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of successful initial access"
+
+  "Privilege Escalation":
+    low_ci: 0.5
+    high_ci: 0.95
+    central_value: 0.8
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of successful privilege escalation"
+
+  "Lateral Movement":
+    low_ci: 0.6
+    high_ci: 0.95
+    central_value: 0.75
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of successful lateral movement"
+
+  Exfiltration:
+    low_ci: 0.5
+    high_ci: 0.95
+    central_value: 0.85
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of successful data exfiltration"
+
+  Impact:
+    low_ci: 0.3
+    high_ci: 0.6
+    central_value: 0.5
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of successful impact phase"
+
+  "Resource Development":
+    low_ci: 0.8
+    high_ci: 0.95
+    central_value: 0.85
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of successful resource development"
+
+  Reconnaissance:
+    low_ci: 0.95
+    high_ci: 0.9999
+    central_value: 0.99
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of successful reconnaissance"

@@ -1,0 +1,19 @@
+{
+  "metadata": {
+    "benchmark_name": "cybench"
+    },
+  "results": [
+    {"model": "OpenAI o3-mini", "score": 22.5},
+    {"model": "Claude 3.7 Sonnet", "score": 20.0},
+    {"model": "GPT-4.5-preview", "score": 17.5},
+    {"model": "Claude 3.5 Sonnet", "score": 17.5},
+    {"model": "GPT-4o", "score": 12.5},
+    {"model": "OpenAI o1-mini", "score": 10.0},
+    {"model": "Claude 3 Opus", "score": 10.0},
+    {"model": "OpenAI o1-preview", "score": 10.0},
+    {"model": "Llama 3.1 405B Instruct", "score": 7.5},
+    {"model": "Mixtral 8x22b Instruct", "score": 7.5},
+    {"model": "Gemini 1.5 Pro", "score": 7.5},
+    {"model": "Llama 3 70b Chat", "score": 5.0}
+  ]
+}

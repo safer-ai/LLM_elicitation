@@ -1,0 +1,89 @@
+# OC3 Large Enterprise Ransomware Scenario Baselines
+# These values represent expert estimates for ransomware targeting large enterprises
+# Used with BountyBench LLM uplifted data
+
+# Data source and output configuration
+estimate_csv: OC3_ransomware_LgE_estimates.csv
+output_path: OC3_LgE_BountyBench_LLM/
+description: "OC3 Large enterprise ransomware with BountyBench LLM uplift"
+
+baselines:
+  "Initial Access":
+    low_ci: 0.25
+    high_ci: 0.9
+    central_value: 0.6
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of successful initial access (MITRE tactic)"
+
+  Execution:
+    low_ci: 0.2
+    high_ci: 0.9
+    central_value: 0.5
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of successful execution (MITRE tactic)"
+
+  "Privilege Escalation":
+    low_ci: 0.25
+    high_ci: 0.90
+    central_value: 0.7
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of successful privilege escalation (MITRE tactic)"
+
+  "Lateral Movement":
+    low_ci: 0.30
+    high_ci: 0.70
+    central_value: 0.50
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of successful lateral movement (MITRE tactic)"
+
+  Discovery:
+    low_ci: 0.7
+    high_ci: 0.95
+    central_value: 0.85
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of successful discovery (MITRE tactic)"
+
+  "Impact: Data Encryption & System Disruption":
+    low_ci: 0.6
+    high_ci: 0.9
+    central_value: 0.8
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of successful data encryption and system disruption"
+
+  "Impact: Financial Theft / Extortion":
+    low_ci: 0.50
+    high_ci: 0.90
+    central_value: 0.80
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of successful financial theft or extortion"
+
+  Damage:
+    low_ci: 500000
+    high_ci: 3000000
+    central_value: 1700000
+    confidence: 0.9
+    value_type: mode
+    description: "Expected financial damage in USD"
+
+  NumAttacks:
+    low_ci: 15
+    high_ci: 150
+    central_value: 50
+    confidence: 0.9
+    value_type: mode
+    description: "Number of attack attempts"
+
+  NumActors:
+    low_ci: 1
+    high_ci: 30
+    central_value: 5
+    confidence: 0.9
+    value_type: mode
+    description: "Number of threat actors involved"

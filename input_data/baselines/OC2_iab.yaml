@@ -1,0 +1,64 @@
+# OC2 Initial Access Broker (IAB) Scenario Baselines
+# These values represent expert estimates for an IAB attack scenario
+
+# Data source and output configuration
+estimate_csv: OC2_iab_estimates.csv
+output_path: OC2_IAB/
+description: "OC2 Initial Access Broker estimates"
+
+baselines:
+  Damage:
+    low_ci: 855
+    high_ci: 17600
+    central_value: 3600
+    confidence: 0.9
+    value_type: mode
+    description: "Expected financial damage in USD"
+
+  NumActors:
+    low_ci: 25
+    high_ci: 100
+    central_value: 55
+    confidence: 0.9
+    value_type: mode
+    description: "Number of threat actors involved"
+
+  NumAttacks:
+    low_ci: 15000
+    high_ci: 100000
+    central_value: 50000
+    confidence: 0.9
+    value_type: mode
+    description: "Number of attack attempts"
+
+  Execution:
+    low_ci: 0.1
+    high_ci: 0.6
+    central_value: 0.4
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of successful execution"
+
+  "Credential Access":
+    low_ci: 0.50
+    high_ci: 0.95
+    central_value: 0.8
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of successful credential access"
+
+  "Initial Access: Spearphishing Link":
+    low_ci: 0.07
+    high_ci: 0.35
+    central_value: 0.15
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of successful spearphishing link attack"
+
+  "Command-and-Control":
+    low_ci: 0.5
+    high_ci: 0.90
+    central_value: 0.7
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of establishing command and control"

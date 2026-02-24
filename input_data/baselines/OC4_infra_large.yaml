@@ -1,0 +1,160 @@
+# OC4 Large Infrastructure Attack Scenario Baselines
+# These values represent expert estimates for attacks on large critical infrastructure
+
+# Data source and output configuration
+estimate_csv: OC4_infra_large_estimates.csv
+output_path: OC4_Infra_Large_LLM/
+description: "OC4 Large infrastructure attack with LLM uplift"
+
+baselines:
+  NumActors:
+    low_ci: 10
+    high_ci: 60
+    central_value: 30
+    confidence: 0.9
+    value_type: mode
+    description: "Number of threat actors involved"
+
+  NumAttacks:
+    low_ci: 1
+    high_ci: 8
+    central_value: 3
+    confidence: 0.9
+    value_type: mode
+    description: "Number of attack attempts"
+
+  "Lateral Movement: RDP into EMS servers":
+    low_ci: 0.35
+    high_ci: 0.8
+    central_value: 0.65
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of lateral movement via RDP to EMS servers"
+
+  "Lateral Movement: SMB/WMI into Engineering PCs":
+    low_ci: 0.4
+    high_ci: 0.85
+    central_value: 0.65
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of lateral movement via SMB/WMI to engineering PCs"
+
+  "Lateral Movement: Ingress Tool Transfer":
+    low_ci: 0.3
+    high_ci: 0.75
+    central_value: 0.55
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of successful ingress tool transfer"
+
+  "C2: OT Protocol Tunnel":
+    low_ci: 0.3
+    high_ci: 0.7
+    central_value: 0.5
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of establishing C2 via OT protocol tunnel"
+
+  "C2: Web Protocols (HTTPS)":
+    low_ci: 0.5
+    high_ci: 0.95
+    central_value: 0.8
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of establishing C2 via HTTPS"
+
+  "C2: DNS-over-HTTPS":
+    low_ci: 0.4
+    high_ci: 0.9
+    central_value: 0.7
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of establishing C2 via DNS-over-HTTPS"
+
+  "Privilege Escalation: Process Injection":
+    low_ci: 0.35
+    high_ci: 0.85
+    central_value: 0.65
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of process injection for privilege escalation"
+
+  "Privilege Escalation: Exploitation for PrivEsc":
+    low_ci: 0.1
+    high_ci: 0.65
+    central_value: 0.35
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of exploitation for privilege escalation"
+
+  "Privilege Escalation: Access-Token Manipulation":
+    low_ci: 0.2
+    high_ci: 0.75
+    central_value: 0.55
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of access token manipulation for privilege escalation"
+
+  "Initial Access: External Remote Services":
+    low_ci: 0.1
+    high_ci: 0.6
+    central_value: 0.35
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of gaining access via external remote services"
+
+  "Initial Access: Exploit Public-Facing App":
+    low_ci: 0.2
+    high_ci: 0.7
+    central_value: 0.45
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of exploiting public-facing applications"
+
+  "Initial Access: Spear-phishing Attachment":
+    low_ci: 0.05
+    high_ci: 0.4
+    central_value: 0.2
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of successful spear-phishing attachment"
+
+  Execution:
+    low_ci: 0.75
+    high_ci: 0.9
+    central_value: 0.85
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of successful execution"
+
+  "Credential Access":
+    low_ci: 0.35
+    high_ci: 0.9
+    central_value: 0.7
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of successful credential access"
+
+  Collection:
+    low_ci: 0.6
+    high_ci: 0.9
+    central_value: 0.8
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of successful collection"
+
+  Impact:
+    low_ci: 0.15
+    high_ci: 0.7
+    central_value: 0.45
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of successful impact"
+
+  Damage:
+    low_ci: 61769712
+    high_ci: 203008573
+    central_value: 123459042
+    confidence: 0.9
+    value_type: mode
+    description: "Expected financial damage in USD"

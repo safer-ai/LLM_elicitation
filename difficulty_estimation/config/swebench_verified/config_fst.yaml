@@ -1,0 +1,18 @@
+experiment_name: swebench_verified_fst_estimation
+
+llm_settings:
+  model_name: "claude-sonnet-4-5"
+  temperature: 0.8
+  max_concurrent_calls: 5
+  rate_limit_calls: 45
+  rate_limit_period: 60
+  llm_provider: anthropic
+
+benchmark_type: swebench_verified
+mode: fst
+prompt_template: prompts/fst/prompt_swebench_verified.txt
+raw_output_file: results/swebench_verified/fst/raw/output.txt
+output_file: results/swebench_verified/fst/ordered_tasks.yaml
+tasks_path: benchmark_tasks/swebench_verified.yaml
+include_code: true
+pairwise: false

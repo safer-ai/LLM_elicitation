@@ -1,0 +1,18 @@
+experiment_name: swebench_verified_difficulty_estimation
+
+llm_settings:
+  model_name: "claude-sonnet-4-5"
+  temperature: 0.8
+  max_concurrent_calls: 5
+  rate_limit_calls: 45
+  rate_limit_period: 60
+  llm_provider: anthropic
+
+benchmark_type: swebench_verified
+mode: difficulty
+prompt_template: prompts/difficulty_scale/prompt_swebench_verified.txt
+raw_output_file: results/swebench_verified/difficulty/raw/output_subset.txt
+output_file: results/swebench_verified/difficulty/ordered_tasks_subset.yaml
+tasks_path: benchmark_tasks/swebench_verified_subset.yaml
+include_code: true
+pairwise: false

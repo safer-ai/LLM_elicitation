@@ -1,0 +1,18 @@
+experiment_name: swebench_verified_iterative_estimation
+
+llm_settings:
+  model_name: "claude-sonnet-4-5"
+  temperature: 0.8
+  max_concurrent_calls: 5
+  rate_limit_calls: 45
+  rate_limit_period: 60
+  llm_provider: anthropic
+
+benchmark_type: swebench_verified
+mode: iterative_hardest
+prompt_template: prompts/iterative_selection/prompt_swebench_verified_hard.txt
+raw_output_file: results/swebench_verified/iterative_hardest/raw/output_subset.txt
+output_file: results/swebench_verified/iterative_hardest/ordered_tasks_subset.yaml
+tasks_path: benchmark_tasks/swebench_verified_subset.yaml
+include_code: false # the FullRank estimation does not accept code by default, so this flag doesn't do anything
+pairwise: false

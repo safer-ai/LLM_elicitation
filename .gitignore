@@ -29,6 +29,10 @@ analysis_results.json
 *.DS_Store
 **/.DS_Store
 
+# macOS files
+*.DS_Store
+**/.DS_Store
+
 records/
 
 llm_impact_analysis.log
@@ -38,9 +42,12 @@ output_data/plots/*
 output_data/runs/*
 output_data/run_registry.json
 
+intra_benchmark_calibration/results/*
+!intra_benchmark_calibration/results/.gitkeep
 *ground_truth*.json
 
 data/
+**/archive_data
 
 src/__pycache__/
 
@@ -50,6 +57,9 @@ run
 
 /config*.yaml 
 !config_example.yaml
+intra_benchmark_calibration/config*.yaml
+!intra_benchmark_calibration/config_example.yaml
+
 
 # Temporary experiment data
 input_data/reruns/

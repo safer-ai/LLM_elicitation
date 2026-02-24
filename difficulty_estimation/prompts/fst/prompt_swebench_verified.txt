@@ -1,0 +1,60 @@
+You are an expert software engineer. Your task is to estimate the First Solve Time (FST) for the software bug described below.
+
+**What is First Solve Time (FST)?**
+
+First Solve Time (FST) is the estimated time, in minutes, that it would take a skilled software engineer to identify the root cause of a bug and write a working patch that resolves it. The engineer has access to the codebase, a development environment to test the fix, and the issue description. They need to understand the problem, locate the faulty code, implement a fix, and verify it works. This estimate should be based on the complexity of the bug, the information provided, and the state of the affected code.
+
+**FST Examples:**
+
+To help calibrate your estimates, here are some examples of software bugs and their corresponding FSTs:
+
+*   **Example 1: Simple Typo in Variable Name (FST: 15 minutes)**
+    *   **Description:** A function crashes because a variable name is misspelled in one location, causing an undefined reference error. The error message clearly points to the line.
+    *   **Reasoning:** This is trivial to identify and fix. An engineer can locate and correct the typo in minutes.
+
+*   **Example 2: Off-by-One Error in Loop (FST: 60 minutes)**
+    *   **Description:** An array indexing bug causes incorrect behavior in edge cases. The loop condition uses `<=` when it should use `<`, leading to out-of-bounds access.
+    *   **Reasoning:** Requires understanding the loop logic, reproducing the edge case, and testing the fix. Straightforward but needs some investigation.
+
+**FST Examples:**
+
+To help calibrate your estimates, here are some examples of software bugs and their corresponding FSTs:
+
+*   **Example 1: Simple Typo in Variable Name (FST: 15 minutes)**
+    *   **Description:** A function crashes because a variable name is misspelled in one location, causing an undefined reference error. The error message clearly points to the line.
+    *   **Reasoning:** This is trivial to identify and fix. An engineer can locate and correct the typo in minutes.
+
+*   **Example 2: Off-by-One Error in Loop (FST: 60 minutes)**
+    *   **Description:** An array indexing bug causes incorrect behavior in edge cases. The loop condition uses `<=` when it should use `<`, leading to out-of-bounds access.
+    *   **Reasoning:** Requires understanding the loop logic, reproducing the edge case, writing a test, and verifying the fix. Straightforward but needs some investigation.
+
+*   **Example 3: Incorrect API Usage (FST: 180 minutes)**
+    *   **Description:** A function uses an external library API incorrectly, leading to subtle bugs in production. The documentation is unclear, and the engineer needs to trace through library code and examples to understand the correct usage pattern.
+    *   **Reasoning:** Requires reading documentation, potentially examining library source code, reproducing the issue, and validating that the corrected usage works across all call sites. Not algorithmically complex but time-consuming.
+
+*   **Example 4: Race Condition in Multi-threaded Code (FST: 480 minutes)**
+    *   **Description:** Intermittent crashes occur due to unsynchronized access to shared data. The engineer must reproduce the race condition, identify all affected variables across multiple functions, and design an appropriate synchronization strategy (locks, atomics, or restructuring).
+    *   **Reasoning:** Race conditions are difficult to reproduce consistently. Even after identifying the issue, implementing correct synchronization without introducing deadlocks or performance problems requires careful design and testing.
+
+*   **Example 5: Complex Logic Error in Algorithm (FST: 1200 minutes)**
+    *   **Description:** A graph traversal algorithm produces incorrect results in specific cases due to flawed logic. The fix requires understanding why the current approach fails, redesigning part of the algorithm, and ensuring correctness across all edge cases with comprehensive tests.
+    *   **Reasoning:** Deep algorithmic bugs require significant time to understand, fix, and thoroughly test. Multiple iterations may be needed to get the logic right, especially if the algorithm must handle various graph structures correctly.
+
+**Task:**
+
+Please estimate the FST for the following task.
+
+**Task Description:**
+{task_description}
+
+{code_section}
+
+**Proceed in the following way:**
+1. Rephrase an analysis of the task and the steps required to fix it. Consider the complexity of identifying the root cause versus implementing the solution.
+2. Leverage all the information you have to produce argumentation as to why it would have a certain range of FSTs. Consider what is the lowest reasonable FST, and the highest reasonable FST. You can use the full range available to you (from minutes for trivial fixes to one or two days for complex architectural changes).
+3. Weigh your arguments by importance and aggregate them into an initial FST selection.
+4. Defend and criticize your argumentation so far as an expert, checking for under or overestimates. You should be answering the question "Wait, does this actually make sense?"
+5. Please provide your FST estimate and a brief description of your reasoning for this choice in the following format, and nothing else:
+
+FST: <time_in_minutes>
+Reasoning: <brief_reasoning>

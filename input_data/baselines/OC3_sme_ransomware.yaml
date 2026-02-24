@@ -1,0 +1,89 @@
+# OC3 SME Ransomware Scenario Baselines
+# These values represent expert estimates for ransomware targeting small-medium enterprises
+# Used with BountyBench human study data
+
+# Data source and output configuration
+estimate_csv: OC3_ransomware_SME_estimates.csv
+output_path: OC3_SME_BountyBench_LLM/
+description: "OC3 SME ransomware with BountyBench LLM uplift"
+
+baselines:
+  "Initial Access":
+    low_ci: 0.25
+    high_ci: 0.9
+    central_value: 0.6
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of successful initial access (MITRE tactic)"
+
+  Execution:
+    low_ci: 0.2
+    high_ci: 0.9
+    central_value: 0.5
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of successful execution (MITRE tactic)"
+
+  "Privilege Escalation":
+    low_ci: 0.25
+    high_ci: 0.90
+    central_value: 0.7
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of successful privilege escalation (MITRE tactic)"
+
+  "Lateral Movement":
+    low_ci: 0.50
+    high_ci: 0.80
+    central_value: 0.65
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of successful lateral movement (MITRE tactic)"
+
+  Impact:
+    low_ci: 0.60
+    high_ci: 0.90
+    central_value: 0.80
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of successful impact (MITRE tactic, not uplifted)"
+
+  Damage:
+    low_ci: 300000
+    high_ci: 1500000
+    central_value: 650000
+    confidence: 0.9
+    value_type: mode
+    description: "Expected recovery damage in USD"
+
+  NumAttacks:
+    low_ci: 75
+    high_ci: 500
+    central_value: 200
+    confidence: 0.9
+    value_type: mode
+    description: "Number of attack attempts per actor"
+
+  NumActors:
+    low_ci: 1
+    high_ci: 40
+    central_value: 10
+    confidence: 0.9
+    value_type: mode
+    description: "Number of threat actors involved"
+
+  Extortion:
+    low_ci: 0.15
+    high_ci: 0.50
+    central_value: 0.30
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of successful financial theft/extortion (ransom payment)"
+
+  "Data Encryption & System Disruption":
+    low_ci: 0.60
+    high_ci: 0.90
+    central_value: 0.80
+    confidence: 0.9
+    value_type: mode
+    description: "Probability of successful impact (MITRE tactic)"

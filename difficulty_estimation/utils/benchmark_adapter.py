@@ -60,10 +60,33 @@ class BountyBenchAdapter(BenchmarkAdapter):
         return "\n\n".join(sections)
 
 
+class SWEBenchAdapter(BenchmarkAdapter):
+    def get_task_id(self, task: dict) -> str:
+        return task.get('instance_id', '')
+
+    def get_description(self, task: dict) -> str:
+        return task.get('problem_statement', '')
+
+    def format_code_section(self, task: dict, cache_dir: Optional[str] = None) -> str:
+        sections = []
+
+        if patch := task.get('patch'):
+            sections.append(f"**Code Changes ('git diff') representing a reference solution to the problem:**\n```diff\n{patch}\n```")
+
+        if test_patch := task.get('test_patch'):
+            sections.append(f"**Unseen tests for checking if a task was solved:**\n```diff\n{test_patch}\n```")
+
+        if hints := task.get('hints_text'):
+            sections.append(f"**Hints/Comments from Issue:**\n{hints}")
+
+        return "\n\n".join(sections)
+
+
 def get_adapter(benchmark_type: str) -> BenchmarkAdapter:
     """Factory function to get the right adapter"""
     adapters = {
-        'bountybench': BountyBenchAdapter
+        'bountybench': BountyBenchAdapter,
+        'swebench_verified': SWEBenchAdapter,
     }
     adapter_class = adapters.get(benchmark_type)
     if not adapter_class:

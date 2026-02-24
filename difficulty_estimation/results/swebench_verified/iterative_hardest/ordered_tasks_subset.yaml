@@ -1,0 +1,770 @@
+- estimate: 0 / 1
+  reasoning: This is the only task provided, making it the most difficult by default.
+    However, objectively this is a trivial feature enhancement with provided implementation
+    code, requiring minimal effort to locate the Paginator class, add the __iter__
+    method, and test it.
+  task_id: django__django-9296
+- estimate: 1 / 2
+  reasoning: While both tasks are simple feature additions, Task 1 requires independent
+    analysis to determine what length means for a Pipeline and how to implement it
+    correctly, whereas Task 0 provides the exact implementation needed, making it
+    essentially a copy-paste operation.
+  task_id: scikit-learn__scikit-learn-13439
+- estimate: 2 / 3
+  reasoning: Requires understanding sympy's code printer infrastructure, refining
+    the provided solution (str(base) should likely be self._print(base)), handling
+    edge cases like multi-dimensional indexing and complex index expressions, and
+    ensuring generated Python code is syntactically valid and integrates properly
+    with lambdify(). Has the most diagnostic complexity and testing requirements.
+  task_id: sympy__sympy-16766
+- estimate: 3 / 4
+  reasoning: Despite a simple one-line fix, TASK 3 operates at the framework level
+    in Django's management command system, requiring extensive regression testing
+    across all commands, verification in multiple deployment environments, and understanding
+    of how CommandParser integrates with Django's broader command infrastructure.
+    The high production stakes and wide testing surface make this the most difficult
+    to safely implement and verify.
+  task_id: django__django-13658
+- estimate: 0 / 5
+  reasoning: Requires understanding matplotlib's color inheritance system, implementing
+    conditional logic to handle the 'inherit' sentinel value, applying the fix consistently
+    in two locations (XAxis and YAxis), and verifying through visual output rather
+    than automated tests. While a patch is provided, it involves the most conceptual
+    complexity around configuration inheritance patterns.
+  task_id: matplotlib__matplotlib-25287
+- estimate: 3 / 6
+  reasoning: Despite the simple one-line regex fix, TASK 3 requires complex verification
+    of security implications, backward compatibility with existing databases, and
+    risk assessment for production systems in a security-critical authentication component.
+    The other tasks are straightforward implementations with provided code and clear
+    testing paths.
+  task_id: django__django-11099
+- estimate: 3 / 7
+  reasoning: Requires understanding Django's URL routing internals, the subtle distinction
+    between request.path and request.path_info, and deployment-specific FORCE_SCRIPT_NAME
+    configuration. Testing requires replicating production-like environments with
+    script name prefixes, making verification significantly more complex than the
+    other tasks which can be tested with standard unit tests.
+  task_id: django__django-14404
+- estimate: 3 / 8
+  reasoning: TASK 3 requires refactoring an existing method to add an extension point
+    while ensuring backward compatibility, designing a stable API for the new method,
+    and comprehensive testing of both existing functionality and the new customization
+    capability. Unlike the other tasks which are localized fixes, this involves architectural
+    considerations and has the highest risk of unintended side effects on existing
+    code that may override the modified method.
+  task_id: django__django-14752
+- estimate: 3 / 9
+  reasoning: Despite having a provided fix, modifying CharField.__init__ affects a
+    core Django component used throughout the entire framework. The change requires
+    extensive verification across the ORM, forms, migrations, and system checks to
+    ensure no regressions. The widespread usage and fundamental nature of CharField
+    makes this the highest-risk change with the largest testing burden, even though
+    the code change itself appears simple.
+  task_id: django__django-15277
+- estimate: 2 / 10
+  reasoning: Requires tracing through Django's complex admin widget rendering system
+    to locate where JSONField serializes data for display. The referenced PR is for
+    django-mysql (not core Django), requiring independent investigation. Must handle
+    multiple contexts (display/edit) and ensure proper unicode handling across various
+    scenarios, making both diagnosis and verification more complex than other tasks.
+  task_id: django__django-13512
+- estimate: 10 / 11
+  reasoning: Task 10 requires verifying that warm_start produces algorithmically correct
+    isolation forest behavior when incrementally adding trees, not just that it doesn't
+    error. This demands deep understanding of both IsolationForest internals and BaseBagging's
+    warm_start mechanism, comprehensive testing of incremental training scenarios,
+    and validation that statistical properties are maintained - all with uncertainty
+    about whether the inherited functionality actually works correctly as described.
+  task_id: scikit-learn__scikit-learn-13496
+- estimate: 4 / 12
+  reasoning: Requires deepest understanding of codebase infrastructure (SymPy's code
+    printer system), involves both formatting (wrong bracket type) and logic issues
+    (argument ordering), requires knowledge of both Python and Mathematica syntax
+    rules, and the dual nature of the bug suggests the issue may be more complex than
+    a simple method addition.
+  task_id: sympy__sympy-15345
+- estimate: 1 / 13
+  reasoning: "Unwrapping functools.partial requires handling nested partials, preserving\
+    \ argument information, making non-trivial design decisions about meaningful representation,\
+    \ and ensuring compatibility with Django's URL resolver system\u2014all while\
+    \ managing edge cases that could break existing functionality. This combines technical\
+    \ complexity with design ambiguity."
+  task_id: django__django-14155
+- estimate: 0 / 14
+  reasoning: TASK 0 requires debugging complex tree export logic in scikit-learn to
+    identify why single-feature trees cause IndexError. Unlike other tasks with provided
+    solutions or simple fixes, this requires understanding the tree traversal algorithm,
+    tracing through potentially intricate code to find the exact indexing failure,
+    and implementing a fix that handles the edge case without breaking existing functionality.
+    The debugging and diagnostic phase is significantly more complex than other tasks.
+  task_id: scikit-learn__scikit-learn-14053
+- estimate: 13 / 15
+  reasoning: Security-sensitive password field change requiring deep understanding
+    of Django's authentication system, verification of disabled attribute's security
+    guarantees, broad backward compatibility concerns with existing third-party code,
+    and extensive documentation updates across multiple subsystems.
+  task_id: django__django-13741
+- estimate: 5 / 16
+  reasoning: The floatformat crash involves subtle Decimal precision calculation edge
+    cases where the format logic computes an invalid precision value for "0.00". Numeric
+    edge cases with floating point/decimal arithmetic are notoriously difficult to
+    diagnose correctly, requiring deep understanding of the precision computation
+    internals and careful handling of zero-value edge cases to ensure the fix doesn't
+    break other formatting scenarios.
+  task_id: django__django-16485
+- estimate: 8 / 17
+  reasoning: Requires deep understanding of Python's import system, runpy module behavior,
+    and pylint's execution context assumptions. The interaction between these systems
+    creates multiple edge cases that are difficult to identify and test. An incorrect
+    fix could silently break module imports in various execution contexts, making
+    this the highest risk and most complex debugging scenario.
+  task_id: pylint-dev__pylint-7277
+- estimate: 1 / 18
+  reasoning: Requires understanding IDNA encoding, internationalized domain names,
+    and the requests URL preparation pipeline. Previous related issues showed "hesitation"
+    suggesting architectural complexity beyond a simple exception catch. Must handle
+    invalid URLs without breaking valid internationalized domains, which is security-adjacent
+    and requires careful placement of exception handling in the codebase.
+  task_id: psf__requests-5414
+- estimate: 11 / 19
+  reasoning: Requires designing robust input validation to prevent server crashes
+    from malicious input while maintaining legitimate functionality, handling integer
+    overflow edge cases across multiple fields, and addressing security implications
+    - combines diagnostic complexity with careful implementation requirements.
+  task_id: django__django-16667
+- estimate: 15 / 20
+  reasoning: This bug requires understanding SymPy's complex symbolic evaluation system
+    for hyperbolic functions. The undefined variable 'cotm' in the coth evaluation
+    path suggests missing logic or state, and the bug only manifests for specific
+    integral values, indicating deep mathematical edge cases. Fixing it requires both
+    understanding the mathematical correctness and navigating SymPy's intricate evaluation
+    architecture, making it significantly more complex than the other tasks.
+  task_id: sympy__sympy-13480
+- estimate: 3 / 21
+  reasoning: "Requires API design decisions about parameter precedence between `__init__`\
+    \ and `fit()` methods, careful consideration of backward compatibility across\
+    \ multiple usage scenarios, and resolving inherently ambiguous behavior without\
+    \ a single correct solution\u2014making it more of a design problem than a straightforward\
+    \ bug fix."
+  task_id: scikit-learn__scikit-learn-12973
+- estimate: 17 / 22
+  reasoning: Requires understanding SQL generation pipeline across multiple layers,
+    handling subtle interactions between opclasses and ordering with empty string
+    edge cases, and ensuring correctness in critical database operations with multiple
+    parameter combinations.
+  task_id: django__django-12039
+- estimate: 12 / 23
+  reasoning: Changing a public API across multiple classes requires coordinating DataArray
+    and Dataset interfaces, implementing a deprecation cycle, updating all internal
+    and external call sites, comprehensive testing, and documentation updates. The
+    risk of breaking user code is high, and the change must be carefully orchestrated
+    to maintain backward compatibility while transitioning to the new API. This involves
+    more organizational complexity and cross-codebase coordination than any other
+    task.
+  task_id: pydata__xarray-3993
+- estimate: 22 / 24
+  reasoning: Requires deep understanding of IterativeImputer's initial imputation
+    mechanism, proper parameter threading from IterativeImputer through to SimpleImputer,
+    handling special cases like np.nan as fill_value for tree-based estimators, and
+    comprehensive integration testing across multiple imputer scenarios - the most
+    complex cross-component integration work in the list.
+  task_id: scikit-learn__scikit-learn-25232
+- estimate: 5 / 25
+  reasoning: Requires deep understanding of Python metaclass programming and the __subclasscheck__
+    protocol to modify AutoFieldMeta's type checking logic, affecting core Django
+    model initialization behavior. Metaclass debugging is notoriously difficult and
+    the interaction with Django's field inheritance hierarchy adds substantial complexity.
+  task_id: django__django-14238
+- estimate: 12 / 26
+  reasoning: Task 12 requires finding hardcoded cutoffs in internal number formatting
+    logic, understanding why they exist, and ensuring changes don't introduce subtle
+    bugs across the entire number formatting system. The diagnostic complexity (finding
+    undocumented internal logic) combined with implementation risk (wide-ranging side
+    effects) and edge case handling (where to draw the line for different magnitudes)
+    makes this the most challenging fix.
+  task_id: django__django-11206
+- estimate: 25 / 27
+  reasoning: Requires understanding abstract mathematical concepts (polynomial rings,
+    generators), complex symbol substitution logic, and ensuring mathematical correctness
+    across potentially nested expressions. The fix requires deep knowledge of SymPy's
+    polynomial representation system, making both diagnosis and implementation significantly
+    more complex than other tasks.
+  task_id: sympy__sympy-24539
+- estimate: 16 / 28
+  reasoning: Changing makemigrations --check behavior requires modifying a core Django
+    subsystem with significant backward compatibility concerns, potential to break
+    existing automation, complex interactions with other flags, and extensive testing
+    requirements across various migration scenarios.
+  task_id: django__django-16116
+- estimate: 28 / 29
+  reasoning: This task requires tracing through the entire requests library header
+    merging pipeline across multiple methods (session.request, prepare_request, etc.),
+    ensuring consistent behavior for None values everywhere headers are processed,
+    while maintaining backward compatibility and not breaking authentication, encoding,
+    or other header-dependent features. The fix must work across all HTTP methods
+    and interaction patterns, requiring extensive knowledge of the requests internals
+    and comprehensive integration testing.
+  task_id: psf__requests-1921
+- estimate: 21 / 30
+  reasoning: Requires deep understanding of Python namespace packages, involves critical
+    migration discovery infrastructure with high risk of breaking production deployments,
+    needs comprehensive testing across multiple package configurations, and the subtle
+    interaction between __file__, __path__, and pkgutil makes it error-prone despite
+    seemingly simple code changes.
+  task_id: django__django-11141
+- estimate: 6 / 31
+  reasoning: Requires modifying all built-in validators across the Django codebase
+    to consistently pass values to ValidationError, demanding extensive testing, careful
+    formatting of diverse data types, and backward compatibility management - the
+    broadest scope and highest consistency requirements of all tasks.
+  task_id: django__django-13212
+- estimate: 18 / 32
+  reasoning: Requires expertise in both metaclasses and the descriptor protocol. Properties
+    are descriptors that don't work like regular functions - they store docstrings
+    differently and require special detection/handling. The metaclass must be modified
+    to recognize properties (not just isfunction checks), access docstrings from property
+    objects, and handle property inheritance chains correctly, making this the most
+    technically complex fix.
+  task_id: astropy__astropy-7166
+- estimate: 16 / 33
+  reasoning: This task requires understanding the intricate interaction between functools.partial,
+    functools.wraps, and Django's method_decorator system. The issue is that partial
+    objects lack standard function attributes, causing attribute access failures.
+    Unlike other difficult tasks that involve localized changes (TASK 5's metaclass,
+    TASK 13's number formatting), this requires tracing through Django's decorator
+    chain to find where partial objects are created, determining how to extract the
+    underlying function's attributes, and ensuring the fix doesn't break partial's
+    argument-binding behavior. The diagnostic complexity is high (understanding why
+    partial is used, where attributes are lost), and the implementation must carefully
+    balance preserving decorator semantics while fixing attribute access.
+  task_id: django__django-14787
+- estimate: 4 / 34
+  reasoning: The colorbar edge rendering issue requires navigating matplotlib's complex
+    multi-layered rendering pipeline, understanding coordinate transformations, how
+    colorbar extensions work, and the interaction between edge drawing and extended
+    colorbars. The fix location isn't obvious, debugging requires visual inspection,
+    and the rendering system involves multiple interconnected components (artists,
+    patches, collections), making this the most challenging diagnostic and implementation
+    task.
+  task_id: matplotlib__matplotlib-22865
+- estimate: 23 / 35
+  reasoning: Requires deep understanding of sympy's expression system to handle the
+    interaction between geometric Point objects and symbolic Mul expressions. The
+    fix requires careful design decisions about operator precedence and type coercion,
+    with significant risk of breaking other sympy functionality. The boundary between
+    geometry and symbolic algebra is subtle and requires expertise in multiple sympy
+    subsystems.
+  task_id: sympy__sympy-17655
+- estimate: 4 / 36
+  reasoning: Requires deep understanding of NumPy's dtype system and redesigning how
+    matplotlib handles special colormap index values (over/under/bad) that currently
+    rely on integer overflow behavior being deprecated in NumPy 1.24. The fix impacts
+    core colormap functionality across the entire rendering pipeline and must maintain
+    backward compatibility, making both diagnosis and implementation exceptionally
+    complex.
+  task_id: matplotlib__matplotlib-24970
+- estimate: 5 / 37
+  reasoning: Requires specialized MathML specification knowledge and deep understanding
+    of SymPy's presentation printer. The root cause of why symbols ending with numbers
+    become invisible is non-obvious and likely involves subtle MathML parsing or rendering
+    rules. Debugging requires expertise in both symbolic mathematics printing and
+    MathML browser rendering, making this the most technically challenging issue to
+    diagnose and fix correctly.
+  task_id: sympy__sympy-15976
+- estimate: 10 / 38
+  reasoning: xr.where's attribute handling requires understanding xarray's complex
+    attribute propagation system that spans multiple operations and has numerous edge
+    cases around conflicting attributes, coordinates, and nested operations. The fix
+    must integrate with apply_ufunc infrastructure and maintain consistency across
+    the entire library, making it both technically complex and requiring deep domain
+    knowledge of xarray's design principles.
+  task_id: pydata__xarray-4687
+- estimate: 31 / 39
+  reasoning: Deleting cookies with proper security attributes requires knowing the
+    original cookie's settings, but HTTP's stateless nature means this information
+    isn't available in the response context. The fix requires either architectural
+    changes to store cookie metadata, complex parameter passing through multiple layers,
+    or reading from the request object with proper validation - all while maintaining
+    security guarantees and backward compatibility. This is fundamentally more architecturally
+    complex than the other issues which are primarily implementation or API design
+    challenges.
+  task_id: django__django-13195
+- estimate: 3 / 40
+  reasoning: Requires understanding and systematically modifying a complex printer
+    class hierarchy across multiple expression types, affects code generation subsystem,
+    has existing tests asserting incorrect behavior indicating deep integration, and
+    needs changes propagated through nested expression trees while maintaining backward
+    compatibility.
+  task_id: sympy__sympy-14531
+- estimate: 11 / 41
+  reasoning: This task requires understanding multiple RFCs (email, IDNA, punycode),
+    identifying all code locations where domain names appear in email headers, handling
+    security-sensitive encoding transformations, ensuring backward compatibility across
+    various encoding scenarios and hostname configurations, and extensive testing
+    across different contexts. The intersection of email standards, internationalization,
+    and security makes this significantly more complex than other tasks.
+  task_id: django__django-11532
+- estimate: 31 / 42
+  reasoning: SpanSelector's interactive state management involves complex coordinate
+    transformations, interaction with matplotlib's autoscaling system, and widget
+    lifecycle management. Debugging requires understanding why limits are incorrectly
+    expanded during interactive updates, which involves tracing through multiple coordinate
+    systems and state changes. The fix requires careful handling to avoid breaking
+    existing interactive behavior while correcting the limit calculation.
+  task_id: matplotlib__matplotlib-20676
+- estimate: 13 / 43
+  reasoning: Optimizing Django's migration system requires deep understanding of the
+    migration framework, perfect handling of edge cases to prevent data loss or schema
+    corruption, and carries the highest risk of all tasks since errors could affect
+    production databases. The migration optimizer must safely determine when operations
+    can be combined while preserving exact behavior.
+  task_id: django__django-15499
+- estimate: 33 / 44
+  reasoning: Fixing roc_curve threshold calculation requires deep understanding of
+    the ROC algorithm's mathematical properties. The current "+1" offset serves a
+    specific purpose (adding a point at fpr=0, tpr=0), and any fix must preserve statistical
+    correctness while handling probability estimates. Unlike other tasks that are
+    primarily about API design or visual rendering, this involves core machine learning
+    algorithm correctness where errors could silently produce invalid results in production
+    model evaluation.
+  task_id: scikit-learn__scikit-learn-26194
+- estimate: 28 / 45
+  reasoning: Requires deep understanding of database-specific schema requirements
+    across multiple backends, architectural changes to distinguish schema-affecting
+    from non-schema-affecting field changes, and modifications to the migration system's
+    SQL generation logic. The fix requires knowing when operations are truly schema-transparent
+    for each database backend, which is non-obvious and requires extensive database
+    internals knowledge.
+  task_id: django__django-15561
+- estimate: 10 / 46
+  reasoning: The Django migration autodetector is an exceptionally complex system
+    that analyzes model state changes across an entire project to generate database
+    operations. This bug involves the interaction between custom field deconstructors
+    and model rename detection. While the fix appears simple, ensuring it doesn't
+    break rename detection or introduce edge cases in the migration generation requires
+    deep understanding of the autodetector's analysis flow, and any mistake could
+    cause data loss in production databases.
+  task_id: django__django-15104
+- estimate: 33 / 47
+  reasoning: Combines database timezone handling complexity across multiple backends
+    (PostgreSQL, MySQL, SQLite, Oracle), requires correct SQL generation for each,
+    and involves subtle timezone conversion semantics. The interaction between provided
+    tzinfo, database storage formats, and backend-specific timezone behavior creates
+    a complex matrix. Timezone bugs are notoriously subtle and difficult to test comprehensively,
+    and changes risk breaking existing queries that depend on current behavior.
+  task_id: django__django-13363
+- estimate: 41 / 48
+  reasoning: Requires deep understanding of Sphinx's signature parsing and rendering
+    pipeline for the relatively new positional-only parameter syntax. Documentation
+    tools have complex multi-stage internals, and tracing where default values are
+    lost during parsing/rendering requires expertise in both Python's AST handling
+    and Sphinx's domain system architecture.
+  task_id: sphinx-doc__sphinx-7757
+- estimate: 26 / 49
+  reasoning: TASK 26 requires navigating Sphinx's complex autodoc system with multiple
+    rendering paths for type hints. The inconsistency between 'signature' and 'description'
+    modes suggests separate code paths that must be identified and unified. This requires
+    deep understanding of Sphinx internals, type annotation processing, and intersphinx
+    linking - with no clear fix provided and potentially requiring changes across
+    multiple components of the autodoc extension.
+  task_id: sphinx-doc__sphinx-7454
+- estimate: 16 / 50
+  reasoning: The SymPy assumption system is exceptionally complex with intricate interdependencies
+    between assumptions. Posify must preserve finite/integer/rational assumptions
+    while adding positivity, requiring deep understanding of mathematical logic, assumption
+    compatibility, and both old/new assumption systems. The fix impacts core symbolic
+    manipulation behavior with subtle edge cases.
+  task_id: sympy__sympy-16450
+- estimate: 28 / 51
+  reasoning: Preserving int32 dtype through xarray's stack operation requires understanding
+    multiple interacting systems (xarray's type handling, pandas MultiIndex creation,
+    and cross-library dtype preservation), diagnosing why the conversion happens across
+    abstraction boundaries, and ensuring the fix doesn't break other dtype scenarios
+    or performance characteristics. This involves the deepest technical complexity
+    spanning multiple codebases.
+  task_id: pydata__xarray-7393
+- estimate: 34 / 52
+  reasoning: Implementing wspace/hspace for subfigures requires understanding and
+    modifying matplotlib's complex layout engine, which manages recursive constraints
+    between nested figures. Unlike simpler bugs with localized fixes, this requires
+    implementing missing layout algorithm functionality while maintaining compatibility
+    with the existing figure layout system.
+  task_id: matplotlib__matplotlib-25960
+- estimate: 14 / 53
+  reasoning: Requires deep understanding of scikit-learn's cross-validation implementation,
+    multi-dimensional coefficient array structure across folds and regularization
+    paths, and the subtle interaction between warm_start and refit parameters. The
+    fix is not obvious from the error and requires careful handling of array dimensions
+    in an under-tested code path.
+  task_id: scikit-learn__scikit-learn-14087
+- estimate: 3 / 54
+  reasoning: "The test_huge_range_log failure is non-reproducible (CI-only), involves\
+    \ numerical edge cases with logarithmic transformation of huge ranges, and likely\
+    \ requires debugging floating-point precision issues across different NumPy versions\
+    \ without local reproduction capability\u2014making diagnosis exceptionally difficult."
+  task_id: matplotlib__matplotlib-20488
+- estimate: 20 / 55
+  reasoning: Requires understanding the complex interaction between cross_val_predict's
+    prediction aggregation logic, MultiOutputClassifier's unique structure (classes_
+    in estimators_ list), and handling multiple prediction methods (predict, predict_proba)
+    with varying return structures. The fix must work across different estimator types
+    without breaking existing functionality, requiring deep knowledge of sklearn's
+    cross-validation and multi-output architecture.
+  task_id: scikit-learn__scikit-learn-14629
+- estimate: 38 / 56
+  reasoning: "Contains.as_set() returning Contains reveals a fundamental type system\
+    \ confusion where a Boolean predicate is treated as a Set. The correct solution\
+    \ requires deep understanding of SymPy's set theory implementation and is not\
+    \ algorithmically obvious - what Set should \"x \u2208 Reals\" return? This conceptual\
+    \ ambiguity, combined with cascading effects on as_relational() and Piecewise,\
+    \ makes it the most difficult to fix correctly."
+  task_id: sympy__sympy-23950
+- estimate: 29 / 57
+  reasoning: Requires deep understanding of Django's ORM lookup/transform distinction
+    and field resolution system, must correctly identify valid ordering patterns without
+    breaking existing functionality, involves complex interaction between system checks
+    and ORM internals, and has high risk of false positives/negatives in validation
+    logic.
+  task_id: django__django-12858
+- estimate: 18 / 58
+  reasoning: Changing comparison operators to return NotImplemented instead of False
+    requires auditing and modifying fundamental behavior across the entire sympy.Basic
+    class hierarchy, with high risk of breaking existing code that depends on False
+    returns. This affects core mathematical operations and requires deep understanding
+    of Python's comparison protocol, extensive testing, and careful consideration
+    of backward compatibility across the entire symbolic mathematics codebase.
+  task_id: sympy__sympy-13091
+- estimate: 41 / 59
+  reasoning: Requires architectural redesign of Django formsets to support edit-only
+    mode, involving security considerations around preventing client-side form manipulation,
+    backwards compatibility concerns, and deep understanding of formset management
+    forms and validation logic - not just a simple parameter addition but a fundamental
+    behavior change with security implications.
+  task_id: django__django-14725
+- estimate: 1 / 60
+  reasoning: The shared axis system in matplotlib involves complex bidirectional state
+    management across multiple interconnected axes objects. Understanding what state
+    should be preserved versus reset during `clear()` operations requires deep knowledge
+    of matplotlib's axis sharing architecture, and the fix must maintain consistency
+    across all linked axes while preserving the sharing relationships themselves.
+  task_id: matplotlib__matplotlib-20826
+- estimate: 52 / 61
+  reasoning: This task involves a fundamental conflict between sympify's evaluate(False)
+    context and Point2D's eager validation during construction. Fixing it requires
+    deep understanding of three interacting systems (parsing, evaluation context propagation,
+    and geometry object construction) and likely needs architectural changes to how
+    geometric objects handle unevaluated expressions, with high risk of breaking other
+    assumptions in the geometry module.
+  task_id: sympy__sympy-22714
+- estimate: 42 / 62
+  reasoning: This bug involves the complex intersection of Django's migration system,
+    ORM database routing, and transaction management. The fact that an explicit `transaction.atomic(using=db)`
+    context manager is being ignored by `save()` suggests deep architectural issues
+    with how database aliases are resolved. The user's dynamic database routing setup
+    (with no real databases in settings) adds significant complexity, requiring understanding
+    of Django's internal database resolution mechanisms across multiple subsystems.
+  task_id: django__django-11066
+- estimate: 46 / 63
+  reasoning: URL validation with RFC 1738 compliance requires expert knowledge of
+    URI specifications, complex regex engineering balancing correctness with performance,
+    and has high risk of either accepting invalid URLs (security issue) or rejecting
+    valid ones (breaking legitimate use cases). The fact that the current implementation
+    derives from an established expert's solution and still has issues demonstrates
+    the inherent difficulty of this problem.
+  task_id: django__django-10097
+- estimate: 22 / 64
+  reasoning: This bug involves a subtle name collision between a user-defined model
+    field named 'filterable' and Django's internal query system attribute checking.
+    It requires deep understanding of Django's ORM query compilation, attribute resolution
+    order, and field vs. attribute distinction. The fix must maintain backward compatibility
+    while resolving the conflict, and there's no obvious solution since both the field
+    name and internal check are legitimate uses. The diagnostic complexity is high
+    because the error message is misleading, and the implementation requires careful
+    changes to core query validation logic without breaking existing functionality.
+  task_id: django__django-13028
+- estimate: 4 / 65
+  reasoning: Nested class method serialization in Django migrations requires deep
+    understanding of both the migration serialization framework and metaclass behavior,
+    with high consequences for errors (database corruption, unmigrateable migrations),
+    limited testability due to combinatorial complexity, and the need to maintain
+    backward compatibility with existing migration files.
+  task_id: django__django-17087
+- estimate: 57 / 66
+  reasoning: "Custom template tags with keyword-only arguments requires introspecting\
+    \ Python 3 function signatures, modifying Django's core template tag argument\
+    \ parser to handle keyword-only args with defaults, addressing multiple edge cases\
+    \ in argument binding, and ensuring backward compatibility with existing template\
+    \ tags\u2014all while touching a fundamental system used throughout Django."
+  task_id: django__django-12262
+- estimate: 60 / 67
+  reasoning: The Mod lambdify bug requires understanding SymPy's complex multi-stage
+    code transformation system, identifying why modules=[] triggers an incorrect algebraic
+    rewrite of expr*Mod(a,b) to Mod(expr*a,b), and fixing it without breaking other
+    transformation rules or backends. The conditional nature and interaction between
+    transformation passes makes this significantly more complex than the other tasks.
+  task_id: sympy__sympy-22080
+- estimate: 31 / 68
+  reasoning: This requires understanding SymPy's complex dimensional analysis system,
+    identifying why `exp(dimensionless_quantity)` incorrectly reports dimensions,
+    and fixing the dimension collection logic without breaking existing physics calculations.
+    The mathematical domain knowledge combined with the intricate dimension system
+    architecture makes this the most challenging fix.
+  task_id: sympy__sympy-24066
+- estimate: 65 / 69
+  reasoning: This task requires understanding and fixing an interaction between three
+    complex systems (pytest's collection mechanism, unittest.mock's patching system,
+    and numpy's array semantics). The bug occurs deep in pytest's internals where
+    it introspects mock patches, and the fix must handle numpy's truth value ambiguity
+    without breaking existing functionality. This multi-system debugging with unclear
+    fix location makes it the most difficult.
+  task_id: pytest-dev__pytest-5631
+- estimate: 35 / 70
+  reasoning: The Sphinx i18n system involves multiple interacting layers (gettext
+    catalogs, domain resolution, loading order, merging rules) where user translations
+    must override built-in translations without breaking existing functionality. This
+    requires understanding the entire translation infrastructure pipeline and modifying
+    catalog loading precedence, which is more architecturally complex than the other
+    candidates.
+  task_id: sphinx-doc__sphinx-8120
+- estimate: 25 / 71
+  reasoning: This bug requires understanding the subtle distinction between foreign
+    key as primary key patterns and concrete model inheritance within Django's admin
+    lookup validation system, which is security-critical and has complex interactions
+    between multiple subsystems with many edge cases that are difficult to test comprehensively.
+  task_id: django__django-16661
+- estimate: 39 / 72
+  reasoning: This is a race condition in Django's database cache backend where concurrent
+    operations can cause cursor.fetchone() to return None unexpectedly. Race conditions
+    are the most difficult class of bugs to diagnose, reproduce, and fix reliably.
+    It requires understanding transaction isolation levels across multiple database
+    backends, proper testing of concurrent scenarios, and ensuring the fix handles
+    all edge cases without introducing new issues. The sporadic nature makes it exceptionally
+    challenging to verify the fix works correctly.
+  task_id: django__django-13089
+- estimate: 52 / 73
+  reasoning: This task requires understanding architectural changes in pytest's marker
+    system between versions 5.x and 6.x, specifically how dynamically added xfail
+    markers are processed during collection and execution. The behavioral change indicates
+    deep modifications to pytest's internals, requiring expertise in pytest's collection
+    mechanism, marker propagation, and execution phases to properly fix without breaking
+    other functionality.
+  task_id: pytest-dev__pytest-7490
+- estimate: 44 / 74
+  reasoning: This task requires understanding the complex interaction between two
+    sophisticated Sphinx extensions (autodoc and Napoleon), their different processing
+    modes (signature vs description), and how the "documented" target should filter
+    type hints. The fix requires tracing through multiple layers of docstring parsing,
+    type hint extraction, and rendering logic across two separate but interacting
+    systems.
+  task_id: sphinx-doc__sphinx-9673
+- estimate: 23 / 75
+  reasoning: This involves a regression from a major sympy matrix refactor where col_insert()
+    now mysteriously shifts identity matrix rows from bottom to top - a data corruption
+    bug suggesting deep structural issues in how matrices are stored or indexed post-refactor.
+    Finding where the refactored code diverged from correct behavior requires understanding
+    the entire architectural change, tracing through complex matrix operations, and
+    debugging subtle indexing logic. The symptom (spatial data shift) indicates this
+    isn't a simple boundary condition but a fundamental misalignment in the refactored
+    implementation.
+  task_id: sympy__sympy-13647
+- estimate: 67 / 76
+  reasoning: The type coercion bug in xarray's Variable.__setitem__ is most difficult
+    because it requires understanding subtle heuristics that distinguish between objects
+    with a `.values` property that should be coerced versus those that shouldn't,
+    while maintaining backward compatibility with the entire scientific Python ecosystem.
+    The fix must handle edge cases in core data assignment logic without breaking
+    existing array operations, making it exceptionally difficult to diagnose and fix
+    correctly.
+  task_id: pydata__xarray-2905
+- estimate: 25 / 77
+  reasoning: Sphinx's cross-reference resolution system is extremely complex with
+    multiple heuristics for matching references across packages, modules, and classes.
+    The bug occurs "seemingly randomly" indicating non-deterministic or state-dependent
+    behavior. Fixing requires deep understanding of Sphinx's domain system, reference
+    resolver, autodoc's object inspection, and potentially intersphinx. The fix likely
+    requires modifying core reference resolution logic without breaking existing functionality.
+  task_id: sphinx-doc__sphinx-8638
+- estimate: 62 / 78
+  reasoning: The pytest capfd issue represents a regression in fundamental output
+    capture infrastructure between major versions. It requires deep understanding
+    of pytest's low-level capture mechanisms, platform-specific line ending behavior,
+    and how to preserve \r characters without breaking existing functionality. The
+    capture system is critical infrastructure that all tests depend on, making this
+    a high-risk, high-complexity fix requiring extensive knowledge of pytest internals.
+  task_id: pytest-dev__pytest-7521
+- estimate: 10 / 79
+  reasoning: This Django ORM bug generates structurally invalid SQL (missing SELECT
+    clause) when combining annotate() and aggregate() with the new default parameter.
+    It requires deep understanding of Django's multi-layered query construction pipeline,
+    tracing how subqueries are generated and why SELECT fields disappear. The interaction
+    of multiple ORM features and the need to fix it across all database backends without
+    regression makes this the most challenging task.
+  task_id: django__django-15375
+- estimate: 70 / 80
+  reasoning: Requires understanding Sphinx's complex domain system and cross-reference
+    resolution mechanism. The issue involves false ambiguous lookup warnings for type
+    hints, requiring modification of core reference resolution logic that handles
+    module scoping and lookup precedence. This is particularly difficult because it
+    involves implicit references, multiple interacting systems (autodoc + domain),
+    and high risk of breaking existing functionality while fixing the subtle scoping
+    issue.
+  task_id: sphinx-doc__sphinx-8551
+- estimate: 66 / 81
+  reasoning: This requires understanding Django's complex ORM query compilation pipeline,
+    specifically how EmptyResultSet exceptions interact with SQL generation for Exists
+    subqueries. The bug manifests as generating invalid SQL (missing SELECT fields),
+    indicating a fundamental issue in the query building logic that's difficult to
+    diagnose and could have wide-ranging implications requiring extensive testing.
+  task_id: django__django-15382
+- estimate: 19 / 82
+  reasoning: This bug involves the intersection of three complex systems (pickle serialization,
+    Django ORM queryset state management, and values() type coercion), where pickled
+    state corruption causes silent type changes from dicts to model instances. The
+    serialization loses critical information about values() being called, requiring
+    deep understanding of what queryset state determines result types and how that
+    state should be preserved across pickle/unpickle cycles. Serialization bugs are
+    notoriously difficult to debug and fix correctly.
+  task_id: django__django-13406
+- estimate: 18 / 83
+  reasoning: Task 18 requires correctly handling 12 different scenarios across 3 code
+    paths (hasattr, get_field, getattr) with edge cases involving descriptors that
+    raise exceptions at the class level. The provided truth table shows the intricate
+    logic needed, and the fact that a previous fix introduced this regression demonstrates
+    how easy it is to break. The fix requires deep understanding of Django's admin
+    validation, field introspection, descriptor protocol, and numerous edge cases.
+  task_id: django__django-11551
+- estimate: 29 / 84
+  reasoning: Multi-table inheritance with multiple OneToOne fields to the same parent
+    involves Django's model metaclass, order-dependent field setup behavior, parent
+    link detection logic, and primary key resolution. The issue indicates architectural
+    assumptions about field ordering are violated, requiring deep changes to how parent
+    links are identified during model class creation. This carries the highest risk
+    of breaking fundamental Django functionality and requires the most comprehensive
+    understanding of Django's model system internals.
+  task_id: django__django-12325
+- estimate: 59 / 85
+  reasoning: This task requires modifying Django's core URL resolution and caching
+    mechanism that affects every request. While the code change appears simple, understanding
+    the full implications of cache invalidation, the request lifecycle, race conditions
+    in multi-threaded environments, and ensuring the fix works across different Django
+    usage patterns (management commands, WSGI, ASGI, testing) requires deep architectural
+    knowledge. The bug only manifests in edge cases (when reverse() is called before
+    request handling), making it difficult to test comprehensively. The performance-critical
+    nature means any regression would have severe production impact.
+  task_id: django__django-11333
+- estimate: 35 / 86
+  reasoning: The task involves a fundamental incompatibility between matplotlib's
+    use of weakref for aligned labels and Python's pickle protocol. Weakrefs cannot
+    be pickled by design, requiring architectural changes to how alignment is tracked
+    and stored, custom pickle protocol implementation, and careful state reconstruction
+    while maintaining correctness across various figure configurations.
+  task_id: matplotlib__matplotlib-25332
+- estimate: 40 / 87
+  reasoning: The diophantine solver produces incomplete and order-dependent results,
+    indicating a fundamental algorithmic flaw rather than a simple bug. Fixing this
+    requires deep understanding of number theory, the specific solving algorithm,
+    and comprehensive testing of mathematical correctness across many cases - making
+    it the most technically challenging and risky fix.
+  task_id: sympy__sympy-18189
+- estimate: 45 / 88
+  reasoning: Self-referencing foreign key ordering involves Django's most complex
+    subsystem (ORM query compilation), with multiple interacting bugs including unnecessary
+    JOIN generation and incorrect ORDER BY handling. The self-referential nature creates
+    circular dependencies that make the query optimization logic extremely difficult
+    to reason about and fix correctly without breaking other cases.
+  task_id: django__django-13033
+- estimate: 24 / 89
+  reasoning: Union queryset with ordering involves state corruption between related
+    querysets, indicating deep architectural issues with queryset cloning and state
+    isolation. The bug corrupts the original queryset when a derived queryset is modified,
+    and produces invalid SQL with positional ORDER BY clauses. This requires understanding
+    Django's complex query construction pipeline, queryset lifecycle, and UNION query
+    semantics while ensuring the fix doesn't break the queryset cloning mechanism
+    used throughout the ORM.
+  task_id: django__django-10554
+- estimate: 57 / 90
+  reasoning: This bug affects the core ORM type conversion pipeline during inserts
+    across multiple database backends. It requires modifying performance-critical
+    code to ensure from_db_value() converters are called for returning_fields without
+    breaking existing functionality. The fix must handle backend-specific differences
+    in RETURNING clause support and work correctly for all custom field types, making
+    it both architecturally complex and requiring extensive cross-database testing.
+  task_id: django__django-14007
+- estimate: 0 / 91
+  reasoning: This task requires understanding the deep interaction between Python's
+    descriptor protocol, classmethod/property decorator stacking, and Sphinx's autodoc
+    type inspection system. The note that Python 3.10 needed language-level changes
+    to properly support this pattern indicates this is a fundamental limitation that
+    cannot be easily worked around. It requires expertise in multiple complex systems
+    and dealing with language-level constraints that Sphinx cannot fully control.
+  task_id: sphinx-doc__sphinx-9461
+- estimate: 89 / 92
+  reasoning: "This bug requires debugging across multiple abstraction layers (requests\
+    \ \u2192 urllib \u2192 Python core), understanding version-specific security changes\
+    \ in Python 3.8.12, and dealing with authentication protocols. The cross-layer\
+    \ nature, security sensitivity, and version-specific regression make it the most\
+    \ challenging to diagnose and fix correctly without introducing security vulnerabilities\
+    \ or breaking compatibility."
+  task_id: psf__requests-6028
+- estimate: 52 / 93
+  reasoning: This involves SymPy's core assumption system giving definitively wrong
+    answers (False when should be True) for complex expressions. The assumption system
+    is fundamental to SymPy and interacts with nearly all operations. Fixing it requires
+    deep understanding of assumption propagation through unevaluated expressions while
+    ensuring no regressions across thousands of mathematical cases, making both diagnosis
+    and implementation extremely complex.
+  task_id: sympy__sympy-15875
+- estimate: 61 / 94
+  reasoning: Django Prefetch with sliced querysets represents a fundamental architectural
+    limitation requiring complete redesign of the prefetch system. Unlike other complex
+    tasks that are bugs in existing logic, this requires implementing a feature that
+    contradicts the current design where prefetch fetches all related objects then
+    matches them to parents. Supporting slicing would require pushing slice boundaries
+    into SQL generation while maintaining the relationship mapping, with no clear
+    implementation path.
+  task_id: django__django-15957
+- estimate: 31 / 95
+  reasoning: Optimizing Django's ORM query generation for admin search requires deep
+    understanding of the query builder, SQL generation across multiple backends, and
+    carries extremely high risk of regressions. The fix must maintain backward compatibility
+    while fundamentally changing how search queries are constructed, affecting critical
+    admin functionality used throughout Django applications.
+  task_id: django__django-15022
+- estimate: 26 / 96
+  reasoning: Requires implementing correct XOR parity semantics (odd number of true
+    values) across multiple database backends without native XOR support, handling
+    arbitrary nesting depth, while maintaining backward compatibility and ensuring
+    correct boolean algebra for all edge cases - a complex intersection of logic,
+    SQL generation, and cross-database compatibility.
+  task_id: django__django-16901
+- estimate: 53 / 97
+  reasoning: Requires deep knowledge of CPython's compiler internals and assertion
+    behavior in debug builds, understanding pytest's expression compilation mechanism,
+    and coordinating a fix that prevents triggering CPython's internal assertions
+    about reserved identifiers - a combination of low-level Python interpreter knowledge
+    and test framework internals that few developers possess.
+  task_id: pytest-dev__pytest-7324
+- estimate: 70 / 98
+  reasoning: Requires fixing Django's query splitting mechanism (split_exclude) to
+    preserve FilteredRelation annotations when building subqueries for exclude(),
+    combining deep knowledge of annotations, query compilation, and subquery generation
+    - three of Django ORM's most complex subsystems.
+  task_id: django__django-11265
+- estimate: 52 / 99
+  reasoning: This involves debugging and fixing a race condition in test infrastructure
+    where ThreadedWSGIServer doesn't reliably close database connections before teardown.
+    Race conditions are non-deterministic, extremely difficult to reproduce consistently,
+    and require coordinating thread lifecycle with database connection management
+    across multiple layers. The intermittent nature and the requirement for bulletproof
+    reliability in test infrastructure make this the most challenging task.
+  task_id: django__django-14011
+- estimate: 52 / 100
+  reasoning: "Query.change_aliases involves Django's core query construction system\
+    \ where alias management during queryset unions creates collisions (e.g., T4\u2192\
+    T5, T5\u2192T6). This requires modifying fundamental alias generation logic to\
+    \ be aware of all existing aliases across both queries being combined, with changes\
+    \ affecting all ORM query operations and requiring extensive testing across numerous\
+    \ query combination scenarios. The bug's subtlety and the component's criticality\
+    \ make this the most challenging fix."
+  task_id: django__django-15128

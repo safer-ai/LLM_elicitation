@@ -185,10 +185,10 @@ def _flatten_results_for_csv(results: Dict[str, Any], run_id: str) -> List[Dict[
 
                 for response in responses:
                     expert_name = response.get("expert", "Unknown Expert")
-                    most_likely_estimate = response.get("estimate")
-                    min_val = response.get("minimum")
-                    max_val = response.get("maximum")
-                    confidence_val = response.get("confidence")
+                    estimate = response.get("estimate")
+                    percentile_25th = response.get("percentile_25th")
+                    percentile_50th = response.get("percentile_50th")
+                    percentile_75th = response.get("percentile_75th")
                     rationale = response.get("rationale", "")
                     error = response.get("error") # Can be None
 
@@ -201,10 +201,10 @@ def _flatten_results_for_csv(results: Dict[str, Any], run_id: str) -> List[Dict[
                         "task_name": task_name,
                         "round": round_num,
                         "expert_name": expert_name,
-                        "most_likely_estimate": most_likely_estimate,
-                        "minimum_estimate": min_val,
-                        "maximum_estimate": max_val,
-                        "confidence_in_range": confidence_val,
+                        "estimate": estimate,
+                        "percentile_25th": percentile_25th,
+                        "percentile_50th": percentile_50th,
+                        "percentile_75th": percentile_75th,
                         "rationale": rationale,
                         "has_error": error is not None,
                         "error_message": error if error else "",
@@ -253,7 +253,8 @@ def initialize_run(config: AppConfig) -> Optional[Dict[str, Any]]:
         csv_headers = [
             "run_id", "timestamp_start", "model", "temperature",
             "step_name", "task_name", "round", "expert_name",
-            "most_likely_estimate", "minimum_estimate", "maximum_estimate", "confidence_in_range", "rationale", "has_error", "error_message", "task_metric"
+            "estimate", "percentile_25th", "percentile_50th", "percentile_75th",
+            "rationale", "has_error", "error_message", "task_metric"
         ]
         
         try:
@@ -306,10 +307,10 @@ def append_round_to_csv(
                 "task_name": task_name,
                 "round": round_num,
                 "expert_name": response.get("expert", "Unknown Expert"),
-                "most_likely_estimate": response.get("estimate"),
-                "minimum_estimate": response.get("minimum"),
-                "maximum_estimate": response.get("maximum"),
-                "confidence_in_range": response.get("confidence"),
+                "estimate": response.get("estimate"),
+                "percentile_25th": response.get("percentile_25th"),
+                "percentile_50th": response.get("percentile_50th"),
+                "percentile_75th": response.get("percentile_75th"),
                 "rationale": response.get("rationale", ""),
                 "has_error": response.get("error") is not None,
                 "error_message": response.get("error", ""),
@@ -499,13 +500,10 @@ if __name__ == "__main__":
             "timestamp_start": datetime.datetime.now().isoformat(),
             "config_used": {
                 "llm_settings": {"model": "test-model-v1", "temperature": 0.5},
-                "workflow_settings": {"delphi_rounds": 2, "num_experts": 2, "num_tasks": 1, "scenario_steps": ["Step One"]},
-                "provider": "test-provider",
+                "workflow_settings": {"delphi_rounds": 2, "num_experts": 2, "num_tasks": 1, "num_steps": 1, "scenario_steps": ["Step One"]},
                 "benchmark_file": "input_data/benchmark/dummy_bench.yaml",
                 "scenario_file": "input_data/scenario/dummy_scene.yaml",
-                "num_experts_run": 2,
-                "num_tasks_run": 1,
-                "num_steps_run": 1,
+                "num_experts_run": 2, "num_tasks_run": 1, "num_steps_run": 1,
             },
             "timestamp_end": datetime.datetime.now().isoformat(),
             "duration_seconds": 12.34,

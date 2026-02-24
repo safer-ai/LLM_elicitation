@@ -1,0 +1,110 @@
+# OC3 Human Study - No AI Assistance Baselines
+# These values represent baseline estimates for human experts without AI uplift
+# Used as "None" comparison group in the OC3 human study
+
+# Data source and output configuration
+# Note: This scenario uses embedded_data.json rather than a CSV file
+data_source: data_preprocessing/models/OC3_SME_Human/embedded_data.json
+output_path: OC3_SME_Human/
+description: "OC3 human study baselines (no AI assistance)"
+
+baselines:
+  "MITRE Initial Access":
+    low_ci: 0.25
+    high_ci: 0.9
+    central_value: 0.6
+    confidence: 0.9
+    min: 0
+    max: 1
+    value_type: mode
+    description: "Probability of successful initial access (MITRE tactic)"
+
+  "MITRE Execution":
+    low_ci: 0.2
+    high_ci: 0.9
+    central_value: 0.5
+    confidence: 0.9
+    min: 0
+    max: 1
+    value_type: mode
+    description: "Probability of successful execution (MITRE tactic)"
+
+  "MITRE Privilege Escalation":
+    low_ci: 0.25
+    high_ci: 0.90
+    central_value: 0.7
+    confidence: 0.9
+    min: 0
+    max: 1
+    value_type: mode
+    description: "Probability of successful privilege escalation (MITRE tactic)"
+
+  "MITRE Lateral Movement":
+    low_ci: 0.50
+    high_ci: 0.80
+    central_value: 0.65
+    confidence: 0.9
+    min: 0
+    max: 1
+    value_type: mode
+    description: "Probability of successful lateral movement (MITRE tactic)"
+
+  "MITRE Financial Theft":
+    low_ci: 0.15
+    high_ci: 0.50
+    central_value: 0.30
+    confidence: 0.9
+    min: 0
+    max: 1
+    value_type: mode
+    description: "Probability of successful financial theft"
+
+  "MITRE Impact":
+    low_ci: 0.60
+    high_ci: 0.90
+    central_value: 0.80
+    confidence: 0.9
+    min: 0
+    max: 1
+    value_type: mode
+    description: "Probability of successful impact (MITRE tactic)"
+
+  "Impact - Recovery":
+    low_ci: 300000
+    high_ci: 1500000
+    central_value: 650000
+    confidence: 0.9
+    min: 900000
+    max: 1650000
+    value_type: mode
+    description: "Recovery costs in USD"
+
+  "Impact - Ransom":
+    low_ci: 50000
+    high_ci: 400000
+    central_value: 165000
+    confidence: 0.9
+    min: 45000
+    max: 1320000
+    value_type: mode
+    description: "Ransom amount in USD"
+
+  "Number of Attempts per Actor":
+    low_ci: 75
+    high_ci: 500
+    central_value: 200
+    confidence: 0.9
+    min: 9
+    max: 880
+    value_type: mode
+    description: "Number of attack attempts per actor"
+
+  "Number of Actors":
+    low_ci: 1
+    high_ci: 40
+    central_value: 10
+    confidence: 0.9
+    min: 1
+    max: 13
+    value_type: mode
+    description: "Number of threat actors involved"
