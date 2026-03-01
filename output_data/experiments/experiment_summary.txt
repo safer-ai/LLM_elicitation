@@ -1,0 +1,199 @@
+EXPERIMENT: Do Expert Personas Generate Diversity in LLM-Elicited Estimates?
+
+
+MOTIVATION
+The LLM Elicitation pipeline simulates a Delphi panel by prompting the same
+LLM to role-play 10 cybersecurity expert personas. The assumption is that
+different personas produce diverse probability estimates. We test whether this
+assumption holds.
+
+
+STATISTICAL FRAMEWORK
+
+  Research question:
+  Does the persona assigned to the LLM systematically shift its probability
+  estimate, or are the differences across personas indistinguishable from the
+  LLM's inherent sampling noise?
+
+  What we measure: 
+  Each observation is a single probability estimate Y_ij, where i indexes the
+  persona (i = 1..10) and j indexes the independent run (j = 1..10). We
+  decompose the total variance in Y into two sources:
+
+    1. Between-persona variance (σ²_B): the spread of persona means μ_i
+       around the grand mean. If personas matter, this should be large.
+
+    2. Within-persona variance (σ²_W): the spread of repeated estimates from
+       the same persona across runs. This is the LLM's sampling noise — the
+       irreducible randomness from temperature=1.0 generation.
+
+  Null hypothesis (H₀):
+  All persona population means are equal: μ₁ = μ₂ = ... = μ₁₀.
+  Equivalently, σ²_B = 0. Any observed spread in sample means is due
+  entirely to within-persona sampling noise.
+
+  Alternative hypothesis (H₁):
+  At least one persona mean differs: ∃ i,j such that μ_i ≠ μ_j.
+  Equivalently, σ²_B > 0.
+
+  Test statistics:
+  - One-way ANOVA F-test: F = MS_between / MS_within. Under H₀, F ~ F(k-1,
+    N-k). We reject H₀ if p < 0.05.
+  - Kruskal-Wallis H: non-parametric rank-based alternative to ANOVA.
+    Robust to non-normality.
+  - ICC(1,1): proportion of total variance attributable to persona identity.
+    ICC = (MS_B - MS_W) / (MS_B + (n-1)·MS_W). ICC near 0 means personas
+    explain nothing; ICC near 1 means personas explain everything.
+
+  Interpreting between-expert vs within-expert std:
+  The "between-expert std" reported below is the standard deviation of the
+  10 persona sample means. This is the std of AVERAGES, not of individual
+  estimates, so it is naturally smaller than the within-expert std (which is
+  the pooled std of individual estimates). This is expected and correct.
+  The ANOVA F-test properly accounts for this by comparing MS_between
+  (which scales by n) against MS_within. A large F means the persona means
+  are more spread out than noise alone would prod uce; a small F (near 1)
+  means the spread is consistent with pure noise.
+
+
+PRIMARY EXPERIMENT: Claude Sonnet 4.5, TA0002 - Execution, 50% baseline
+
+  SETUP
+  Model:     claude-sonnet-4-5
+  Task:      Imaginairy (BountyBench task #1)
+  Step:      TA0002 - Execution (baseline probability 50%)
+  Scenario:  OC3 Ransomware on large enterprise
+  Rounds:    1 (no Delphi deliberation)
+  Temp:      1.0
+
+  DESIGN
+  10 expert personas × 10 independent runs = 100 probability estimates.
+  Each run executes all 10 experts concurrently. With delphi_rounds=1,
+  experts never see each other's answers — all estimates are independent.
+  This is a balanced one-way ANOVA design (10 groups, 10 obs/group).
+
+  RESULTS
+  Expert Means (sorted):
+    AI/ML Security Researcher     0.512
+    Malware Reverse Engineer      0.517
+    Incident Response Specialist  0.521
+    Defensive Security Specialist 0.522
+    Red Team Operator             0.524
+    Threat Intelligence Analyst   0.524
+    CTF Competition Expert        0.528
+    Security Software Developer   0.534
+    Security Compliance Officer   0.539
+    Academic Security Researcher  0.544
+
+  Within-expert std (pooled):  0.025  (noise from LLM sampling)
+  Between-expert std (means):  0.010  (persona-driven spread)
+
+  STATISTICAL TESTS
+  One-way ANOVA:    F(9,90) = 1.61,  p = 0.12   → NOT significant at α=0.05
+  Kruskal-Wallis:   H = 11.27,       p = 0.26   → NOT significant at α=0.05
+  ICC(1,1):         0.058  (only 5.8% of variance from persona identity)
+
+  INTERPRETATION
+  F=1.61 means the between-persona variance is only 1.61× what pure noise
+  would produce — not enough to reject H₀. The ICC of 0.058 means knowing
+  the persona tells you almost nothing (5.8%) about the estimate. With 100
+  data points, this design has >95% power to detect a between-expert std as
+  small as 0.02 (a 2pp spread). The observed spread is 0.01 — half of the
+  detectable threshold. Personas are indistinguishable from noise.
+
+
+ROBUSTNESS EXPERIMENTS
+
+  We repeat the same 10×10 ANOVA design varying model and baseline
+  probability to rule out the possibility that the null result is specific
+  to one condition.
+
+  Experiment                         | F-stat  | p-value | ICC   | Verdict
+  -----------------------------------|---------|---------|-------|------------------
+  Claude, TA0002, 50% baseline       | 1.61    | 0.12    | 0.058 | Not significant
+  GPT-4o, TA0002, 50% baseline       | 0.77    | 0.65    | 0.000 | Not significant
+  Claude, TA0007, 85% baseline       | 2.51    | 0.01    | 0.144 | Significant*
+  GPT-4o, TA0007, 85% baseline       | 1.54    | 0.15    | 0.051 | Not significant
+  Claude, T1657, 30% baseline        | 0.50    | 0.87    | 0.000 | Not significant
+  GPT-4o, T1657, 30% baseline        | 1.11    | 0.36    | 0.011 | Not significant
+
+  *The Claude TA0007 result (p=0.01) is statistically significant but
+  practically negligible: the full range of expert means is only 2pp
+  (0.854–0.875). The effect does not replicate on GPT-4o (p=0.15).
+  With 6 independent tests at α=0.05, ~1 false positive is expected by
+  chance (Bonferroni-corrected threshold: α=0.008, at which this result
+  is not significant). ICC=0.144 means 85.6% of variance is still noise.
+
+
+PERSONA CONCLUSION
+Expert personas do not generate practically meaningful diversity in
+probability estimates. Across 2 models and 3 baseline probabilities
+(30%, 50%, 85%), 5 out of 6 experiments show no significant effect.
+The one significant result (Claude, 85% baseline) shows only a 2pp
+spread in means, does not replicate cross-model, and is not significant
+after Bonferroni correction for 6 comparisons (α=0.008). Persona identity
+explains at most 14% of variance; the remaining 86–100% is LLM
+sampling noise.
+
+
+================================================================================
+CROSS-MODEL VARIANCE ANALYSIS (Positive Control)
+================================================================================
+
+MOTIVATION
+The persona experiments above show that persona identity does NOT drive
+meaningful variance. A natural follow-up: does MODEL identity drive variance?
+If yes, this serves as a positive control — the same ANOVA framework that
+correctly detects no persona effect can detect a real model effect. If model
+choice matters but persona choice does not, the methodology is validated.
+
+DESIGN
+3 models (Claude Sonnet 4.5, GPT-4o, Gemini 2.5 Pro) × 10 runs × 10 personas
+= 300 observations per step. Since persona ≈ noise (shown above), the 100
+per-model observations are treated as independent draws. One-way ANOVA with
+model as the grouping factor (3 groups).
+
+
+CROSS-MODEL RESULTS
+
+  Step                        | Model Means (Claude / GPT-4o / Gemini) | F-stat  | p-value | ICC   | Range
+  ----------------------------|----------------------------------------|---------|---------|-------|-------
+  TA0002, 50% baseline        | 0.527 / 0.648 / 0.556                 | 187.79  | <0.0001 | 0.651 | 12.2pp
+  TA0007, 85% baseline        | 0.863 / 0.888 / 0.885                 | 38.29   | <0.0001 | 0.279 | 2.5pp
+  T1657,  30% baseline        | 0.323 / 0.381 / 0.383                 | 155.35  | <0.0001 | 0.607 | 6.0pp
+
+  All 3 experiments: p < 0.0001, SIGNIFICANT at α=0.05 (and after Bonferroni).
+
+
+CROSS-MODEL vs PERSONA COMPARISON
+
+  Contrast                    | Persona ICC | Model ICC | Persona F | Model F
+  ----------------------------|-------------|-----------|-----------|--------
+  TA0002, 50% baseline        | 0.058       | 0.651     | 1.61      | 187.79
+  TA0007, 85% baseline        | 0.144       | 0.279     | 2.51      | 38.29
+  T1657,  30% baseline        | 0.000       | 0.607     | 0.50      | 155.35
+
+  Model identity explains 28–65% of variance vs 0–14% for persona identity.
+  Model F-statistics are 15–310× larger than persona F-statistics.
+
+
+OVERALL CONCLUSION
+1. Expert personas do NOT generate meaningful variance in LLM-elicited
+   estimates (6 experiments, 2 models, 3 baselines: ICC 0–14%, p > 0.008
+   after Bonferroni). Persona assignment is interchangeable with noise.
+
+2. Model identity DOES generate significant variance (3 experiments,
+   3 models, 3 baselines: ICC 28–65%, all p < 0.0001). Different LLMs
+   produce systematically different probability estimates.
+
+3. This validates the ANOVA methodology: the same test that correctly
+   returns null for personas correctly detects a real effect for models.
+   The framework is sensitive, well-powered, and produces interpretable
+   results — a strong foundation for publication.
+
+4. Practical implication: when using LLM-elicited expert panels, the
+   choice of which LLM to use matters far more than the choice of which
+   persona to assign. Multi-model ensembles may be warranted to capture
+   this source of uncertainty.
+
+
