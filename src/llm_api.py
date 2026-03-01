@@ -272,10 +272,13 @@ async def make_api_call(
 
         # --- Gemini API Call ---
         elif provider == 'gemini' and genai and isinstance(client, genai.Client):
+            # Gemini 2.5 Pro uses thinking tokens that share the max_output_tokens budget.
+            # We need a larger budget to accommodate both thinking and visible output.
+            gemini_max_tokens = max(max_tokens * 4, 16000)
             config_obj = genai_types.GenerateContentConfig(
                 system_instruction=system_prompt,
                 temperature=temp,
-                max_output_tokens=max_tokens,
+                max_output_tokens=gemini_max_tokens,
             )
 
             response = await client.aio.models.generate_content(
@@ -284,7 +287,21 @@ async def make_api_call(
                 config=config_obj,
             )
 
-            text = response.text or ""
+            text = response.text
+            if not text and response.candidates:
+                parts_texts = []
+                for candidate in response.candidates:
+                    if candidate.content and hasattr(candidate.content, 'parts') and candidate.content.parts:
+                        for part in candidate.content.parts:
+                            if hasattr(part, 'text') and part.text:
+                                parts_texts.append(part.text)
+                text = "".join(parts_texts) if parts_texts else ""
+
+            if not text:
+                finish_reason = response.candidates[0].finish_reason if response.candidates else 'unknown'
+                logger.warning(f"Gemini API returned empty response. Finish reason: {finish_reason}")
+                text = ""
+
             logger.debug(f"Gemini API call successful. Response length: {len(text)}")
             return text
 
