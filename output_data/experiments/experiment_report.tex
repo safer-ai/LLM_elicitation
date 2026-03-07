@@ -23,7 +23,7 @@ LLM-simulated Delphi panels assume that assigning distinct expert personas to th
   \item \textbf{T1657 -- Financial Theft} (30\% baseline)
 \end{itemize}
 
-\textbf{Personas:} Ten cybersecurity experts with distinct backgrounds---Defensive Security Specialist, Malware Reverse Engineer, AI/ML Security Researcher, Threat Intelligence Analyst, Security Software Developer, Incident Response Specialist, Academic Security Researcher, Red Team Operator, CTF Competition Expert, and Security Compliance Officer---each defined via system prompts specifying background, analytical style, and domain biases.
+\textbf{Personas:} Ten cybersecurity experts with distinct backgrounds Defensive Security Specialist, Malware Reverse Engineer, AI/ML Security Researcher, Threat Intelligence Analyst, Security Software Developer, Incident Response Specialist, Academic Security Researcher, Red Team Operator, CTF Competition Expert, and Security Compliance Officer, each defined via system prompts specifying background, analytical style, and domain biases.
 
 \textbf{Models:} Claude Sonnet~4.5, GPT-4o, and Gemini~2.5~Pro. All use temperature $T=1.0$ with a single Delphi round (no deliberation), ensuring statistical independence of estimates.
 
@@ -117,7 +117,7 @@ For each attack step, all three models produce $10 \times 10 = 100$ estimates. S
 \paragraph{Results.}
 \textbf{Finding: Model identity generates highly significant variance.}
 
-Table~\ref{tab:cross-model} shows all three experiments yield $p < 0.0001$ (Bonferroni-corrected $\alpha = 0.017$). Model identity explains 28--65\% of variance (ICC) vs.\ 0--14\% for personas. Model means span 2.5--12.2pp, far exceeding the $\leq$3.2pp persona spread.
+Table~\ref{tab:cross-model} shows all three experiments yield $p < 0.0001$ (Bonferroni-corrected $\alpha = 0.017$). Model identity explains 28--65\% of variance (ICC) vs.\ 0--14\% for personas. Model means span 2.5--12.2pp,  exceeding the $\leq$3.2pp persona spread.
 
 \begin{table}[t]
 \centering
@@ -171,4 +171,4 @@ T1657\phantom{0} (30\%) & 0.50 & 155.35 & 0.0\% & 60.7\% & Null & \textbf{Strong
   \item \textbf{Methodology validated.} The same ANOVA framework correctly identifies persona as a null effect and model as a strong effect, confirming the design is well-powered and the persona null is a true negative.
 \end{enumerate}
 
-\textbf{Implication:} For LLM-elicited expert panels, \emph{which LLM to use} matters far more than \emph{which persona to assign}. Multi-model ensembles may be necessary to capture this uncertainty.
+\textbf{Implication:} For LLM-elicited expert panels, \emph{which LLM to use} matters more than \emph{which persona to assign}. Multi-model ensembles may be necessary to capture this uncertainty.

@@ -1,0 +1,125 @@
+================================================================================
+FRÉCHET ANOVA RESULTS — Beta Distributions with Wasserstein Distance
+================================================================================
+
+Method: Fit Beta(α,β) on [0,1] using symmetric confidence interval.
+        (min, max) treated as CI with equal tail probs: CDF(lo)=(1-c)/2, CDF(hi)=(1+c)/2.
+        Fréchet ANOVA (Dubey & Müller, 2019) with L2-Wasserstein distance.
+        Permutation test: 5000 permutations.
+        Quantile grid: 201 points.
+        Default confidence for missing values: 0.85
+
+Note: Asymptotic p-values (T_n ~ χ²(k-1)) are shown for reference but are
+      unreliable at these sample sizes. The permutation p-value is the primary test.
+
+--------------------------------------------------------------------------------
+EXPERIMENT 1: PERSONA FRÉCHET ANOVA
+--------------------------------------------------------------------------------
+
+  Claude Sonnet 4.5 — TA0002 (50%)
+    N = 100 distributions, k = 10 personas
+    T_n = 0.1039
+    p (permutation) = 0.1204  → NOT significant at α=0.05
+    p (asymptotic)  = 1.0000
+    Fréchet ICC     = 0.1329  (13.3% of distributional variance from persona)
+    Mean within-persona W1  = 0.0932
+    Mean between-persona W1 = 0.0950
+
+  Claude Sonnet 4.5 — TA0007 (85%)
+    N = 90 distributions, k = 10 personas
+    T_n = 0.0058
+    p (permutation) = 0.6499  → NOT significant at α=0.05
+    p (asymptotic)  = 1.0000
+    Fréchet ICC     = 0.0853  (8.5% of distributional variance from persona)
+    Mean within-persona W1  = 0.0296
+    Mean between-persona W1 = 0.0294
+
+  Claude Sonnet 4.5 — T1657 (30%)
+    N = 97 distributions, k = 10 personas
+    T_n = 0.0070
+    p (permutation) = 0.7722  → NOT significant at α=0.05
+    p (asymptotic)  = 1.0000
+    Fréchet ICC     = 0.0679  (6.8% of distributional variance from persona)
+    Mean within-persona W1  = 0.0328
+    Mean between-persona W1 = 0.0325
+
+  GPT-4o — TA0002 (50%)
+    N = 100 distributions, k = 10 personas
+    T_n = 0.0628
+    p (permutation) = 0.0628  → NOT significant at α=0.05
+    p (asymptotic)  = 1.0000
+    Fréchet ICC     = 0.1391  (13.9% of distributional variance from persona)
+    Mean within-persona W1  = 0.0722
+    Mean between-persona W1 = 0.0747
+
+  GPT-4o — TA0007 (85%)
+    N = 100 distributions, k = 10 personas
+    T_n = 0.0041
+    p (permutation) = 0.6913  → NOT significant at α=0.05
+    p (asymptotic)  = 1.0000
+    Fréchet ICC     = 0.0746  (7.5% of distributional variance from persona)
+    Mean within-persona W1  = 0.0248
+    Mean between-persona W1 = 0.0248
+
+  GPT-4o — T1657 (30%)
+    N = 100 distributions, k = 10 personas
+    T_n = 0.0205
+    p (permutation) = 0.2466  → NOT significant at α=0.05
+    p (asymptotic)  = 1.0000
+    Fréchet ICC     = 0.1108  (11.1% of distributional variance from persona)
+    Mean within-persona W1  = 0.0473
+    Mean between-persona W1 = 0.0476
+
+--------------------------------------------------------------------------------
+EXPERIMENT 2: CROSS-MODEL FRÉCHET ANOVA
+--------------------------------------------------------------------------------
+
+  TA0002 (50%)
+    N = 300 distributions, k = 3 models
+    Group sizes: Claude Sonnet 4.5: 100, GPT-4o: 100, Gemini 2.5 Pro: 100
+    T_n = 0.7991
+    p (permutation) = 0.0002  → SIGNIFICANT at α=0.05
+    p (asymptotic)  = 0.6706
+    Fréchet ICC     = 0.2711  (27.1% of distributional variance from model)
+    Mean between-model W1 = 0.1164
+
+  TA0007 (85%)
+    N = 290 distributions, k = 3 models
+    Group sizes: Claude Sonnet 4.5: 90, GPT-4o: 100, Gemini 2.5 Pro: 100
+    T_n = 0.1959
+    p (permutation) = 0.0002  → SIGNIFICANT at α=0.05
+    p (asymptotic)  = 0.9067
+    Fréchet ICC     = 0.4173  (41.7% of distributional variance from model)
+    Mean between-model W1 = 0.0462
+
+  T1657 (30%)
+    N = 297 distributions, k = 3 models
+    Group sizes: Claude Sonnet 4.5: 97, GPT-4o: 100, Gemini 2.5 Pro: 100
+    T_n = 0.2721
+    p (permutation) = 0.0002  → SIGNIFICANT at α=0.05
+    p (asymptotic)  = 0.8728
+    Fréchet ICC     = 0.3605  (36.1% of distributional variance from model)
+    Mean between-model W1 = 0.0640
+
+--------------------------------------------------------------------------------
+COMPARISON: SCALAR ANOVA vs FRÉCHET ANOVA
+--------------------------------------------------------------------------------
+
+  Persona experiments:
+  Model                Step               Scalar p  Scalar ICC  Fréchet p  Fréchet ICC
+  -------------------------------------------------------------------------------
+  Claude Sonnet 4.5    TA0002 (50%)           0.12       0.058     0.1204       0.1329
+  Claude Sonnet 4.5    TA0007 (85%)           0.01       0.144     0.6499       0.0853
+  Claude Sonnet 4.5    T1657 (30%)            0.87       0.000     0.7722       0.0679
+  GPT-4o               TA0002 (50%)           0.65       0.000     0.0628       0.1391
+  GPT-4o               TA0007 (85%)           0.15       0.051     0.6913       0.0746
+  GPT-4o               T1657 (30%)            0.36       0.011     0.2466       0.1108
+
+  Cross-model experiments:
+  Step               Scalar p  Scalar ICC  Fréchet p  Fréchet ICC
+  -----------------------------------------------------------
+  TA0002 (50%)        <0.0001       0.651     0.0002       0.2711
+  TA0007 (85%)        <0.0001       0.279     0.0002       0.4173
+  T1657 (30%)         <0.0001       0.607     0.0002       0.3605
+
+================================================================================
