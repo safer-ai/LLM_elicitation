@@ -23,6 +23,12 @@ scenario_level_metrics:
       - The baseline estimation of economic damage per successful attack is $1.7m. Interpret this as the mode of the expert belief distribution for this value, with the 5th percentile of the expert's belief distribution being 500k and the 95th percentile being 3m.
       - This is the recovery costs that the organisation can be expected to pay in any case, regardless of if a ransom payment is made. These cover remediation costs, data restoration, and lost revenue.
       - This value should only account for the value of recovery costs themselves, NOT the ransom costs that may or may not be paid or any likelihood of payment of the ransom.
+  ransom_estimation:
+    benchmark_file: "input_data/benchmark/cybench_reordered.yaml"
+    assumptions: |
+      - The baseline estimation of the average ransom payment, if a payment is made, per successful attack is $2m. Interpret this as the mode of the expert belief distribution for this value, with the 5th percentile of the expert's belief distribution being $500k and the 95th percentile being $10m.
+      - This is derived from Sophos and Coveware data.
+      - This value should only account for the value of the ransom payment made, NOT the recovery costs or any likelihood of payment of the ransom. Please estimate only this cost, other costs associated with the attack will be estimated in a seperate procedure.
 
 threat_actor:
   name: "OC3"
