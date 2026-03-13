@@ -41,6 +41,7 @@ workflow_settings:
   estimate_num_actors_per_task_benchmark: false  # Default to false
   estimate_num_attacks_per_task_benchmark: false # Default to false
   estimate_damage_per_task_benchmark: false      # Default to false
+  estimate_ransom_per_task_benchmark: false      # Default to false  # enable this for OC3_Ransomware.yaml where Damage is split into Recovery and Ransom
 
   # Include examples of easier tasks from the benchmark in the prompt to help guide the LLM.
   include_easier_tasks: true
