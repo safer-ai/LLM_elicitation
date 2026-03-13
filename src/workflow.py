@@ -29,6 +29,35 @@ from prompt_helpers import format_example_tasks_context
 
 logger = logging.getLogger(__name__)
 
+# --- Analysis Cache ---
+# Keyed by (expert_name, benchmark_file, task_name). Stores asyncio Tasks so that
+# concurrent coroutines requesting the same analysis await a single in-flight API
+# call rather than each firing their own. Reset at the start of every run.
+_analysis_cache: Dict[Tuple[str, str, str], asyncio.Task] = {}
+
+
+async def _get_cached_analysis(
+    cache_key: Tuple[str, str, str],
+    client: Union[AsyncAnthropic, AsyncOpenAI],
+    semaphore: Semaphore,
+    config: AppConfig,
+    system_prompt: str,
+    user_prompt: str,
+    max_tokens: int,
+) -> str:
+    """Returns the task-analysis text for cache_key, reusing an existing asyncio
+    Task if one was already created for the same key (cache hit), or scheduling
+    a new API call and caching it as a Task (cache miss)."""
+    if cache_key not in _analysis_cache:
+        logger.debug(f"Analysis cache MISS for key {cache_key}. Scheduling API call.")
+        _analysis_cache[cache_key] = asyncio.ensure_future(
+            make_api_call(client, semaphore, config, system_prompt, user_prompt, max_tokens)
+        )
+    else:
+        logger.debug(f"Analysis cache HIT for key {cache_key}.")
+    return await _analysis_cache[cache_key]
+
+
 # --- Helper Function ---
 
 def _select_items(items: List[Any], num_to_select: Optional[int], item_type_name: str) -> List[Any]:
@@ -45,35 +74,16 @@ def _select_items(items: List[Any], num_to_select: Optional[int], item_type_name
         return items
 
 
-def _prepare_scenario_full_steps_description(scenario: Scenario) -> str:
-    """
-    Prepares a string containing the full description of all scenario steps.
-    This is used as context for scenario-level metric estimations.
-    """
-    lines = [
-        "--- Full Scenario Steps Description ---"
-    ]
-    if not scenario.steps:
-        lines.append("No steps defined in the scenario.")
-        return "\n".join(lines)
-
-    for i, step in enumerate(scenario.steps):
-        lines.append(f"\nStep {i+1}: {step.name}")
-        lines.append(f"  Description: {step.description.strip()}")
-        if step.assumptions and step.assumptions.strip():
-            lines.append(f"  Assumptions: {step.assumptions.strip()}")
-    lines.append("\n--- End of Full Scenario Steps Description ---")
-    return "\n".join(lines)
-
 
 async def _run_expert_round(
     expert: ExpertProfile,
     task: BenchmarkTask,
-    benchmark: Benchmark, # Now step-specific
+    benchmark: Benchmark,
+    benchmark_file: str,
     scenario_step: ScenarioStep,
     scenario: Scenario,
     round_num: int,
-    prev_round_responses: Optional[List[Dict[str, Any]]], # List of responses {expert_name, estimate, rationale,...} from previous round
+    prev_round_responses: Optional[List[Dict[str, Any]]],
     client: Union[AsyncAnthropic, AsyncOpenAI],
     semaphore: Semaphore,
     config: AppConfig,
@@ -136,7 +146,10 @@ async def _run_expert_round(
             expert_result["analysis_system_prompt"] = system_prompt_base
             expert_result["analysis_user_prompt"] = analysis_user_prompt
 
-            analysis_text = await make_api_call(client, semaphore, config, system_prompt_base, analysis_user_prompt, max_tokens_analysis)
+            cache_key = (ename, benchmark_file, task.name)
+            analysis_text = await _get_cached_analysis(
+                cache_key, client, semaphore, config, system_prompt_base, analysis_user_prompt, max_tokens_analysis
+            )
             expert_result["raw_analysis"] = analysis_text
 
             if analysis_text.startswith("Error:"):
@@ -145,7 +158,6 @@ async def _run_expert_round(
 
             parsed_analysis = parse_analysis_response(analysis_text)
             expert_result["parsed_analysis"] = parsed_analysis
-            # Use the full analysis text as context for the next prompt
             prompt_data["technical_analysis"] = parsed_analysis.get("technical_capabilities", "N/A")
 
             logger.debug(f"R1 ProbEst - Running initial estimation for Task '{task.name}', Step '{scenario_step.name}' by Expert '{ename}'")
@@ -258,8 +270,8 @@ async def _run_expert_round_for_scenario_metric(
     expert: ExpertProfile,
     task_from_dedicated_benchmark: BenchmarkTask,
     dedicated_benchmark_details: Benchmark,
+    benchmark_file: str,
     scenario: Scenario,
-    full_scenario_steps_description_str: str,
     round_num: int,
     prev_round_responses_for_this_metric_task: Optional[List[Dict[str, Any]]],
     client: Union[AsyncAnthropic, AsyncOpenAI],
@@ -293,7 +305,6 @@ async def _run_expert_round_for_scenario_metric(
         "threat_actor_description": scenario.threat_actor.description,
         "target_name": scenario.target.name,
         "target_description": scenario.target.description,
-        "scenario_steps_full_description": full_scenario_steps_description_str,
         "scenario_level_metric_assumptions": scenario_level_metric_assumptions,
         "example_tasks_context": format_example_tasks_context(dedicated_benchmark_details, task_from_dedicated_benchmark, config)
     }
@@ -317,20 +328,14 @@ async def _run_expert_round_for_scenario_metric(
             if not analysis_prompt_template:
                 raise ValueError("Missing 'task_analysis' prompt template.")
 
-            # The analysis prompt is designed for a specific step, but here we are at the scenario level.
-            # We will use the scenario-level context for the analysis prompt.
-            analysis_prompt_data = prompt_data.copy()
-            # The analysis prompt expects step-specific keys, which we don't have.
-            # We'll provide placeholder or scenario-level info.
-            analysis_prompt_data["risk_scenario_step_name"] = f"Scenario-Level Estimation ({metric_name_logging})"
-            analysis_prompt_data["risk_scenario_step_description"] = f"This analysis is for the scenario-level metric: {metric_name_logging}."
-            analysis_prompt_data["risk_scenario_step_assumptions"] = scenario_level_metric_assumptions
-
-            analysis_user_prompt = analysis_prompt_template.format(**analysis_prompt_data)
+            analysis_user_prompt = analysis_prompt_template.format(**prompt_data)
             expert_result["analysis_system_prompt"] = system_prompt_base
             expert_result["analysis_user_prompt"] = analysis_user_prompt
 
-            analysis_text = await make_api_call(client, semaphore, config, system_prompt_base, analysis_user_prompt, max_tokens_estimation)
+            cache_key = (ename, benchmark_file, task_from_dedicated_benchmark.name)
+            analysis_text = await _get_cached_analysis(
+                cache_key, client, semaphore, config, system_prompt_base, analysis_user_prompt, max_tokens_estimation
+            )
             expert_result["raw_analysis"] = analysis_text
 
             if analysis_text.startswith("Error:"):
@@ -449,7 +454,6 @@ async def _run_scenario_level_metric_estimation_phase(
     semaphore: Semaphore,
     config: AppConfig,
     input_data: InputData,
-    full_scenario_steps_description_str: str,
     experts_to_use: List[ExpertProfile],
     project_root: Path,
     run_info: Dict[str, Any],
@@ -532,8 +536,9 @@ async def _run_scenario_level_metric_estimation_phase(
                 expert_coroutines = [
                     _run_expert_round_for_scenario_metric(
                         expert=expert, task_from_dedicated_benchmark=task_from_bench,
-                        dedicated_benchmark_details=current_dedicated_benchmark, scenario=input_data.scenario,
-                        full_scenario_steps_description_str=full_scenario_steps_description_str, round_num=current_round,
+                        dedicated_benchmark_details=current_dedicated_benchmark,
+                        benchmark_file=benchmark_file_path_normalized,
+                        scenario=input_data.scenario, round_num=current_round,
                         prev_round_responses_for_this_metric_task=round_responses_history[-1] if round_responses_history else None,
                         client=client, semaphore=semaphore, config=config, prompts=input_data.prompts,
                         metric_name_logging=metric_name_log, metric_initial_prompt_key=suite_cfg["initial_prompt_key"],
@@ -622,9 +627,12 @@ async def run_delphi_estimation(
     """
     Runs the main Delphi estimation workflow.
     """
+    global _analysis_cache
+    _analysis_cache = {}
+
     run_start_time = time.time()
     logger.info("\n\n--- Starting Full Delphi Estimation Workflow ---")
-    project_root = Path.cwd() 
+    project_root = Path.cwd()
 
     if not all([input_data.prompts, input_data.experts, input_data.scenario, input_data.loaded_benchmarks]):
         return {"error": "One or more critical input data components are missing."}
@@ -718,6 +726,7 @@ async def run_delphi_estimation(
                 coroutines = [
                     _run_expert_round(
                         expert=expert, task=task_p1, benchmark=current_benchmark_p1,
+                        benchmark_file=benchmark_key,
                         scenario_step=scenario_step, scenario=input_data.scenario,
                         round_num=current_round_p1, prev_round_responses=round_responses_history_p1[-1] if round_responses_history_p1 else None,
                         client=client, semaphore=semaphore, config=config, prompts=input_data.prompts
@@ -774,9 +783,8 @@ async def run_delphi_estimation(
     logger.info("--- Phase 1: Step-Specific Probability Estimations Completed ---")
 
     # PHASE 2: Scenario-Level Metric Estimation
-    full_scenario_desc_str = _prepare_scenario_full_steps_description(input_data.scenario)
     phase2_results = await _run_scenario_level_metric_estimation_phase(
-        client, semaphore, config, input_data, full_scenario_desc_str, experts_to_use, project_root,
+        client, semaphore, config, input_data, experts_to_use, project_root,
         run_info, overall_results
     )
 
