@@ -106,6 +106,7 @@ The pipeline involves:
             * `estimate_num_actors_per_task_benchmark`: (boolean) Set to `true` to enable estimation of the number of threat actors.
             * `estimate_num_attacks_per_task_benchmark`: (boolean) Set to `true` to enable estimation of the number of attacks.
             * `estimate_damage_per_task_benchmark`: (boolean) Set to `true` to enable estimation of damage.
+            * `estimate_ransom_per_task_benchmark`: (boolean) Set to `true` to enable estimation of ransom payment.
             (These require corresponding entries in `scenario_file.scenario_level_metrics` and relevant prompt files.)
 
 ## Usage
@@ -194,7 +195,7 @@ experts:
 - `scenario_level_metrics`: (dictionary, optional) Maps scenario-level metric estimation types to their configuration. Each metric configuration includes:
     - `benchmark_file`: (string) Path to the benchmark YAML file for that metric (e.g., `input_data/benchmark/actor_analysis_benchmark.yaml`).
     - `assumptions`: (string, multiline allowed) Specific assumptions to consider when estimating this metric.
-    - **Valid Keys:** `num_actors_estimation`, `num_attacks_estimation`, `damage_estimation`.
+    - **Valid Keys:** `num_actors_estimation`, `num_attacks_estimation`, `damage_estimation`, `ransom_estimation`.
 
 **Example Snippet** (`input_data/scenario/dummy_scenario.yaml`):
 
