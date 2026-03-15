@@ -23,6 +23,7 @@ analysis_results.json
 .idea/
 .cursor/
 .claude/
+CLAUDE.md
 .ruff_cache/
 
 # macOS files
@@ -60,6 +61,11 @@ run
 intra_benchmark_calibration/config*.yaml
 !intra_benchmark_calibration/config_example.yaml
 
-
 # Temporary experiment data
 input_data/reruns/
+
+# Added for consistency checks
+consistency_checks/config*.yaml
+consistency_checks/output_data_negation
+# below may need to be re-added as it's important experimental context, but its specific to the src/main implementation and a lot of files
+consistency_checks/negation_prompts
