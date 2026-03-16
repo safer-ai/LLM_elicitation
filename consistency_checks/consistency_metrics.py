@@ -285,12 +285,19 @@ def compute_pairwise_results(
 
 
 def compute_pairwise_metrics(
-    df1: pd.DataFrame, df2: pd.DataFrame | None = None, include_beta: bool = False
+    df1: pd.DataFrame,
+    df2: pd.DataFrame | None = None,
+    include_beta: bool = False,
+    compute_ci: bool = False,
+    n_bootstrap: int = 1000,
+    confidence_level: float = 0.95,
+    random_state: int | np.random.Generator | None = None,
 ) -> dict:
     """Compute mean consistency metrics across all pairwise row combinations.
 
     Aggregates the output of compute_pairwise_results by taking the mean of
-    each metric column.
+    each metric column. Optionally also computes bootstrap confidence
+    intervals for the mean W1 and W2 metrics.
 
     Args:
         df1: DataFrame with 'percentile_Nth_mean' columns.
@@ -298,6 +305,11 @@ def compute_pairwise_metrics(
              pairs are drawn one from each dataframe.
         include_beta: If True, also include 'w1_beta' and 'w2_beta' means.
                       note this can be slow because of integration.
+        compute_ci: If True, compute bootstrap confidence intervals for
+                    'w1' and 'w2'.
+        n_bootstrap: Number of bootstrap resamples to use when compute_ci=True.
+        confidence_level: Central confidence mass for the percentile interval.
+        random_state: Optional seed or numpy Generator for bootstrap draws.
 
     Returns:
         dict with keys:
@@ -308,6 +320,14 @@ def compute_pairwise_metrics(
             'n_pairs'        -- number of pairs evaluated
             'w1_beta'        -- mean beta-fit W1 distance (only if include_beta=True)
             'w2_beta'        -- mean beta-fit W2 distance (only if include_beta=True)
+            'w1_ci_lower'    -- bootstrap CI lower bound for mean W1
+                                 (only if compute_ci=True)
+            'w1_ci_upper'    -- bootstrap CI upper bound for mean W1
+                                 (only if compute_ci=True)
+            'w2_ci_lower'    -- bootstrap CI lower bound for mean W2
+                                 (only if compute_ci=True)
+            'w2_ci_upper'    -- bootstrap CI upper bound for mean W2
+                                 (only if compute_ci=True)
     """
     results_df = compute_pairwise_results(df1, df2, include_beta=include_beta)
 
@@ -322,6 +342,13 @@ def compute_pairwise_metrics(
         if include_beta:
             result["w1_beta"] = float("nan")
             result["w2_beta"] = float("nan")
+        if compute_ci:
+            result["w1_ci_lower"] = float("nan")
+            result["w1_ci_upper"] = float("nan")
+            result["w2_ci_lower"] = float("nan")
+            result["w2_ci_upper"] = float("nan")
+            result["confidence_level"] = confidence_level
+            result["n_bootstrap"] = n_bootstrap
         return result
 
     metric_cols = ["w1", "w2", "p50_divergence", "iqr_divergence"]
@@ -330,6 +357,131 @@ def compute_pairwise_metrics(
 
     result = results_df[metric_cols].mean().to_dict()
     result["n_pairs"] = len(results_df)
+    if compute_ci:
+        result.update(
+            _compute_pairwise_metric_ci(
+                df1,
+                df2,
+                include_beta=include_beta,
+                n_bootstrap=n_bootstrap,
+                confidence_level=confidence_level,
+                random_state=random_state,
+            )
+        )
+    return result
+
+
+def _resample_runs(
+    df1: pd.DataFrame, df2: pd.DataFrame | None, rng: np.random.Generator
+) -> tuple[pd.DataFrame, pd.DataFrame | None]:
+    """Bootstrap-resample the run-level inputs used by compute_pairwise_metrics.
+
+    For a single dataframe, rows are resampled within that dataframe.
+    For two dataframes, aligned row pairs are resampled jointly so the
+    bootstrap unit remains the original run pair rather than a derived metric.
+    """
+    if df2 is None:
+        if df1.empty:
+            return df1, None
+        sample_idx = rng.integers(0, len(df1), size=len(df1))
+        return df1.iloc[sample_idx], None
+
+    if len(df1) != len(df2):
+        raise ValueError(
+            "Bootstrap resampling with two dataframes requires the same number "
+            "of rows so run pairs can be resampled jointly."
+        )
+
+    if df1.empty:
+        return df1, df2
+
+    sample_idx = rng.integers(0, len(df1), size=len(df1))
+    return df1.iloc[sample_idx], df2.iloc[sample_idx]
+
+
+def _percentile_ci(
+    values: list[float], confidence_level: float
+) -> tuple[float, float]:
+    """Return a percentile bootstrap confidence interval."""
+    if not values:
+        return float("nan"), float("nan")
+
+    alpha = 1.0 - confidence_level
+    lower = float(np.quantile(values, alpha / 2.0))
+    upper = float(np.quantile(values, 1.0 - alpha / 2.0))
+    return lower, upper
+
+
+def _compute_pairwise_metric_ci(
+    df1: pd.DataFrame,
+    df2: pd.DataFrame | None = None,
+    include_beta: bool = False,
+    n_bootstrap: int = 1000,
+    confidence_level: float = 0.95,
+    random_state: int | np.random.Generator | None = None,
+) -> dict:
+    """Compute bootstrap CIs for the mean pairwise W1 and W2 metrics.
+
+    The bootstrap resamples the original run rows used to construct the
+    pairwise comparisons. With one dataframe, rows are resampled within the
+    dataframe. With two dataframes, aligned row pairs are resampled jointly.
+
+    Args:
+        df1: DataFrame with 'percentile_Nth_mean' columns.
+        df2: Optional second DataFrame with the same columns.
+        include_beta: Passed through to compute_pairwise_metrics.
+        n_bootstrap: Number of bootstrap resamples.
+        confidence_level: Central confidence mass for the percentile interval.
+        random_state: Optional seed or numpy Generator.
+
+    Returns:
+        dict containing the usual compute_pairwise_metrics output plus:
+            'w1_ci_lower', 'w1_ci_upper' -- bootstrap CI for mean W1
+            'w2_ci_lower', 'w2_ci_upper' -- bootstrap CI for mean W2
+            'n_bootstrap'                -- number of bootstrap replicates used
+            'confidence_level'           -- CI coverage level
+    """
+    if n_bootstrap <= 0:
+        raise ValueError("n_bootstrap must be positive.")
+    if not 0.0 < confidence_level < 1.0:
+        raise ValueError("confidence_level must be between 0 and 1.")
+
+    result = {
+        "confidence_level": confidence_level,
+        "n_bootstrap": n_bootstrap,
+    }
+    if df1.empty or (df2 is not None and df2.empty):
+        result["w1_ci_lower"] = float("nan")
+        result["w1_ci_upper"] = float("nan")
+        result["w2_ci_lower"] = float("nan")
+        result["w2_ci_upper"] = float("nan")
+        return result
+
+    rng = (
+        random_state
+        if isinstance(random_state, np.random.Generator)
+        else np.random.default_rng(random_state)
+    )
+
+    w1_samples = []
+    w2_samples = []
+    for _ in range(n_bootstrap):
+        boot_df1, boot_df2 = _resample_runs(df1, df2, rng)
+        boot_metrics = compute_pairwise_metrics(
+            boot_df1,
+            boot_df2,
+            include_beta=include_beta,
+            compute_ci=False,
+        )
+        w1_samples.append(boot_metrics["w1"])
+        w2_samples.append(boot_metrics["w2"])
+
+    result["w1_ci_lower"], result["w1_ci_upper"] = _percentile_ci(
+        w1_samples, confidence_level
+    )
+    result["w2_ci_lower"], result["w2_ci_upper"] = _percentile_ci(
+        w2_samples, confidence_level
+    )
     return result
 
 
