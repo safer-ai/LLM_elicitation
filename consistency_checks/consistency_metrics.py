@@ -1,31 +1,62 @@
 import itertools
 
+import re
 import numpy as np
 import pandas as pd
 from scipy.stats import beta
 from scipy.integrate import quad
 
-def w1_distance(a: dict, b: dict) -> float:
-    """Wasserstein-1 distance between two quartile distributions.
 
-    Approximates the W1 distance by treating each distribution as piecewise
-    linear between the 5 quantile points: 0, p25, p50, p75, 1. The area
-    between the two inverse CDFs is computed analytically per segment.
+def _with_boundaries(
+    pts: list[tuple[float, float]],
+) -> tuple[list[float], list[float]]:
+    """Sort (percentile, value) pairs and add (0, 0) and (1, 1) boundaries.
+
+    Returns:
+        (qs, vs) — percentile levels and corresponding values.
+    """
+    pts = sorted(pts)
+    qs = [p for p, _ in pts]
+    vs = [v for _, v in pts]
+    if qs[0] != 0.0:
+        qs.insert(0, 0.0)
+        vs.insert(0, 0.0)
+    if qs[-1] != 1.0:
+        qs.append(1.0)
+        vs.append(1.0)
+    return qs, vs
+
+
+def w1_distance(
+    a: list[tuple[float, float]], b: list[tuple[float, float]]
+) -> float:
+    """Wasserstein-1 distance between two quantile distributions.
+
+    Treats each distribution as piecewise linear between the given quantile
+    points, with boundary points (0.0, 0.0) and (1.0, 1.0) added implicitly.
+    Supports an arbitrary number of quantile points; the two inputs need not
+    share the same percentile levels (missing points are interpolated).
+    The area between the two inverse CDFs is computed analytically per segment.
 
     Args:
-        a, b: dicts with keys 'p25', 'p50', 'p75'
+        a, b: sequences of (percentile, value) pairs, e.g.
+              [(0.25, 0.3), (0.5, 0.5), (0.75, 0.7)]
 
     Returns:
         W1 distance (non-negative float)
     """
-    xr = [0.0, a["p25"], a["p50"], a["p75"], 1.0]
-    xs = [0.0, b["p25"], b["p50"], b["p75"], 1.0]
-    h = 0.25
-    total = 0.0
+    qa, va = _with_boundaries(a)
+    qb, vb = _with_boundaries(b)
 
-    for i in range(4):
-        d0 = xr[i] - xs[i]
-        d1 = xr[i + 1] - xs[i + 1]
+    all_q = sorted(set(qa) | set(qb))
+    ya = np.interp(all_q, qa, va)
+    yb = np.interp(all_q, qb, vb)
+
+    total = 0.0
+    for i in range(len(all_q) - 1):
+        h = all_q[i + 1] - all_q[i]
+        d0 = ya[i] - yb[i]
+        d1 = ya[i + 1] - yb[i + 1]
 
         if d0 == 0 and d1 == 0:
             area = 0.0
@@ -38,115 +69,54 @@ def w1_distance(a: dict, b: dict) -> float:
 
     return total
 
+def w2_distance(
+    a: list[tuple[float, float]], b: list[tuple[float, float]]
+) -> float:
+    """Wasserstein-2 distance between two quantile distributions.
 
-def p50_divergence(a: dict, b: dict) -> float:
-    """Absolute difference in median (p50) between two distributions.
-
-    Args:
-        a, b: dicts with keys 'p25', 'p50', 'p75'
-
-    Returns:
-        |a['p50'] - b['p50']|
+    Treats each distribution as piecewise linear between the given quantile
+    points, with boundary points (0.0, 0.0) and (1.0, 1.0) added implicitly.
+    Supports arbitrary quantile grids; missing points are interpolated.
     """
-    return abs(a["p50"] - b["p50"])
+    qa, va = _with_boundaries(a)
+    qb, vb = _with_boundaries(b)
+
+    all_q = sorted(set(qa) | set(qb))
+    ya = np.interp(all_q, qa, va)
+    yb = np.interp(all_q, qb, vb)
+
+    total = 0.0
+    for i in range(len(all_q) - 1):
+        h = all_q[i + 1] - all_q[i]
+        d0 = ya[i] - yb[i]
+        d1 = ya[i + 1] - yb[i + 1]
+
+        # Exact integral of the square of a linear function over the interval
+        total += h * (d0 * d0 + d0 * d1 + d1 * d1) / 3.0
+
+    return float(np.sqrt(total))
 
 
-def iqr_divergence(a: dict, b: dict) -> float:
-    """Absolute difference in interquartile range between two distributions.
-
-    Args:
-        a, b: dicts with keys 'p25', 'p50', 'p75'
-
-    Returns:
-        |(a['p75'] - a['p25']) - (b['p75'] - b['p25'])|
-    """
-    return abs((a["p75"] - a["p25"]) - (b["p75"] - b["p25"]))
-
-
-def compute_pairwise_metrics(
-    df1: pd.DataFrame, df2: pd.DataFrame | None = None, include_beta: bool = False
-) -> dict:
-    """Compute mean consistency metrics across all pairwise row combinations.
-
-    For a single dataframe, pairs are every combination of two rows within df1.
-    For two dataframes, pairs are every cross-product combination (one row from
-    each dataframe).
-
-    Args:
-        df1: DataFrame with columns 'p25', 'p50', 'p75'
-        df2: Optional second DataFrame with the same columns. If provided,
-             pairs are drawn one from each dataframe.
-        include_beta: If True, also compute W1 using Beta distributions fit to
-                      each row's quantile points and include 'w1_beta' in the
-                      returned dict alongside the standard linear metrics.
-
-    Returns:
-        dict with keys:
-            'w1'             -- mean W1 distance across all pairs
-            'p50_divergence' -- mean absolute p50 difference across all pairs
-            'iqr_divergence' -- mean absolute IQR difference across all pairs
-            'n_pairs'        -- number of pairs evaluated
-            'w1_beta'        -- mean beta-fit W1 distance (only if include_beta=True)
-    """
-    records1 = df1[["p25", "p50", "p75"]].to_dict(orient="records")
-
-    if df2 is None:
-        pairs = list(itertools.combinations(records1, 2))
-    else:
-        records2 = df2[["p25", "p50", "p75"]].to_dict(orient="records")
-        pairs = list(itertools.product(records1, records2))
-
-    if not pairs:
-        result = {
-            "w1": float("nan"),
-            "p50_divergence": float("nan"),
-            "iqr_divergence": float("nan"),
-            "n_pairs": 0,
-        }
-        if include_beta:
-            result["w1_beta"] = float("nan")
-        return result
-
-    w1_vals = []
-    p50_vals = []
-    iqr_vals = []
-    w1_beta_vals: list[float] = []
-
-    for a, b in pairs:
-        w1_vals.append(w1_distance(a, b))
-        p50_vals.append(p50_divergence(a, b))
-        iqr_vals.append(iqr_divergence(a, b))
-        if include_beta:
-            w1_beta_vals.append(w1_distance_beta(a, b))
-
-    result = {
-        "w1": np.mean(w1_vals),
-        "p50_divergence": np.mean(p50_vals),
-        "iqr_divergence": np.mean(iqr_vals),
-        "n_pairs": len(pairs),
-    }
-    if include_beta:
-        result["w1_beta"] = np.mean(w1_beta_vals)
-    return result
-
-def fit_beta(p25: float, p50: float, p75: float) -> tuple[float, float]:
-    """Fit Beta(a, b) shape parameters to three quantile constraints.
+def fit_beta(pts: list[tuple[float, float]]) -> tuple[float, float]:
+    """Fit Beta(a, b) shape parameters to quantile constraints.
 
     Minimises the sum of squared errors between the Beta distribution's
-    quantile function and the supplied p25 / p50 / p75 values.  Parameters
+    quantile function and the supplied (percentile, value) pairs. Parameters
     are optimised in log-space (via scipy.optimize.least_squares) so they
     remain strictly positive.
 
     Args:
-        p25, p50, p75: Target quantile values in (0, 1).
+        pts: sequence of (percentile, value) pairs, e.g.
+             [(0.25, 0.2), (0.5, 0.4), (0.75, 0.7)]
 
     Returns:
         (a, b) — positive shape parameters.
     """
     from scipy.optimize import least_squares
 
-    quantiles = np.array([0.25, 0.50, 0.75])
-    targets = np.array([p25, p50, p75])
+    pts_sorted = sorted(pts)
+    quantiles = np.array([p for p, _ in pts_sorted])
+    targets = np.array([v for _, v in pts_sorted])
 
     def residuals(log_params):
         a, b = np.exp(log_params)
@@ -155,8 +125,9 @@ def fit_beta(p25: float, p50: float, p75: float) -> tuple[float, float]:
     result = least_squares(residuals, x0=[np.log(2.0), np.log(2.0)])
     return float(np.exp(result.x[0])), float(np.exp(result.x[1]))
 
-
-def w1_distance_beta(a: dict, b: dict) -> float:
+def w1_distance_beta(
+    a: list[tuple[float, float]], b: list[tuple[float, float]]
+) -> float:
     """W1 distance using Beta distributions fit to quantile points.
 
     Fits a Beta(a, b) distribution to each set of quantile points then
@@ -164,13 +135,13 @@ def w1_distance_beta(a: dict, b: dict) -> float:
     CDF difference.
 
     Args:
-        a, b: dicts with keys 'p25', 'p50', 'p75'
+        a, b: sequences of (percentile, value) pairs
 
     Returns:
         W1 distance (non-negative float)
     """
-    a1, b1 = fit_beta(a["p25"], a["p50"], a["p75"])
-    a2, b2 = fit_beta(b["p25"], b["p50"], b["p75"])
+    a1, b1 = fit_beta(a)
+    a2, b2 = fit_beta(b)
 
     def integrand(x):
         return abs(beta.cdf(x, a1, b1) - beta.cdf(x, a2, b2))
@@ -178,15 +149,198 @@ def w1_distance_beta(a: dict, b: dict) -> float:
     val, _ = quad(integrand, 0.0, 1.0, epsabs=1e-9, epsrel=1e-9)
     return val
 
+def w2_distance_beta(
+    a: list[tuple[float, float]], b: list[tuple[float, float]]
+) -> float:
+    """W2 distance using Beta distributions fit to quantile points.
+
+    Fits a Beta(alpha, beta) distribution to each set of quantile points, then
+    computes the 1D Wasserstein-2 distance via numerical integration of the
+    squared difference of the inverse CDFs.
+
+    Args:
+        a, b: sequences of (percentile, value) pairs
+
+    Returns:
+        W2 distance (non-negative float)
+    """
+    a1, b1 = fit_beta(a)
+    a2, b2 = fit_beta(b)
+
+    def integrand(u):
+        q1 = beta.ppf(u, a1, b1)
+        q2 = beta.ppf(u, a2, b2)
+        return (q1 - q2) ** 2
+
+    val, _ = quad(integrand, 0.0, 1.0, epsabs=1e-9, epsrel=1e-9)
+    return val**0.5
+
+
+def p50_divergence(a: list[tuple[float, float]], b: list[tuple[float, float]]) -> float:
+    """Absolute difference in median (p50) between two distributions.
+
+    Args:
+        a, b: sequences of (percentile, value) pairs. The p50 value is obtained
+              by linear interpolation at quantile level 0.5.
+
+    Returns:
+        |median(a) - median(b)|
+    """
+    def _median(pts):
+        pts_sorted = sorted(pts)
+        qs = [p for p, _ in pts_sorted]
+        vs = [v for _, v in pts_sorted]
+        return float(np.interp(0.5, qs, vs))
+
+    return abs(_median(a) - _median(b))
+
+
+def iqr_divergence(a: list[tuple[float, float]], b: list[tuple[float, float]]) -> float:
+    """Absolute difference in interquartile range between two distributions.
+
+    Args:
+        a, b: sequences of (percentile, value) pairs. The p25 and p75 values are
+              obtained by linear interpolation at quantile levels 0.25 and 0.75.
+
+    Returns:
+        |IQR(a) - IQR(b)|
+    """
+    def _iqr(pts):
+        pts_sorted = sorted(pts)
+        qs = [p for p, _ in pts_sorted]
+        vs = [v for _, v in pts_sorted]
+        return float(np.interp(0.75, qs, vs)) - float(np.interp(0.25, qs, vs))
+
+    return abs(_iqr(a) - _iqr(b))
+
+def row_to_pairs(row):
+    pattern = re.compile(r'percentile_(\d+)th_mean')
+    pairs = []
+    for col in row.index:
+        m = pattern.search(col)
+        if m:
+            pct = int(m.group(1)) / 100.0
+            pairs.append((pct, row[col]))
+    return sorted(pairs)
+
+
+def compute_pairwise_results(
+    df1: pd.DataFrame, df2: pd.DataFrame | None = None, include_beta: bool = False
+) -> pd.DataFrame:
+    """Compute consistency metrics for every pairwise row combination.
+
+    For a single dataframe, pairs are every combination of two rows within df1.
+    For two dataframes, pairs are every cross-product combination (one row from
+    each dataframe).
+
+    Each row is converted to (percentile, value) pairs via row_to_pairs, which
+    extracts all 'percentile_Nth_mean' columns.
+
+    Args:
+        df1: DataFrame with 'percentile_Nth_mean' columns.
+        df2: Optional second DataFrame with the same columns. If provided,
+             pairs are drawn one from each dataframe.
+        include_beta: If True, also compute W1 and W2 using Beta distributions
+                      fit to each row's quantile points and include 'w1_beta'
+                      and 'w2_beta' columns. Note this can be slow because of integration
+
+    Returns:
+        DataFrame with one row per pair and columns:
+            'idx_a', 'idx_b'  -- index labels from the source dataframes
+            'w1'              -- W1 distance
+            'w2'              -- W2 distance
+            'p50_divergence'  -- absolute p50 difference
+            'iqr_divergence'  -- absolute IQR difference
+            'w1_beta'         -- beta-fit W1 distance (only if include_beta=True)
+            'w2_beta'         -- beta-fit W2 distance (only if include_beta=True)
+    """
+    index1 = list(df1.index)
+    records1 = df1.apply(row_to_pairs, axis=1).tolist()
+
+    if df2 is None:
+        index_pairs = list(itertools.combinations(index1, 2))
+        record_pairs = list(itertools.combinations(records1, 2))
+    else:
+        index2 = list(df2.index)
+        records2 = df2.apply(row_to_pairs, axis=1).tolist()
+        index_pairs = list(itertools.product(index1, index2))
+        record_pairs = list(itertools.product(records1, records2))
+
+    rows = []
+    for (ia, ib), (a, b) in zip(index_pairs, record_pairs):
+        row = {
+            "idx_a": ia,
+            "idx_b": ib,
+            "w1": w1_distance(a, b),
+            "w2": w2_distance(a, b),
+            "p50_divergence": p50_divergence(a, b),
+            "iqr_divergence": iqr_divergence(a, b),
+        }
+        if include_beta:
+            row["w1_beta"] = w1_distance_beta(a, b)
+            row["w2_beta"] = w2_distance_beta(a, b)
+        rows.append(row)
+
+    return pd.DataFrame(rows)
+
+
+def compute_pairwise_metrics(
+    df1: pd.DataFrame, df2: pd.DataFrame | None = None, include_beta: bool = False
+) -> dict:
+    """Compute mean consistency metrics across all pairwise row combinations.
+
+    Aggregates the output of compute_pairwise_results by taking the mean of
+    each metric column.
+
+    Args:
+        df1: DataFrame with 'percentile_Nth_mean' columns.
+        df2: Optional second DataFrame with the same columns. If provided,
+             pairs are drawn one from each dataframe.
+        include_beta: If True, also include 'w1_beta' and 'w2_beta' means.
+                      note this can be slow because of integration.
+
+    Returns:
+        dict with keys:
+            'w1'             -- mean W1 distance across all pairs
+            'w2'             -- mean W2 distance across all pairs
+            'p50_divergence' -- mean absolute p50 difference across all pairs
+            'iqr_divergence' -- mean absolute IQR difference across all pairs
+            'n_pairs'        -- number of pairs evaluated
+            'w1_beta'        -- mean beta-fit W1 distance (only if include_beta=True)
+            'w2_beta'        -- mean beta-fit W2 distance (only if include_beta=True)
+    """
+    results_df = compute_pairwise_results(df1, df2, include_beta=include_beta)
+
+    if results_df.empty:
+        result = {
+            "w1": float("nan"),
+            "w2": float("nan"),
+            "p50_divergence": float("nan"),
+            "iqr_divergence": float("nan"),
+            "n_pairs": 0,
+        }
+        if include_beta:
+            result["w1_beta"] = float("nan")
+            result["w2_beta"] = float("nan")
+        return result
+
+    metric_cols = ["w1", "w2", "p50_divergence", "iqr_divergence"]
+    if include_beta:
+        metric_cols += ["w1_beta", "w2_beta"]
+
+    result = results_df[metric_cols].mean().to_dict()
+    result["n_pairs"] = len(results_df)
+    return result
+
 
 def plot_pdf_pairs(
-    df1: pd.DataFrame,
-    df2: pd.DataFrame | None = None,
+    a: list[list[tuple[float, float]]],
+    b: list[list[tuple[float, float]]] | None = None,
     ncols: int = 2,
     figsize_per_plot: tuple[float, float] = (5, 4),
     use_beta: bool = False,
-    label1: str | None = None,
-    label2: str | None = None,
+    labels_a: list[str] | None = None,
+    labels_b: list[str] | None = None,
 ):
     """Plot PDFs for each pairwise combination.
 
@@ -195,23 +349,24 @@ def plot_pdf_pairs(
     The W1 distance for the pair is shown in the subplot title.
 
     For the piecewise-linear case (use_beta=False), the distribution implied
-    by the five quantile points (0, p25, p50, p75, 1) is piecewise-constant
-    (a histogram), so PDFs are drawn as step functions.  For use_beta=True,
-    smooth Beta PDFs are used.
+    by the quantile points is piecewise-constant (a histogram), so PDFs are
+    drawn as step functions.  For use_beta=True, smooth Beta PDFs are used.
 
     Note: the filled area equals ∫|f_A − f_B| dx (total variation × 2), not
     the W1 distance.  W1 is still computed from CDFs and shown in the title.
 
     Args:
-        df1: DataFrame with columns 'p25', 'p50', 'p75'. An optional 'model'
-             column is used for labels when present.
-        df2: Optional second DataFrame with the same columns.
+        a: list of distributions, each a list of (percentile, value) pairs.
+        b: optional second list of distributions. If provided, pairs are drawn
+           one from each list; otherwise all pairwise combinations within a.
         ncols: Number of subplot columns in the grid.
         figsize_per_plot: (width, height) in inches for each individual subplot.
-        use_beta: If True, fit a Beta distribution to each row's quantile points
-                  and plot smooth Beta PDFs.
-        label1: Optional short name appended to auto-generated labels for df1 rows.
-        label2: Optional short name appended to auto-generated labels for df2 rows.
+        use_beta: If True, fit a Beta distribution to each distribution's
+                  quantile points and plot smooth Beta PDFs.
+        labels_a: optional per-distribution labels for group a.
+                  Defaults to "A1", "A2", ...
+        labels_b: optional per-distribution labels for group b.
+                  Defaults to "B1", "B2", ... (or "A1", "A2", ... when b is None).
 
     Returns:
         matplotlib Figure
@@ -221,47 +376,49 @@ def plot_pdf_pairs(
     COLOR_A = "steelblue"
     COLOR_B = "tomato"
 
-    def _short_model(model_str: str) -> str:
-        parts = model_str.split("-")
-        while parts and parts[-1].isdigit():
-            parts.pop()
-        return "-".join(parts)
+    def _get_label_a(i):
+        return labels_a[i] if labels_a is not None else f"A{i + 1}"
 
-    def _label(df: pd.DataFrame, idx: int) -> str:
-        run_num = idx + 1
-        if "model" in df.columns:
-            return f"{_short_model(str(df.iloc[idx]['model']))} R{run_num}"
-        return f"R{run_num}"
+    def _get_label_b(i):
+        if b is None:
+            return labels_a[i] if labels_a is not None else f"A{i + 1}"
+        return labels_b[i] if labels_b is not None else f"B{i + 1}"
 
-    def _piecewise_pdf_at(row: pd.Series, xs: np.ndarray) -> np.ndarray:
-        """Evaluate piecewise-constant PDF at arbitrary x values."""
-        bps = np.array([0.0, row["p25"], row["p50"], row["p75"], 1.0])
+    def _piecewise_pdf_at(pts, xs):
+        qs, vs = _with_boundaries(pts)
         ys = np.zeros_like(xs, dtype=float)
-        for i in range(4):
-            dx = bps[i + 1] - bps[i]
-            if dx > 0:
-                upper = bps[i + 1] if i < 3 else bps[i + 1] + 1e-12
-                mask = (xs >= bps[i]) & (xs < upper)
-                ys[mask] = 0.25 / dx
+        for i in range(len(qs) - 1):
+            dq = qs[i + 1] - qs[i]
+            dv = vs[i + 1] - vs[i]
+            if dv > 0:
+                upper = vs[i + 1] if i < len(qs) - 2 else vs[i + 1] + 1e-12
+                mask = (xs >= vs[i]) & (xs < upper)
+                ys[mask] = dq / dv
         return ys
 
-    def _piecewise_step_xy(row: pd.Series) -> tuple[np.ndarray, np.ndarray]:
-        """Step-function (x, y) arrays for clean line plotting."""
-        bps = [0.0, row["p25"], row["p50"], row["p75"], 1.0]
-        xs, ys = [], []
-        for i in range(4):
-            dx = bps[i + 1] - bps[i]
-            d = 0.25 / dx if dx > 0 else 0.0
-            xs += [bps[i], bps[i + 1]]
-            ys += [d, d]
-        return np.array(xs), np.array(ys)
+    def _piecewise_step_xy(pts):
+        qs, vs = _with_boundaries(pts)
+        xs_out, ys_out = [], []
+        for i in range(len(qs) - 1):
+            dq = qs[i + 1] - qs[i]
+            dv = vs[i + 1] - vs[i]
+            d = dq / dv if dv > 0 else 0.0
+            xs_out += [vs[i], vs[i + 1]]
+            ys_out += [d, d]
+        return np.array(xs_out), np.array(ys_out)
 
-    rows1 = list(range(len(df1)))
-    if df2 is None:
-        index_pairs = [(df1, i, df1, j) for i, j in itertools.combinations(rows1, 2)]
+    idx_a = list(range(len(a)))
+    if b is None:
+        index_pairs = list(itertools.combinations(idx_a, 2))
+
+        def get_dist_b(j):
+            return a[j]
     else:
-        rows2 = list(range(len(df2)))
-        index_pairs = [(df1, i, df2, j) for i in rows1 for j in rows2]
+        idx_b = list(range(len(b)))
+        index_pairs = [(i, j) for i in idx_a for j in idx_b]
+
+        def get_dist_b(j):
+            return b[j]
 
     n = len(index_pairs)
     if n == 0:
@@ -276,18 +433,17 @@ def plot_pdf_pairs(
         squeeze=False,
     )
 
-    for k, (dfa, ia, dfb, ib) in enumerate(index_pairs):
+    for k, (ia, ib) in enumerate(index_pairs):
         ax = axes[k // ncols][k % ncols]
-        row_a = dfa.iloc[ia]
-        row_b = dfb.iloc[ib]
-        label_a = _label(dfa, ia) + (f" ({label1})" if label1 else "")
-        label_b_suffix = label2 if df2 is not None else label1
-        label_b = _label(dfb, ib) + (f" ({label_b_suffix})" if label_b_suffix else "")
+        dist_a = a[ia]
+        dist_b = get_dist_b(ib)
+        label_a = _get_label_a(ia)
+        label_b = _get_label_b(ib)
 
         if use_beta:
             xs = np.linspace(0.0, 1.0, 500)
-            aa, ab = fit_beta(row_a["p25"], row_a["p50"], row_a["p75"])
-            ba, bb = fit_beta(row_b["p25"], row_b["p50"], row_b["p75"])
+            aa, ab = fit_beta(dist_a)
+            ba, bb = fit_beta(dist_b)
             ya = beta.pdf(xs, aa, ab)
             yb = beta.pdf(xs, ba, bb)
             ax.fill_between(xs, ya, yb, where=ya >= yb, color=COLOR_A, alpha=0.35)
@@ -299,25 +455,25 @@ def plot_pdf_pairs(
                 0.0, 1.0, epsabs=1e-9, epsrel=1e-9,
             )
         else:
-            bps_a = [0.0, row_a["p25"], row_a["p50"], row_a["p75"], 1.0]
-            bps_b = [0.0, row_b["p25"], row_b["p50"], row_b["p75"], 1.0]
+            _, vs_a = _with_boundaries(dist_a)
+            _, vs_b = _with_boundaries(dist_b)
             xs = np.unique(np.concatenate([
-                np.array(sorted(set(bps_a + bps_b))),
+                np.array(sorted(set(vs_a + vs_b))),
                 np.linspace(0.0, 1.0, 300),
             ]))
-            ya = _piecewise_pdf_at(row_a, xs)
-            yb = _piecewise_pdf_at(row_b, xs)
+            ya = _piecewise_pdf_at(dist_a, xs)
+            yb = _piecewise_pdf_at(dist_b, xs)
             ax.fill_between(xs, ya, yb, where=ya >= yb, color=COLOR_A, alpha=0.35)
             ax.fill_between(xs, ya, yb, where=ya <= yb, color=COLOR_B, alpha=0.35)
-            xa_step, ya_step = _piecewise_step_xy(row_a)
-            xb_step, yb_step = _piecewise_step_xy(row_b)
+            xa_step, ya_step = _piecewise_step_xy(dist_a)
+            xb_step, yb_step = _piecewise_step_xy(dist_b)
             ax.plot(xa_step, ya_step, "-", color=COLOR_A, lw=1.8, label=label_a)
             ax.plot(xb_step, yb_step, "-", color=COLOR_B, lw=1.8, label=label_b)
-            for bp in bps_a[1:-1]:
-                ax.axvline(bp, color=COLOR_A, lw=0.7, ls=":", alpha=0.5)
-            for bp in bps_b[1:-1]:
-                ax.axvline(bp, color=COLOR_B, lw=0.7, ls=":", alpha=0.5)
-            w1 = w1_distance(row_a.to_dict(), row_b.to_dict())
+            for v in vs_a[1:-1]:
+                ax.axvline(v, color=COLOR_A, lw=0.7, ls=":", alpha=0.5)
+            for v in vs_b[1:-1]:
+                ax.axvline(v, color=COLOR_B, lw=0.7, ls=":", alpha=0.5)
+            w1 = w1_distance(dist_a, dist_b)
 
         ax.set_title(f"W₁ = {w1:.4f}  ({label_a} vs {label_b})", fontsize=9, fontweight="bold")
         ax.set_xlabel("Estimated probability", fontsize=9)
@@ -339,14 +495,15 @@ def plot_pdf_pairs(
     plt.tight_layout(rect=(0, 0, 1, top_margin))
     return fig
 
-def plot_w1_pairs(
-    df1: pd.DataFrame,
-    df2: pd.DataFrame | None = None,
+
+def plot_cdf_pairs(
+    a: list[list[tuple[float, float]]],
+    b: list[list[tuple[float, float]]] | None = None,
     ncols: int = 2,
     figsize_per_plot: tuple[float, float] = (5, 4),
     use_beta: bool = False,
-    label1: str | None = None,
-    label2: str | None = None,
+    labels_a: list[str] | None = None,
+    labels_b: list[str] | None = None,
 ):
     """Plot quantile functions for each pairwise combination.
 
@@ -355,53 +512,36 @@ def plot_w1_pairs(
     the region where B lies above A filled in another.  The W1 distance for
     the pair is shown in the subplot title.
 
-    Pair generation follows the same logic as compute_pairwise_metrics: within
-    df1 when df2 is None, or across df1 × df2 otherwise.
-
     Args:
-        df1: DataFrame with columns 'p25', 'p50', 'p75'. An optional 'run_id'
-             column is used for labels when present.
-        df2: Optional second DataFrame with the same columns.
+        a: list of distributions, each a list of (percentile, value) pairs.
+        b: optional second list of distributions. If provided, pairs are drawn
+           one from each list; otherwise all pairwise combinations within a.
         ncols: Number of subplot columns in the grid.
         figsize_per_plot: (width, height) in inches for each individual subplot.
-        use_beta: If True, fit a Beta distribution to each row's quantile points
-                  and plot smooth Beta quantile functions.  W1 is also computed
-                  from the fitted Beta distributions.  If False (default), use
-                  piecewise-linear interpolation between the five quantile points.
-        label1: Optional short name appended to auto-generated labels for df1
-                rows (e.g. "normal").
-        label2: Optional short name appended to auto-generated labels for df2
-                rows. Ignored when df2 is None.
+        use_beta: If True, fit a Beta distribution to each distribution's
+                  quantile points and plot smooth Beta quantile functions.
+        labels_a: optional per-distribution labels for group a.
+                  Defaults to "A1", "A2", ...
+        labels_b: optional per-distribution labels for group b.
+                  Defaults to "B1", "B2", ... (or "A1", "A2", ... when b is None).
 
     Returns:
         matplotlib Figure
     """
     import matplotlib.pyplot as plt
 
-    PROB_LEVELS = np.array([0.0, 0.25, 0.5, 0.75, 1.0])
     COLOR_A = "steelblue"
     COLOR_B = "tomato"
 
-    def _short_model(model_str: str) -> str:
-        """Strip trailing numeric version parts (e.g. dates) from a model name."""
-        parts = model_str.split("-")
-        while parts and parts[-1].isdigit():
-            parts.pop()
-        return "-".join(parts)
+    def _get_label_a(i):
+        return labels_a[i] if labels_a is not None else f"A{i + 1}"
 
-    def _label(df: pd.DataFrame, idx: int) -> str:
-        run_num = idx + 1
-        if "model" in df.columns:
-            return f"{_short_model(str(df.iloc[idx]['model']))} R{run_num}"
-        return f"R{run_num}"
+    def _get_label_b(i):
+        if b is None:
+            return labels_a[i] if labels_a is not None else f"A{i + 1}"
+        return labels_b[i] if labels_b is not None else f"B{i + 1}"
 
-    def _quantiles(row: pd.Series) -> np.ndarray:
-        return np.array([0.0, row["p25"], row["p50"], row["p75"], 1.0])
-
-    def _insert_crossings(
-        xs: np.ndarray, ya: np.ndarray, yb: np.ndarray
-    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-        """Insert exact crossing points so fill_between colours are clean."""
+    def _insert_crossings(xs, ya, yb):
         xs_out, ya_out, yb_out = [xs[0]], [ya[0]], [yb[0]]
         for i in range(len(xs) - 1):
             d0 = ya[i] - yb[i]
@@ -418,13 +558,18 @@ def plot_w1_pairs(
             yb_out.append(yb[i + 1])
         return np.array(xs_out), np.array(ya_out), np.array(yb_out)
 
-    # Build index pairs
-    rows1 = list(range(len(df1)))
-    if df2 is None:
-        index_pairs = [(df1, i, df1, j) for i, j in itertools.combinations(rows1, 2)]
+    idx_a = list(range(len(a)))
+    if b is None:
+        index_pairs = list(itertools.combinations(idx_a, 2))
+
+        def get_dist_b(j):
+            return a[j]
     else:
-        rows2 = list(range(len(df2)))
-        index_pairs = [(df1, i, df2, j) for i in rows1 for j in rows2]
+        idx_b = list(range(len(b)))
+        index_pairs = [(i, j) for i in idx_a for j in idx_b]
+
+        def get_dist_b(j):
+            return b[j]
 
     n = len(index_pairs)
     if n == 0:
@@ -439,20 +584,17 @@ def plot_w1_pairs(
         squeeze=False,
     )
 
-    for k, (dfa, ia, dfb, ib) in enumerate(index_pairs):
+    for k, (ia, ib) in enumerate(index_pairs):
         ax = axes[k // ncols][k % ncols]
-        row_a = dfa.iloc[ia]
-        row_b = dfb.iloc[ib]
-        label_a = _label(dfa, ia) + (f" ({label1})" if label1 else "")
-        if df2 is None:
-            label_b = _label(dfb, ib) + (f" ({label1})" if label1 else "")
-        else:
-            label_b = _label(dfb, ib) + (f" ({label2})" if label2 else "")
+        dist_a = a[ia]
+        dist_b = get_dist_b(ib)
+        label_a = _get_label_a(ia)
+        label_b = _get_label_b(ib)
 
         if use_beta:
             PROB_FINE = np.linspace(0.0, 1.0, 500)
-            aa, ab = fit_beta(row_a["p25"], row_a["p50"], row_a["p75"])
-            ba, bb = fit_beta(row_b["p25"], row_b["p50"], row_b["p75"])
+            aa, ab = fit_beta(dist_a)
+            ba, bb = fit_beta(dist_b)
             ya = beta.ppf(PROB_FINE, aa, ab)
             yb = beta.ppf(PROB_FINE, ba, bb)
             ax.fill_between(
@@ -465,11 +607,21 @@ def plot_w1_pairs(
             )
             ax.plot(PROB_FINE, ya, "-", color=COLOR_A, lw=1.8, label=label_a)
             ax.plot(PROB_FINE, yb, "-", color=COLOR_B, lw=1.8, label=label_b)
-            w1, _ = quad(lambda x: abs(beta.cdf(x, aa, ab) - beta.cdf(x, ba, bb)), 0.0, 1.0, epsabs=1e-9, epsrel=1e-9)
+            w1, _ = quad(
+                lambda x: abs(beta.cdf(x, aa, ab) - beta.cdf(x, ba, bb)),
+                0.0, 1.0, epsabs=1e-9, epsrel=1e-9,
+            )
+            prob_levels = np.array([0.0, 0.25, 0.5, 0.75, 1.0])
+            tick_labels = ["0%", "25%", "50%", "75%", "100%"]
         else:
-            qa = _quantiles(row_a)
-            qb = _quantiles(row_b)
-            xs, ya, yb = _insert_crossings(PROB_LEVELS, qa, qb)
+            qa, va = _with_boundaries(dist_a)
+            qb, vb = _with_boundaries(dist_b)
+            all_q = sorted(set(qa) | set(qb))
+            va_interp = np.interp(all_q, qa, va)
+            vb_interp = np.interp(all_q, qb, vb)
+            xs, ya, yb = _insert_crossings(
+                np.array(all_q), va_interp, vb_interp
+            )
             ax.fill_between(
                 xs, ya, yb, where=ya >= yb,
                 color=COLOR_A, alpha=0.35, label=f"{label_a} > {label_b}",
@@ -478,16 +630,19 @@ def plot_w1_pairs(
                 xs, ya, yb, where=ya <= yb,
                 color=COLOR_B, alpha=0.35, label=f"{label_b} > {label_a}",
             )
-            ax.plot(PROB_LEVELS, qa, "o-", color=COLOR_A, lw=1.8, ms=5, label=label_a)
-            ax.plot(PROB_LEVELS, qb, "o-", color=COLOR_B, lw=1.8, ms=5, label=label_b)
-            w1 = w1_distance(row_a.to_dict(), row_b.to_dict())
+            ax.plot(qa, va, "o-", color=COLOR_A, lw=1.8, ms=5, label=label_a)
+            ax.plot(qb, vb, "o-", color=COLOR_B, lw=1.8, ms=5, label=label_b)
+            w1 = w1_distance(dist_a, dist_b)
+            prob_levels = np.array(sorted(set(qa) | set(qb)))
+            tick_labels = [f"{q:.0%}" for q in prob_levels]
+
         ax.set_title(f"W₁ = {w1:.4f}  ({label_a} vs {label_b})", fontsize=9, fontweight="bold")
         ax.set_xlabel("Quantile level", fontsize=9)
         ax.set_ylabel("Estimated probability", fontsize=9)
         ax.set_xlim(0, 1)
         ax.set_ylim(0, 1)
-        ax.set_xticks(PROB_LEVELS)
-        ax.set_xticklabels(["0", "p25", "p50", "p75", "1"], fontsize=8)
+        ax.set_xticks(prob_levels)
+        ax.set_xticklabels(tick_labels, fontsize=8)
         ax.grid(linestyle=":", alpha=0.5)
         ax.legend(fontsize=7, loc="upper left")
 
@@ -499,8 +654,6 @@ def plot_w1_pairs(
         f"{method_label}  ·  Filled area = W₁ distance",
         fontsize=11,
     )
-    # Reserve space at the top for suptitle so it doesn't overlap subplots.
-    # 0.4 in / total figure height gives a model-independent fraction.
     top_margin = 1.0 - 0.4 / (figsize_per_plot[1] * nrows)
     plt.tight_layout(rect=(0, 0, 1, top_margin))
     return fig
