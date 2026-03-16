@@ -29,6 +29,7 @@ class LLMSettings:
     max_concurrent_calls: int = 5 # Max parallel API requests
     rate_limit_calls: int = 45    # Max calls per rate_limit_period
     rate_limit_period: int = 60   # Time window for rate limit (seconds)
+    min_seconds_between_calls: float = 0  # Min delay between calls (for output token limits, e.g. 20)
     thinking: ThinkingSettings = field(default_factory=ThinkingSettings)
 
     def __post_init__(self):
@@ -43,6 +44,9 @@ class LLMSettings:
             raise ValueError("LLMSettings: 'rate_limit_calls' must be positive.")
         if self.rate_limit_period <= 0:
             raise ValueError("LLMSettings: 'rate_limit_period' must be positive.")
+        min_interval = getattr(self, "min_seconds_between_calls", 0)
+        if min_interval < 0:
+            raise ValueError("LLMSettings: 'min_seconds_between_calls' cannot be negative.")
 
 @dataclass
 class WorkflowSettings:
@@ -98,6 +102,7 @@ class AppConfig:
     # API Keys (loaded but potentially sensitive)
     api_key_anthropic: Optional[str] = None
     api_key_openai: Optional[str] = None
+    api_key_gemini: Optional[str] = None
 
     # --- Properties (methods acting like attributes) ---
     @property
@@ -106,7 +111,9 @@ class AppConfig:
         model_lower = self.llm_settings.model.lower()
         if 'claude' in model_lower:
             return 'anthropic'
-        elif 'gpt-' in model_lower or 'o' in model_lower: # Broader check for OpenAI models
+        elif 'gemini' in model_lower:
+            return 'gemini'
+        elif 'gpt-' in model_lower or model_lower.startswith('o') and any(c.isdigit() for c in model_lower):
             return 'openai'
         else:
             logger.error(f"Could not infer API provider from model name: '{self.llm_settings.model}'. Add specific check if needed.")
@@ -189,6 +196,7 @@ def load_config(config_path: str = "config.yaml") -> AppConfig:
             max_concurrent_calls=int(llm_settings_raw.get("max_concurrent_calls", LLMSettings.max_concurrent_calls)),
             rate_limit_calls=int(llm_settings_raw.get("rate_limit_calls", LLMSettings.rate_limit_calls)),
             rate_limit_period=int(llm_settings_raw.get("rate_limit_period", LLMSettings.rate_limit_period)),
+            min_seconds_between_calls=float(llm_settings_raw.get("min_seconds_between_calls", 0)),
             thinking=thinking_settings
         )
 
@@ -243,6 +251,7 @@ def load_config(config_path: str = "config.yaml") -> AppConfig:
         # --- Load API Keys ---
         api_key_anthropic = raw_config.get("anthropic_api_key")
         api_key_openai = raw_config.get("openai_api_key")
+        api_key_gemini = raw_config.get("gemini_api_key")
 
         # --- Instantiate Final AppConfig ---
         # Order fields here according to the corrected dataclass definition
@@ -258,6 +267,7 @@ def load_config(config_path: str = "config.yaml") -> AppConfig:
             output_dir=output_dir,
             api_key_anthropic=str(api_key_anthropic) if api_key_anthropic else None,
             api_key_openai=str(api_key_openai) if api_key_openai else None,
+            api_key_gemini=str(api_key_gemini) if api_key_gemini else None,
         )
 
         # --- Validate API Key Presence based on inferred provider ---
@@ -266,6 +276,8 @@ def load_config(config_path: str = "config.yaml") -> AppConfig:
             raise ValueError("Model indicates Anthropic provider, but 'anthropic_api_key' is missing or empty in config.")
         if provider == 'openai' and not app_config.api_key_openai:
             raise ValueError("Model indicates OpenAI provider, but 'openai_api_key' is missing or empty in config.")
+        if provider == 'gemini' and not app_config.api_key_gemini:
+            raise ValueError("Model indicates Gemini provider, but 'gemini_api_key' is missing or empty in config.")
 
         logger.info("Configuration loaded and validated successfully.")
         return app_config
