@@ -1,5 +1,6 @@
 # src/llm_api.py
 
+import os
 import yaml
 import asyncio
 import time
@@ -28,6 +29,13 @@ except ImportError:
     AsyncOpenAI = None
     ChatCompletion = None
 
+try:
+    from google import genai
+    from google.genai import types as genai_types
+except ImportError:
+    genai = None
+    genai_types = None
+
 # Import necessary configuration
 from config import AppConfig, LLMSettings, load_config
 
@@ -36,10 +44,11 @@ logger = logging.getLogger(__name__)
 # Module-level state for rate limiting timestamps (shared across calls)
 # Alternative: Could be part of a class if more state is needed.
 _call_timestamps: List[float] = []
+_last_call_time: float = 0.0  # For min_seconds_between_calls (output token throttling)
 
 # --- Client Initialization ---
 
-def initialize_client(config: AppConfig) -> Union[AsyncAnthropic, AsyncOpenAI]:
+def initialize_client(config: AppConfig):
     """
     Initializes the appropriate asynchronous API client based on config.
 
@@ -47,10 +56,10 @@ def initialize_client(config: AppConfig) -> Union[AsyncAnthropic, AsyncOpenAI]:
         config: The loaded AppConfig containing settings and API keys.
 
     Returns:
-        An initialized AsyncAnthropic or AsyncOpenAI client instance.
+        An initialized API client instance (AsyncAnthropic, AsyncOpenAI, or genai.Client).
 
     Raises:
-        ImportError: If the required API library (anthropic or openai) is not installed.
+        ImportError: If the required API library is not installed.
         ValueError: If the API provider cannot be inferred or the required API key is missing.
     """
     provider = config.inferred_api_provider # This already checks if provider can be inferred
@@ -67,10 +76,19 @@ def initialize_client(config: AppConfig) -> Union[AsyncAnthropic, AsyncOpenAI]:
     elif provider == 'openai':
         if not openai:
             raise ImportError("OpenAI provider selected, but 'openai' library is not installed. Run: pip install openai")
-        if not config.api_key_openai:
-            raise ValueError("OpenAI provider selected, but 'api_key_openai' is missing in config.")
+        api_key = os.environ.get("OPENAI_API_KEY") or config.api_key_openai
+        if not api_key:
+            raise ValueError("OpenAI provider selected, but 'openai_api_key' is missing in config and OPENAI_API_KEY env var is not set.")
         logger.info(f"Initializing OpenAI client for model: {config.llm_settings.model}")
-        return AsyncOpenAI(api_key=config.api_key_openai)
+        return AsyncOpenAI(api_key=api_key)
+
+    elif provider == 'gemini':
+        if not genai:
+            raise ImportError("Gemini provider selected, but 'google-genai' library is not installed. Run: pip install google-genai")
+        if not config.api_key_gemini:
+            raise ValueError("Gemini provider selected, but 'api_key_gemini' is missing in config.")
+        logger.info(f"Initializing Gemini client for model: {config.llm_settings.model}")
+        return genai.Client(api_key=config.api_key_gemini)
 
     else:
         # Should be caught by config.inferred_api_provider, but as a fallback
@@ -182,7 +200,7 @@ def _get_final_text_openai(response: Union[ChatCompletion, Any]) -> str:
 # --- Main API Call Function ---
 
 async def make_api_call(
-    client: Union[AsyncAnthropic, AsyncOpenAI],
+    client,
     semaphore: Semaphore,
     config: AppConfig,
     system_prompt: str,
@@ -190,7 +208,7 @@ async def make_api_call(
     max_tokens: int = 6000 # Default max tokens, can be overridden
 ) -> str:
     """
-    Makes an asynchronous call to the configured LLM API (Anthropic or OpenAI),
+    Makes an asynchronous call to the configured LLM API (Anthropic, OpenAI, or Gemini),
     handling rate limiting, errors, and response text extraction.
 
     Args:
@@ -206,6 +224,16 @@ async def make_api_call(
         error message string starting with "Error:" if the call failed.
     """
     await _rate_limit_wait(semaphore, config.llm_settings)
+
+    # Enforce min delay between calls (for Anthropic output-token-per-minute limits)
+    min_interval = getattr(config.llm_settings, "min_seconds_between_calls", 0) or 0
+    global _last_call_time
+    if min_interval > 0:
+        elapsed = time.time() - _last_call_time
+        if elapsed < min_interval:
+            wait = min_interval - elapsed
+            logger.debug(f"Throttling: waiting {wait:.1f}s (min_seconds_between_calls={min_interval})")
+            await asyncio.sleep(wait)
 
     provider = config.inferred_api_provider
     model = config.llm_settings.model
@@ -261,6 +289,41 @@ async def make_api_call(
                  logger.debug(f"OpenAI API call successful. Usage info not available in response.")
             return _get_final_text_openai(response)
 
+        # --- Gemini API Call ---
+        elif provider == 'gemini' and genai and isinstance(client, genai.Client):
+            # Gemini 2.5 Pro uses thinking tokens that share the max_output_tokens budget.
+            # We need a larger budget to accommodate both thinking and visible output.
+            gemini_max_tokens = max(max_tokens * 4, 16000)
+            config_obj = genai_types.GenerateContentConfig(
+                system_instruction=system_prompt,
+                temperature=temp,
+                max_output_tokens=gemini_max_tokens,
+            )
+
+            response = await client.aio.models.generate_content(
+                model=model,
+                contents=user_prompt,
+                config=config_obj,
+            )
+
+            text = response.text
+            if not text and response.candidates:
+                parts_texts = []
+                for candidate in response.candidates:
+                    if candidate.content and hasattr(candidate.content, 'parts') and candidate.content.parts:
+                        for part in candidate.content.parts:
+                            if hasattr(part, 'text') and part.text:
+                                parts_texts.append(part.text)
+                text = "".join(parts_texts) if parts_texts else ""
+
+            if not text:
+                finish_reason = response.candidates[0].finish_reason if response.candidates else 'unknown'
+                logger.warning(f"Gemini API returned empty response. Finish reason: {finish_reason}")
+                text = ""
+
+            logger.debug(f"Gemini API call successful. Response length: {len(text)}")
+            return text
+
         # --- Should not happen due to client initialization logic ---
         else:
             err_msg = f"Mismatch between inferred provider '{provider}' and client type '{type(client)}'."
@@ -294,6 +357,8 @@ async def make_api_call(
     except Exception as e:
         logger.error(f"Unexpected error during API call: {type(e).__name__} - {e}", exc_info=True)
         return f"Error: Unexpected error - {str(e)}"
+    finally:
+        _last_call_time = time.time()
 
 
 # --- Test Execution Block ---

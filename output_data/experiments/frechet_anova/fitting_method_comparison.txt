@@ -1,0 +1,10 @@
+====================================================================================================
+COMPREHENSIVE COMPARISON: Beta Fitting Methods
+====================================================================================================
+
+Grand Total: 857 estimates
+Method 1 success: 594/857 (69.3%)
+Method 2 success: 677/857 (79.0%)
+Data rescued by Method 2: 174/857 (20.3%)
+
+Recommendation: Use Method 2

@@ -1,5 +1,24 @@
-# Env file
+# Env files and API keys (NEVER commit)
 .env
+.env.*
+.env.local
+.env.*.local
+*.env
+env.yml
+.env.yml
+.env.yaml
+.env.yaml
+
+# Config files with API keys (use config_example.yaml as template)
+config.yaml
+config_claude_*.yaml
+config_gpt4o_*.yaml
+config_gemini_*.yaml
+intra_benchmark_calibration/config.yaml
+*credentials*.yaml
+*secrets*.yaml
+!config_example.yaml
+!intra_benchmark_calibration/config_example.yaml
 
 # Python virtual environments
 venv/
@@ -54,12 +73,6 @@ src/__pycache__/
 __marimo__
 
 run
-
-/config*.yaml 
-!config_example.yaml
-intra_benchmark_calibration/config*.yaml
-!intra_benchmark_calibration/config_example.yaml
-
 
 # Temporary experiment data
 input_data/reruns/
