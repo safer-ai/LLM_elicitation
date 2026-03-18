@@ -62,13 +62,12 @@ def initialize_client(config: AppConfig):
         ImportError: If the required API library is not installed.
         ValueError: If the API provider cannot be inferred or the required API key is missing.
     """
-    provider = config.inferred_api_provider # This already checks if provider can be inferred
+    provider = config.inferred_api_provider
 
     if provider == 'anthropic':
         if not anthropic:
             raise ImportError("Anthropic provider selected, but 'anthropic' library is not installed. Run: pip install anthropic")
         if not config.api_key_anthropic:
-            # This check is also done in load_config, but double-checking is safe
             raise ValueError("Anthropic provider selected, but 'api_key_anthropic' is missing in config.")
         logger.info(f"Initializing Anthropic client for model: {config.llm_settings.model}")
         return AsyncAnthropic(api_key=config.api_key_anthropic)
@@ -90,8 +89,15 @@ def initialize_client(config: AppConfig):
         logger.info(f"Initializing Gemini client for model: {config.llm_settings.model}")
         return genai.Client(api_key=config.api_key_gemini)
 
+    elif provider == 'gemini':
+        if not genai:
+            raise ImportError("Gemini provider selected, but 'google-genai' library is not installed. Run: pip install google-genai")
+        if not config.api_key_gemini:
+            raise ValueError("Gemini provider selected, but 'api_key_gemini' is missing in config.")
+        logger.info(f"Initializing Gemini client for model: {config.llm_settings.model}")
+        return genai.Client(api_key=config.api_key_gemini)
+
     else:
-        # Should be caught by config.inferred_api_provider, but as a fallback
         raise ValueError(f"Unsupported or undetectable API provider for model: {config.llm_settings.model}")
 
 
@@ -205,14 +211,14 @@ async def make_api_call(
     config: AppConfig,
     system_prompt: str,
     user_prompt: str,
-    max_tokens: int = 6000 # Default max tokens, can be overridden
+    max_tokens: int = 6000
 ) -> str:
     """
     Makes an asynchronous call to the configured LLM API (Anthropic, OpenAI, or Gemini),
     handling rate limiting, errors, and response text extraction.
 
     Args:
-        client: The initialized async API client (Anthropic or OpenAI).
+        client: The initialized API client.
         semaphore: The asyncio Semaphore for concurrency control.
         config: The AppConfig object with settings.
         system_prompt: The system prompt or context for the LLM.
@@ -240,7 +246,6 @@ async def make_api_call(
     temp = config.llm_settings.temperature
 
     logger.debug(f"Making API call: Provider={provider}, Model={model}, Temp={temp}, MaxTokens={max_tokens}")
-    # Avoid logging full prompts unless necessary for debugging sensitive info
     logger.debug(f"System Prompt (start): {system_prompt[:100]}...")
     logger.debug(f"User Prompt (start): {user_prompt[:100]}...")
 
@@ -264,8 +269,6 @@ async def make_api_call(
                 
             response = await client.messages.create(**params)
 
-            # Note: Anthropic usage info might be slightly different or evolve
-            # logger.debug(f"Anthropic API call successful. Usage: Input={response.usage.input_tokens}, Output={response.usage.output_tokens}")
             logger.debug(f"Anthropic API call successful. Raw response type: {type(response)}")
             return _get_final_text_anthropic(response)
 
@@ -281,7 +284,6 @@ async def make_api_call(
                 messages=messages_payload,
                 max_tokens=max_tokens,
                 temperature=temp,
-                # Other potential params like top_p could be added from config if needed
             )
             if response.usage:
                 logger.debug(f"OpenAI API call successful. Usage: Prompt={response.usage.prompt_tokens}, Completion={response.usage.completion_tokens}, Total={response.usage.total_tokens}")
@@ -324,34 +326,27 @@ async def make_api_call(
             logger.debug(f"Gemini API call successful. Response length: {len(text)}")
             return text
 
-        # --- Should not happen due to client initialization logic ---
         else:
             err_msg = f"Mismatch between inferred provider '{provider}' and client type '{type(client)}'."
             logger.error(err_msg)
             return f"Error: Client/Provider mismatch"
 
     # --- API Error Handling ---
-    # Catch specific errors for both libraries where possible
     except (anthropic.APIConnectionError if anthropic else Exception, openai.APIConnectionError if openai else Exception) as e:
         logger.error(f"API Connection Error: {e}", exc_info=True)
         return "Error: API Connection Error"
     except (anthropic.RateLimitError if anthropic else Exception, openai.RateLimitError if openai else Exception) as e:
         logger.warning(f"API Rate Limit Error encountered: {e}. Consider adjusting rate limit settings in config.")
-        # Optional: add a small delay here before returning, maybe caller handles retry logic
-        # await asyncio.sleep(5)
         return "Error: API Rate Limit Error"
     except (anthropic.AuthenticationError if anthropic else Exception, openai.AuthenticationError if openai else Exception) as e:
         logger.error(f"API Authentication Error: {e}. Check your API key.")
         return "Error: API Authentication Error"
     except (anthropic.BadRequestError if anthropic else Exception, openai.BadRequestError if openai else Exception) as e:
-        # These often indicate issues with the prompt, model parameters, or model access
         logger.error(f"API Bad Request Error: {e}", exc_info=True)
         return f"Error: API Bad Request - {e}"
-    except (anthropic.APIStatusError) as e: # More specific Anthropic error
+    except (anthropic.APIStatusError) as e:
          logger.error(f"Anthropic API Status Error {e.status_code}: {e.response}", exc_info=True)
          return f"Error: API Status Error {e.status_code}"
-    # Catch remaining OpenAI specific errors if needed, though many inherit from BadRequestError
-    # except openai.APIStatusError as e: ... # If needed
 
     # --- General Error Handling ---
     except Exception as e:

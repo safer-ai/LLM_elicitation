@@ -131,8 +131,8 @@ async def _run_expert_round(
 
     prompt_data["task_relevant_metrics_details"] = "Relevant Task Metrics: " + ", ".join(relevant_metrics_parts) + "." if relevant_metrics_parts else "Relevant Task Metrics: None specified or available for this task."
 
-    max_tokens_analysis = 8000
-    max_tokens_estimation = 8000
+    max_tokens_analysis = 4000
+    max_tokens_estimation = 4000
 
     try:
         if round_num == 1:
@@ -318,7 +318,7 @@ async def _run_expert_round_for_scenario_metric(
     
     prompt_data["task_relevant_metrics_details"] = "Relevant Task Metrics (for this capability benchmark task): " + ", ".join(relevant_metrics_parts) + "." if relevant_metrics_parts else "Relevant Task Metrics: None specified or available for this capability benchmark task."
 
-    max_tokens_estimation = 8000
+    max_tokens_estimation = 4000
 
     try:
         if round_num == 1:

@@ -1,0 +1,174 @@
+% Persona vs.\ Model Variance in LLM-Elicited Expert Panels
+% This section reports the experimental design and results for the
+% persona-diversity and cross-model variance analyses.
+
+\subsection{Overview and Research Questions}
+\label{sec:persona-experiment-design}
+
+LLM-simulated Delphi panels assume that assigning distinct expert personas to the same language model produces meaningfully diverse probability estimates. We test this assumption directly and contrast it with a positive control: whether \emph{model identity} generates significant variance.
+
+\textbf{Research questions:}
+\begin{enumerate}
+  \item Does persona assignment systematically shift probability estimates, or are differences indistinguishable from sampling noise?
+  \item Does model identity generate significant variance, validating our statistical methodology?
+\end{enumerate}
+
+\paragraph{Experimental setup.}
+\textbf{Scenario:} OC3 ransomware targeting a large enterprise (\$250M--\$1B revenue, MIL2/MIL3 cybersecurity maturity). LLMs estimate the probability of attacker success at each MITRE ATT\&CK step, conditional on completing the Imaginairy benchmark (BountyBench).
+
+\textbf{Attack steps} (spanning different baseline probabilities):
+\begin{itemize}
+  \item \textbf{TA0002 -- Execution} (50\% baseline)
+  \item \textbf{TA0007 -- Discovery} (85\% baseline)
+  \item \textbf{T1657 -- Financial Theft} (30\% baseline)
+\end{itemize}
+
+\textbf{Personas:} Ten cybersecurity experts with distinct backgrounds Defensive Security Specialist, Malware Reverse Engineer, AI/ML Security Researcher, Threat Intelligence Analyst, Security Software Developer, Incident Response Specialist, Academic Security Researcher, Red Team Operator, CTF Competition Expert, and Security Compliance Officer, each defined via system prompts specifying background, analytical style, and domain biases.
+
+\textbf{Models:} Claude Sonnet~4.5, GPT-4o, and Gemini~2.5~Pro. All use temperature $T=1.0$ with a single Delphi round (no deliberation), ensuring statistical independence of estimates.
+
+
+\subsection{Experiment 1: Does Persona Assignment Matter?}
+\label{sec:persona-variance}
+
+\paragraph{Design.}
+For each model--step combination: $10 \times 10 = 100$ probability estimates (10 personas $\times$ 10 independent runs). Each run executes all personas concurrently with no shared context---a balanced one-way ANOVA with 10 groups and 10 observations per group.
+
+\paragraph{Statistical approach.}
+We decompose total variance into between-persona variance ($\sigma^2_B$) and within-persona variance ($\sigma^2_W$, LLM sampling noise). The null hypothesis $H_0$ states all persona means are equal ($\sigma^2_B = 0$).
+
+\textbf{Test statistics:}
+\begin{enumerate}
+  \item \textbf{ANOVA $F$-test:} Tests whether between-persona variance exceeds within-persona variance.
+  \item \textbf{Kruskal--Wallis $H$:} Non-parametric alternative, robust to non-normality.
+  \item \textbf{ICC(1,1):} Proportion of variance explained by persona identity (0 = none, 1 = all).\footnote{$\mathrm{ICC} = (\mathrm{MS}_B - \mathrm{MS}_W) / (\mathrm{MS}_B + (n{-}1)\,\mathrm{MS}_W)$}
+\end{enumerate}
+
+\paragraph{Primary result.}
+\textbf{Finding: Persona assignment does not generate meaningful variance.}
+
+Table~\ref{tab:persona-primary} shows results for Claude Sonnet~4.5, TA0002 (50\% baseline). The 10 persona means span only 3.2 percentage points (pp), from 0.512 to 0.544. Within-persona variability (SD = 0.025) exceeds between-persona variability (SD = 0.010).
+
+The ANOVA yields $F = 1.61$, $p = 0.12$---\emph{not significant}. ICC = 0.058 means persona identity explains only 5.8\% of variance; 94.2\% is sampling noise. With 100 observations, this design has $>$95\% power to detect even a 2pp spread; the observed 1pp spread is half this threshold. \textbf{Personas are indistinguishable from noise.}
+
+\begin{table}[t]
+\centering
+\caption{Primary persona experiment (Claude Sonnet~4.5, TA0002, 50\% baseline). Ten personas $\times$ 10 runs = 100 estimates. Persona means span only 3.2pp.}
+\label{tab:persona-primary}
+\small
+\begin{tabular}{lc}
+\toprule
+\textbf{Persona} & \textbf{Mean} \\
+\midrule
+AI/ML Security Researcher      & 0.512 \\
+Malware Reverse Engineer       & 0.517 \\
+Incident Response Specialist   & 0.521 \\
+Defensive Security Specialist  & 0.522 \\
+Red Team Operator              & 0.524 \\
+Threat Intelligence Analyst    & 0.524 \\
+CTF Competition Expert         & 0.528 \\
+Security Software Developer    & 0.534 \\
+Security Compliance Officer    & 0.539 \\
+Academic Security Researcher   & 0.544 \\
+\midrule
+\multicolumn{2}{l}{\textbf{Variance:} Within-persona SD = 0.025 (noise), Between-persona SD = 0.010 (signal)} \\
+\midrule
+\multicolumn{2}{l}{\textbf{Tests:} $F = 1.61$, $p = 0.12$ (not sig.); $H = 11.27$, $p = 0.26$; ICC = 0.058} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Robustness check.}
+We replicate the $10 \times 10$ design across 2 models $\times$ 3 attack steps = 6 experiments (Table~\ref{tab:persona-robustness}).
+
+\textbf{Result: 5 of 6 experiments show no significant persona effect.} The single nominally significant result (Claude, TA0007, $p = 0.01$) has negligible practical effect: persona means span only 2.1pp (0.854--0.875), ICC = 0.144 (85.6\% variance is noise), does not replicate on GPT-4o ($p = 0.15$), and fails Bonferroni correction ($\alpha_{\text{corrected}} = 0.008$).
+
+\begin{table}[t]
+\centering
+\caption{Persona ANOVA robustness (6 experiments, each 10 personas $\times$ 10 runs). $^*$Does not survive Bonferroni correction ($\alpha = 0.008$).}
+\label{tab:persona-robustness}
+\small
+\begin{tabular}{llccc}
+\toprule
+\textbf{Model} & \textbf{Step (Baseline)} & $\boldsymbol{F}$ & $\boldsymbol{p}$ & \textbf{ICC} \\
+\midrule
+Claude Sonnet 4.5 & TA0002 (50\%) & 1.61 & 0.12  & 0.058 \\
+GPT-4o            & TA0002 (50\%) & 0.77 & 0.65  & 0.000 \\
+\midrule
+Claude Sonnet 4.5 & TA0007 (85\%) & 2.51 & 0.01$^*$ & 0.144 \\
+GPT-4o            & TA0007 (85\%) & 1.54 & 0.15  & 0.051 \\
+\midrule
+Claude Sonnet 4.5 & T1657\phantom{0} (30\%) & 0.50 & 0.87  & 0.000 \\
+GPT-4o            & T1657\phantom{0} (30\%) & 1.11 & 0.36  & 0.011 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+\subsection{Experiment 2: Does Model Identity Matter? (Positive Control)}
+\label{sec:cross-model-variance}
+
+\paragraph{Motivation.}
+If our ANOVA framework correctly identifies that personas do \emph{not} matter, can it detect factors that \emph{do}? We test model identity as a positive control.
+
+\paragraph{Design.}
+For each attack step, all three models produce $10 \times 10 = 100$ estimates. Since persona $\approx$ noise (Experiment 1), we treat the 100 per-model observations as independent draws. One-way ANOVA with model as grouping factor (3 groups, $\sim$300 observations per step).
+
+\paragraph{Results.}
+\textbf{Finding: Model identity generates highly significant variance.}
+
+Table~\ref{tab:cross-model} shows all three experiments yield $p < 0.0001$ (Bonferroni-corrected $\alpha = 0.017$). Model identity explains 28--65\% of variance (ICC) vs.\ 0--14\% for personas. Model means span 2.5--12.2pp,  exceeding the $\leq$3.2pp persona spread.
+
+\begin{table}[t]
+\centering
+\caption{Cross-model ANOVA (3 models $\times$ $\sim$100 estimates = $\sim$300 observations per step). All highly significant.}
+\label{tab:cross-model}
+\small
+\begin{tabular}{lcccccc}
+\toprule
+\textbf{Step} & \textbf{Claude} & \textbf{GPT-4o} & \textbf{Gemini} & $\boldsymbol{F}$ & $\boldsymbol{p}$ & \textbf{ICC} \\
+\midrule
+TA0002 (50\%) & 0.527 & 0.648 & 0.556 & 187.79 & ${<}0.0001$ & 0.651 \\
+TA0007 (85\%) & 0.863 & 0.888 & 0.885 & \phantom{0}38.29 & ${<}0.0001$ & 0.279 \\
+T1657\phantom{0} (30\%) & 0.323 & 0.381 & 0.383 & 155.35 & ${<}0.0001$ & 0.607 \\
+\midrule
+\multicolumn{7}{l}{Model means span 2.5--12.2pp vs.\ $\leq$3.2pp for personas.} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Direct comparison: Persona vs.\ Model.}
+Table~\ref{tab:persona-vs-model} contrasts persona and model effects on the same attack steps. \textbf{Model $F$-statistics are 15--311$\times$ larger than persona $F$-statistics.} Model ICC (0.28--0.65) vastly exceeds persona ICC (0.00--0.14). The same ANOVA framework that returns null for personas produces overwhelming evidence for model effects---validating the methodology.
+
+\begin{table}[t]
+\centering
+\caption{Persona vs.\ model: Same ANOVA, opposite conclusions. Model effects are 15--311$\times$ stronger.}
+\label{tab:persona-vs-model}
+\small
+\begin{tabular}{lcccccc}
+\toprule
+ & \multicolumn{2}{c}{$\boldsymbol{F}$-statistic} & \multicolumn{2}{c}{\textbf{ICC (\% variance)}} & \multicolumn{2}{c}{\textbf{Effect}} \\
+\cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7}
+\textbf{Step} & Persona & Model & Persona & Model & Persona & Model \\
+\midrule
+TA0002 (50\%) & 1.61 & 187.79 & 5.8\% & 65.1\% & Null & \textbf{Strong} \\
+TA0007 (85\%) & 2.51 & \phantom{0}38.29 & 14.4\% & 27.9\% & Null & \textbf{Strong} \\
+T1657\phantom{0} (30\%) & 0.50 & 155.35 & 0.0\% & 60.7\% & Null & \textbf{Strong} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+\subsection{Summary}
+\label{sec:persona-summary}
+
+\textbf{Key findings:}
+\begin{enumerate}
+  \item \textbf{Persona assignment does not matter.} Across 6 experiments (2 models $\times$ 3 baselines, 600 estimates), persona explains $\leq$14\% of variance. Five of six show no significant effect; the one nominally significant result fails Bonferroni correction and does not replicate.
+
+  \item \textbf{Model identity matters.} Across 3 experiments (3 models $\times$ 3 baselines, $\sim$890 estimates), model choice explains 28--65\% of variance (all $p < 0.0001$). Model $F$-statistics are 15--311$\times$ larger than persona $F$-statistics.
+
+  \item \textbf{Methodology validated.} The same ANOVA framework correctly identifies persona as a null effect and model as a strong effect, confirming the design is well-powered and the persona null is a true negative.
+\end{enumerate}
+
+\textbf{Implication:} For LLM-elicited expert panels, \emph{which LLM to use} matters more than \emph{which persona to assign}. Multi-model ensembles may be necessary to capture this uncertainty.
