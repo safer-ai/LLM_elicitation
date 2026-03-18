@@ -1,0 +1,1823 @@
+{
+  "runs": [
+    {
+      "run_id": "20260317_012947",
+      "timestamp_start": "2026-03-17T01:29:47.264515",
+      "timestamp_end": "2026-03-17T01:30:46.844229",
+      "output_path": "prompt_sensitivity/output/runs/20260317_012947",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 59.58
+      }
+    },
+    {
+      "run_id": "20260317_012843",
+      "timestamp_start": "2026-03-17T01:28:43.032464",
+      "timestamp_end": "2026-03-17T01:29:45.702298",
+      "output_path": "prompt_sensitivity/output/runs/20260317_012843",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 62.67
+      }
+    },
+    {
+      "run_id": "20260317_012737",
+      "timestamp_start": "2026-03-17T01:27:37.168200",
+      "timestamp_end": "2026-03-17T01:28:41.490940",
+      "output_path": "prompt_sensitivity/output/runs/20260317_012737",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 64.32
+      }
+    },
+    {
+      "run_id": "20260317_012629",
+      "timestamp_start": "2026-03-17T01:26:29.438636",
+      "timestamp_end": "2026-03-17T01:27:35.459995",
+      "output_path": "prompt_sensitivity/output/runs/20260317_012629",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 66.02
+      }
+    },
+    {
+      "run_id": "20260317_012516",
+      "timestamp_start": "2026-03-17T01:25:16.750406",
+      "timestamp_end": "2026-03-17T01:26:27.861413",
+      "output_path": "prompt_sensitivity/output/runs/20260317_012516",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 71.11
+      }
+    },
+    {
+      "run_id": "20260317_012414",
+      "timestamp_start": "2026-03-17T01:24:14.099011",
+      "timestamp_end": "2026-03-17T01:25:14.730843",
+      "output_path": "prompt_sensitivity/output/runs/20260317_012414",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 60.63
+      }
+    },
+    {
+      "run_id": "20260317_012246",
+      "timestamp_start": "2026-03-17T01:22:46.869034",
+      "timestamp_end": "2026-03-17T01:24:12.355436",
+      "output_path": "prompt_sensitivity/output/runs/20260317_012246",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 85.49
+      }
+    },
+    {
+      "run_id": "20260317_012136",
+      "timestamp_start": "2026-03-17T01:21:36.731294",
+      "timestamp_end": "2026-03-17T01:22:45.025761",
+      "output_path": "prompt_sensitivity/output/runs/20260317_012136",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 68.3
+      }
+    },
+    {
+      "run_id": "20260317_012037",
+      "timestamp_start": "2026-03-17T01:20:37.221721",
+      "timestamp_end": "2026-03-17T01:21:34.808672",
+      "output_path": "prompt_sensitivity/output/runs/20260317_012037",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 57.59
+      }
+    },
+    {
+      "run_id": "20260317_011932",
+      "timestamp_start": "2026-03-17T01:19:32.371039",
+      "timestamp_end": "2026-03-17T01:20:35.331179",
+      "output_path": "prompt_sensitivity/output/runs/20260317_011932",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 62.96
+      }
+    },
+    {
+      "run_id": "20260317_011801",
+      "timestamp_start": "2026-03-17T01:18:01.655011",
+      "timestamp_end": "2026-03-17T01:19:11.348948",
+      "output_path": "prompt_sensitivity/output/runs/20260317_011801",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 69.7
+      }
+    },
+    {
+      "run_id": "20260317_010459",
+      "timestamp_start": "2026-03-17T01:04:59.725760",
+      "timestamp_end": "2026-03-17T01:05:34.748964",
+      "output_path": "prompt_sensitivity/output/runs/20260317_010459",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 35.03
+      }
+    },
+    {
+      "run_id": "20260317_010404",
+      "timestamp_start": "2026-03-17T01:04:04.375162",
+      "timestamp_end": "2026-03-17T01:04:42.092009",
+      "output_path": "prompt_sensitivity/output/runs/20260317_010404",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 37.72
+      }
+    },
+    {
+      "run_id": "20260317_010315",
+      "timestamp_start": "2026-03-17T01:03:15.149599",
+      "timestamp_end": "2026-03-17T01:03:51.029483",
+      "output_path": "prompt_sensitivity/output/runs/20260317_010315",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 35.88
+      }
+    },
+    {
+      "run_id": "20260317_010233",
+      "timestamp_start": "2026-03-17T01:02:33.785584",
+      "timestamp_end": "2026-03-17T01:03:11.281254",
+      "output_path": "prompt_sensitivity/output/runs/20260317_010233",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 37.5
+      }
+    },
+    {
+      "run_id": "20260317_010153",
+      "timestamp_start": "2026-03-17T01:01:53.201831",
+      "timestamp_end": "2026-03-17T01:02:29.901662",
+      "output_path": "prompt_sensitivity/output/runs/20260317_010153",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 36.7
+      }
+    },
+    {
+      "run_id": "20260317_010040",
+      "timestamp_start": "2026-03-17T01:00:40.049075",
+      "timestamp_end": "2026-03-17T01:00:58.567379",
+      "output_path": "prompt_sensitivity/output/runs/20260317_010040",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 18.52
+      }
+    },
+    {
+      "run_id": "20260317_005940",
+      "timestamp_start": "2026-03-17T00:59:40.574690",
+      "timestamp_end": "2026-03-17T01:00:19.168157",
+      "output_path": "prompt_sensitivity/output/runs/20260317_005940",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 38.6
+      }
+    },
+    {
+      "run_id": "20260317_005811",
+      "timestamp_start": "2026-03-17T00:58:11.596012",
+      "timestamp_end": "2026-03-17T00:58:47.104647",
+      "output_path": "prompt_sensitivity/output/runs/20260317_005811",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 35.51
+      }
+    },
+    {
+      "run_id": "20260317_005736",
+      "timestamp_start": "2026-03-17T00:57:36.274308",
+      "timestamp_end": "2026-03-17T00:58:34.586797",
+      "output_path": "prompt_sensitivity/output/runs/20260317_005736",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 58.31
+      }
+    },
+    {
+      "run_id": "20260317_005727",
+      "timestamp_start": "2026-03-17T00:57:27.449859",
+      "timestamp_end": "2026-03-17T00:58:04.721750",
+      "output_path": "prompt_sensitivity/output/runs/20260317_005727",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 37.27
+      }
+    },
+    {
+      "run_id": "20260317_005641",
+      "timestamp_start": "2026-03-17T00:56:41.270688",
+      "timestamp_end": "2026-03-17T00:57:20.845711",
+      "output_path": "prompt_sensitivity/output/runs/20260317_005641",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 39.58
+      }
+    },
+    {
+      "run_id": "20260317_005638",
+      "timestamp_start": "2026-03-17T00:56:38.618437",
+      "timestamp_end": "2026-03-17T00:57:34.658991",
+      "output_path": "prompt_sensitivity/output/runs/20260317_005638",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 56.04
+      }
+    },
+    {
+      "run_id": "20260317_005539",
+      "timestamp_start": "2026-03-17T00:55:39.273257",
+      "timestamp_end": "2026-03-17T00:56:36.914619",
+      "output_path": "prompt_sensitivity/output/runs/20260317_005539",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 57.64
+      }
+    },
+    {
+      "run_id": "20260317_005436",
+      "timestamp_start": "2026-03-17T00:54:36.594864",
+      "timestamp_end": "2026-03-17T00:55:37.455407",
+      "output_path": "prompt_sensitivity/output/runs/20260317_005436",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 60.86
+      }
+    },
+    {
+      "run_id": "20260317_005327",
+      "timestamp_start": "2026-03-17T00:53:27.371425",
+      "timestamp_end": "2026-03-17T00:54:34.846786",
+      "output_path": "prompt_sensitivity/output/runs/20260317_005327",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 67.48
+      }
+    },
+    {
+      "run_id": "20260317_005217",
+      "timestamp_start": "2026-03-17T00:52:17.228112",
+      "timestamp_end": "2026-03-17T00:53:25.261687",
+      "output_path": "prompt_sensitivity/output/runs/20260317_005217",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 68.04
+      }
+    },
+    {
+      "run_id": "20260317_005114",
+      "timestamp_start": "2026-03-17T00:51:14.904140",
+      "timestamp_end": "2026-03-17T00:52:15.282455",
+      "output_path": "prompt_sensitivity/output/runs/20260317_005114",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 60.38
+      }
+    },
+    {
+      "run_id": "20260317_005010",
+      "timestamp_start": "2026-03-17T00:50:10.183040",
+      "timestamp_end": "2026-03-17T00:51:13.326189",
+      "output_path": "prompt_sensitivity/output/runs/20260317_005010",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 63.14
+      }
+    },
+    {
+      "run_id": "20260317_004908",
+      "timestamp_start": "2026-03-17T00:49:08.538004",
+      "timestamp_end": "2026-03-17T00:50:08.579494",
+      "output_path": "prompt_sensitivity/output/runs/20260317_004908",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 60.04
+      }
+    },
+    {
+      "run_id": "20260317_004828",
+      "timestamp_start": "2026-03-17T00:48:28.311683",
+      "timestamp_end": "2026-03-17T00:49:04.767037",
+      "output_path": "prompt_sensitivity/output/runs/20260317_004828",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 36.46
+      }
+    },
+    {
+      "run_id": "20260317_004806",
+      "timestamp_start": "2026-03-17T00:48:06.490455",
+      "timestamp_end": "2026-03-17T00:49:06.982121",
+      "output_path": "prompt_sensitivity/output/runs/20260317_004806",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 60.49
+      }
+    },
+    {
+      "run_id": "20260317_004631",
+      "timestamp_start": "2026-03-17T00:46:31.110384",
+      "timestamp_end": "2026-03-17T00:48:04.896157",
+      "output_path": "prompt_sensitivity/output/runs/20260317_004631",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 93.79
+      }
+    },
+    {
+      "run_id": "20260317_004453",
+      "timestamp_start": "2026-03-17T00:44:53.638879",
+      "timestamp_end": "2026-03-17T00:46:29.409527",
+      "output_path": "prompt_sensitivity/output/runs/20260317_004453",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 95.77
+      }
+    },
+    {
+      "run_id": "20260317_004255",
+      "timestamp_start": "2026-03-17T00:42:55.461404",
+      "timestamp_end": "2026-03-17T00:44:51.697206",
+      "output_path": "prompt_sensitivity/output/runs/20260317_004255",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 116.24
+      }
+    },
+    {
+      "run_id": "20260317_004119",
+      "timestamp_start": "2026-03-17T00:41:19.814665",
+      "timestamp_end": "2026-03-17T00:42:53.929380",
+      "output_path": "prompt_sensitivity/output/runs/20260317_004119",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 94.12
+      }
+    },
+    {
+      "run_id": "20260317_003952",
+      "timestamp_start": "2026-03-17T00:39:52.711603",
+      "timestamp_end": "2026-03-17T00:41:18.262165",
+      "output_path": "prompt_sensitivity/output/runs/20260317_003952",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 85.55
+      }
+    },
+    {
+      "run_id": "20260317_003817",
+      "timestamp_start": "2026-03-17T00:38:17.423802",
+      "timestamp_end": "2026-03-17T00:39:50.769724",
+      "output_path": "prompt_sensitivity/output/runs/20260317_003817",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 93.35
+      }
+    },
+    {
+      "run_id": "20260317_003643",
+      "timestamp_start": "2026-03-17T00:36:43.421417",
+      "timestamp_end": "2026-03-17T00:38:15.815578",
+      "output_path": "prompt_sensitivity/output/runs/20260317_003643",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 92.4
+      }
+    },
+    {
+      "run_id": "20260317_003454",
+      "timestamp_start": "2026-03-17T00:34:54.630585",
+      "timestamp_end": "2026-03-17T00:36:41.693965",
+      "output_path": "prompt_sensitivity/output/runs/20260317_003454",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 107.07
+      }
+    },
+    {
+      "run_id": "20260317_003347",
+      "timestamp_start": "2026-03-17T00:33:47.432487",
+      "timestamp_end": "2026-03-17T00:34:52.937856",
+      "output_path": "prompt_sensitivity/output/runs/20260317_003347",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 65.51
+      }
+    },
+    {
+      "run_id": "20260317_003218",
+      "timestamp_start": "2026-03-17T00:32:18.266935",
+      "timestamp_end": "2026-03-17T00:33:45.722796",
+      "output_path": "prompt_sensitivity/output/runs/20260317_003218",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 87.46
+      }
+    },
+    {
+      "run_id": "20260316_180344",
+      "timestamp_start": "2026-03-16T18:03:44.509399",
+      "timestamp_end": "2026-03-16T18:05:32.070219",
+      "output_path": "prompt_sensitivity/output/runs/20260316_180344",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_no_baseline_no_ci.yaml",
+        "duration_seconds": 107.56
+      }
+    },
+    {
+      "run_id": "20260316_180157",
+      "timestamp_start": "2026-03-16T18:01:57.025740",
+      "timestamp_end": "2026-03-16T18:03:43.121246",
+      "output_path": "prompt_sensitivity/output/runs/20260316_180157",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_no_baseline_no_ci.yaml",
+        "duration_seconds": 106.1
+      }
+    },
+    {
+      "run_id": "20260316_180006",
+      "timestamp_start": "2026-03-16T18:00:06.524106",
+      "timestamp_end": "2026-03-16T18:01:55.608358",
+      "output_path": "prompt_sensitivity/output/runs/20260316_180006",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_no_baseline_no_ci.yaml",
+        "duration_seconds": 109.09
+      }
+    },
+    {
+      "run_id": "20260316_175825",
+      "timestamp_start": "2026-03-16T17:58:25.297425",
+      "timestamp_end": "2026-03-16T18:00:04.972973",
+      "output_path": "prompt_sensitivity/output/runs/20260316_175825",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_no_baseline_no_ci.yaml",
+        "duration_seconds": 99.68
+      }
+    },
+    {
+      "run_id": "20260316_175633",
+      "timestamp_start": "2026-03-16T17:56:33.620733",
+      "timestamp_end": "2026-03-16T17:58:23.871682",
+      "output_path": "prompt_sensitivity/output/runs/20260316_175633",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_no_baseline_no_ci.yaml",
+        "duration_seconds": 110.25
+      }
+    },
+    {
+      "run_id": "20260316_175428",
+      "timestamp_start": "2026-03-16T17:54:28.992067",
+      "timestamp_end": "2026-03-16T17:56:32.171508",
+      "output_path": "prompt_sensitivity/output/runs/20260316_175428",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_no_baseline_no_ci.yaml",
+        "duration_seconds": 123.18
+      }
+    },
+    {
+      "run_id": "20260316_175246",
+      "timestamp_start": "2026-03-16T17:52:46.414002",
+      "timestamp_end": "2026-03-16T17:54:27.492133",
+      "output_path": "prompt_sensitivity/output/runs/20260316_175246",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_no_baseline_no_ci.yaml",
+        "duration_seconds": 101.08
+      }
+    },
+    {
+      "run_id": "20260316_175056",
+      "timestamp_start": "2026-03-16T17:50:56.797257",
+      "timestamp_end": "2026-03-16T17:52:45.025878",
+      "output_path": "prompt_sensitivity/output/runs/20260316_175056",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_no_baseline_no_ci.yaml",
+        "duration_seconds": 108.23
+      }
+    },
+    {
+      "run_id": "20260316_174915",
+      "timestamp_start": "2026-03-16T17:49:15.041402",
+      "timestamp_end": "2026-03-16T17:50:55.301279",
+      "output_path": "prompt_sensitivity/output/runs/20260316_174915",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_no_baseline_no_ci.yaml",
+        "duration_seconds": 100.26
+      }
+    },
+    {
+      "run_id": "20260316_174743",
+      "timestamp_start": "2026-03-16T17:47:43.779191",
+      "timestamp_end": "2026-03-16T17:49:13.652819",
+      "output_path": "prompt_sensitivity/output/runs/20260316_174743",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_no_baseline_no_ci.yaml",
+        "duration_seconds": 89.88
+      }
+    },
+    {
+      "run_id": "20260316_174553",
+      "timestamp_start": "2026-03-16T17:45:53.882001",
+      "timestamp_end": "2026-03-16T17:47:42.395287",
+      "output_path": "prompt_sensitivity/output/runs/20260316_174553",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_no_ci.yaml",
+        "duration_seconds": 108.52
+      }
+    },
+    {
+      "run_id": "20260316_174413",
+      "timestamp_start": "2026-03-16T17:44:13.229096",
+      "timestamp_end": "2026-03-16T17:45:52.329137",
+      "output_path": "prompt_sensitivity/output/runs/20260316_174413",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_no_ci.yaml",
+        "duration_seconds": 99.1
+      }
+    },
+    {
+      "run_id": "20260316_174233",
+      "timestamp_start": "2026-03-16T17:42:33.381813",
+      "timestamp_end": "2026-03-16T17:44:11.814366",
+      "output_path": "prompt_sensitivity/output/runs/20260316_174233",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_no_ci.yaml",
+        "duration_seconds": 98.43
+      }
+    },
+    {
+      "run_id": "20260316_174055",
+      "timestamp_start": "2026-03-16T17:40:55.002513",
+      "timestamp_end": "2026-03-16T17:42:31.983921",
+      "output_path": "prompt_sensitivity/output/runs/20260316_174055",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_no_ci.yaml",
+        "duration_seconds": 96.98
+      }
+    },
+    {
+      "run_id": "20260316_173915",
+      "timestamp_start": "2026-03-16T17:39:15.308199",
+      "timestamp_end": "2026-03-16T17:40:53.475457",
+      "output_path": "prompt_sensitivity/output/runs/20260316_173915",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_no_ci.yaml",
+        "duration_seconds": 98.17
+      }
+    },
+    {
+      "run_id": "20260316_173721",
+      "timestamp_start": "2026-03-16T17:37:21.565406",
+      "timestamp_end": "2026-03-16T17:39:13.848864",
+      "output_path": "prompt_sensitivity/output/runs/20260316_173721",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_no_ci.yaml",
+        "duration_seconds": 112.29
+      }
+    },
+    {
+      "run_id": "20260316_173537",
+      "timestamp_start": "2026-03-16T17:35:37.572050",
+      "timestamp_end": "2026-03-16T17:37:20.091478",
+      "output_path": "prompt_sensitivity/output/runs/20260316_173537",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_no_ci.yaml",
+        "duration_seconds": 102.52
+      }
+    },
+    {
+      "run_id": "20260316_173356",
+      "timestamp_start": "2026-03-16T17:33:56.270752",
+      "timestamp_end": "2026-03-16T17:35:36.066223",
+      "output_path": "prompt_sensitivity/output/runs/20260316_173356",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_no_ci.yaml",
+        "duration_seconds": 99.8
+      }
+    },
+    {
+      "run_id": "20260316_173215",
+      "timestamp_start": "2026-03-16T17:32:15.570577",
+      "timestamp_end": "2026-03-16T17:33:54.879190",
+      "output_path": "prompt_sensitivity/output/runs/20260316_173215",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_no_ci.yaml",
+        "duration_seconds": 99.31
+      }
+    },
+    {
+      "run_id": "20260316_173028",
+      "timestamp_start": "2026-03-16T17:30:28.128614",
+      "timestamp_end": "2026-03-16T17:32:14.208507",
+      "output_path": "prompt_sensitivity/output/runs/20260316_173028",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_no_ci.yaml",
+        "duration_seconds": 106.08
+      }
+    },
+    {
+      "run_id": "20260316_172854",
+      "timestamp_start": "2026-03-16T17:28:54.307425",
+      "timestamp_end": "2026-03-16T17:30:26.525586",
+      "output_path": "prompt_sensitivity/output/runs/20260316_172854",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_no_baseline.yaml",
+        "duration_seconds": 92.22
+      }
+    },
+    {
+      "run_id": "20260316_172700",
+      "timestamp_start": "2026-03-16T17:27:00.813380",
+      "timestamp_end": "2026-03-16T17:28:53.038938",
+      "output_path": "prompt_sensitivity/output/runs/20260316_172700",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_no_baseline.yaml",
+        "duration_seconds": 112.23
+      }
+    },
+    {
+      "run_id": "20260316_172517",
+      "timestamp_start": "2026-03-16T17:25:17.803346",
+      "timestamp_end": "2026-03-16T17:26:59.441410",
+      "output_path": "prompt_sensitivity/output/runs/20260316_172517",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_no_baseline.yaml",
+        "duration_seconds": 101.64
+      }
+    },
+    {
+      "run_id": "20260316_172333",
+      "timestamp_start": "2026-03-16T17:23:33.580819",
+      "timestamp_end": "2026-03-16T17:25:16.303777",
+      "output_path": "prompt_sensitivity/output/runs/20260316_172333",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_no_baseline.yaml",
+        "duration_seconds": 102.73
+      }
+    },
+    {
+      "run_id": "20260316_172138",
+      "timestamp_start": "2026-03-16T17:21:38.780328",
+      "timestamp_end": "2026-03-16T17:23:32.181936",
+      "output_path": "prompt_sensitivity/output/runs/20260316_172138",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_no_baseline.yaml",
+        "duration_seconds": 113.4
+      }
+    },
+    {
+      "run_id": "20260316_171952",
+      "timestamp_start": "2026-03-16T17:19:52.313063",
+      "timestamp_end": "2026-03-16T17:21:37.374886",
+      "output_path": "prompt_sensitivity/output/runs/20260316_171952",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_no_baseline.yaml",
+        "duration_seconds": 105.06
+      }
+    },
+    {
+      "run_id": "20260316_171810",
+      "timestamp_start": "2026-03-16T17:18:10.827471",
+      "timestamp_end": "2026-03-16T17:19:50.782446",
+      "output_path": "prompt_sensitivity/output/runs/20260316_171810",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_no_baseline.yaml",
+        "duration_seconds": 99.96
+      }
+    },
+    {
+      "run_id": "20260316_171628",
+      "timestamp_start": "2026-03-16T17:16:28.571143",
+      "timestamp_end": "2026-03-16T17:18:09.294001",
+      "output_path": "prompt_sensitivity/output/runs/20260316_171628",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_no_baseline.yaml",
+        "duration_seconds": 100.73
+      }
+    },
+    {
+      "run_id": "20260316_171441",
+      "timestamp_start": "2026-03-16T17:14:41.586070",
+      "timestamp_end": "2026-03-16T17:16:27.145272",
+      "output_path": "prompt_sensitivity/output/runs/20260316_171441",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_no_baseline.yaml",
+        "duration_seconds": 105.56
+      }
+    },
+    {
+      "run_id": "20260316_171256",
+      "timestamp_start": "2026-03-16T17:12:56.445775",
+      "timestamp_end": "2026-03-16T17:14:40.049528",
+      "output_path": "prompt_sensitivity/output/runs/20260316_171256",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_no_baseline.yaml",
+        "duration_seconds": 103.61
+      }
+    },
+    {
+      "run_id": "20260316_171114",
+      "timestamp_start": "2026-03-16T17:11:14.218168",
+      "timestamp_end": "2026-03-16T17:12:55.041067",
+      "output_path": "prompt_sensitivity/output/runs/20260316_171114",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 100.82
+      }
+    },
+    {
+      "run_id": "20260316_170933",
+      "timestamp_start": "2026-03-16T17:09:33.963394",
+      "timestamp_end": "2026-03-16T17:11:12.714721",
+      "output_path": "prompt_sensitivity/output/runs/20260316_170933",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 98.75
+      }
+    },
+    {
+      "run_id": "20260316_170756",
+      "timestamp_start": "2026-03-16T17:07:56.278295",
+      "timestamp_end": "2026-03-16T17:09:32.334688",
+      "output_path": "prompt_sensitivity/output/runs/20260316_170756",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 96.07
+      }
+    },
+    {
+      "run_id": "20260316_170602",
+      "timestamp_start": "2026-03-16T17:06:02.679480",
+      "timestamp_end": "2026-03-16T17:07:54.767002",
+      "output_path": "prompt_sensitivity/output/runs/20260316_170602",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 112.09
+      }
+    },
+    {
+      "run_id": "20260316_170419",
+      "timestamp_start": "2026-03-16T17:04:19.290306",
+      "timestamp_end": "2026-03-16T17:06:01.156750",
+      "output_path": "prompt_sensitivity/output/runs/20260316_170419",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 101.87
+      }
+    },
+    {
+      "run_id": "20260316_170228",
+      "timestamp_start": "2026-03-16T17:02:28.279310",
+      "timestamp_end": "2026-03-16T17:04:17.780700",
+      "output_path": "prompt_sensitivity/output/runs/20260316_170228",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 109.5
+      }
+    },
+    {
+      "run_id": "20260316_170032",
+      "timestamp_start": "2026-03-16T17:00:32.952635",
+      "timestamp_end": "2026-03-16T17:02:26.651643",
+      "output_path": "prompt_sensitivity/output/runs/20260316_170032",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 113.7
+      }
+    },
+    {
+      "run_id": "20260316_165840",
+      "timestamp_start": "2026-03-16T16:58:40.131056",
+      "timestamp_end": "2026-03-16T17:00:31.226666",
+      "output_path": "prompt_sensitivity/output/runs/20260316_165840",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 111.1
+      }
+    },
+    {
+      "run_id": "20260316_165648",
+      "timestamp_start": "2026-03-16T16:56:48.404650",
+      "timestamp_end": "2026-03-16T16:58:37.960736",
+      "output_path": "prompt_sensitivity/output/runs/20260316_165648",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 109.56
+      }
+    },
+    {
+      "run_id": "20260316_165504",
+      "timestamp_start": "2026-03-16T16:55:04.038163",
+      "timestamp_end": "2026-03-16T16:56:46.482048",
+      "output_path": "prompt_sensitivity/output/runs/20260316_165504",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 102.45
+      }
+    },
+    {
+      "run_id": "20260316_165439",
+      "timestamp_start": "2026-03-16T16:54:39.651437",
+      "timestamp_end": "2026-03-16T16:54:39.803605",
+      "output_path": "prompt_sensitivity/output/runs/20260316_165439",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 0.15
+      }
+    },
+    {
+      "run_id": "20260316_165438",
+      "timestamp_start": "2026-03-16T16:54:38.338975",
+      "timestamp_end": "2026-03-16T16:54:38.509409",
+      "output_path": "prompt_sensitivity/output/runs/20260316_165438",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 0.17
+      }
+    },
+    {
+      "run_id": "20260316_165436",
+      "timestamp_start": "2026-03-16T16:54:36.823975",
+      "timestamp_end": "2026-03-16T16:54:37.028095",
+      "output_path": "prompt_sensitivity/output/runs/20260316_165436",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 0.21
+      }
+    },
+    {
+      "run_id": "20260316_165435",
+      "timestamp_start": "2026-03-16T16:54:35.438442",
+      "timestamp_end": "2026-03-16T16:54:35.596998",
+      "output_path": "prompt_sensitivity/output/runs/20260316_165435",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 0.16
+      }
+    },
+    {
+      "run_id": "20260316_165434",
+      "timestamp_start": "2026-03-16T16:54:34.028472",
+      "timestamp_end": "2026-03-16T16:54:34.228957",
+      "output_path": "prompt_sensitivity/output/runs/20260316_165434",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 0.2
+      }
+    },
+    {
+      "run_id": "20260316_165432",
+      "timestamp_start": "2026-03-16T16:54:32.490810",
+      "timestamp_end": "2026-03-16T16:54:32.868060",
+      "output_path": "prompt_sensitivity/output/runs/20260316_165432",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 0.38
+      }
+    },
+    {
+      "run_id": "20260316_165431",
+      "timestamp_start": "2026-03-16T16:54:31.114594",
+      "timestamp_end": "2026-03-16T16:54:31.285516",
+      "output_path": "prompt_sensitivity/output/runs/20260316_165431",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 0.17
+      }
+    },
+    {
+      "run_id": "20260316_164825",
+      "timestamp_start": "2026-03-16T16:48:25.748668",
+      "timestamp_end": "2026-03-16T16:48:26.102136",
+      "output_path": "prompt_sensitivity/output/runs/20260316_164825",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 0.35
+      }
+    },
+    {
+      "run_id": "20260316_164824",
+      "timestamp_start": "2026-03-16T16:48:24.253532",
+      "timestamp_end": "2026-03-16T16:48:24.517272",
+      "output_path": "prompt_sensitivity/output/runs/20260316_164824",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 0.27
+      }
+    },
+    {
+      "run_id": "20260316_164822",
+      "timestamp_start": "2026-03-16T16:48:22.896369",
+      "timestamp_end": "2026-03-16T16:48:23.050351",
+      "output_path": "prompt_sensitivity/output/runs/20260316_164822",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 0.16
+      }
+    },
+    {
+      "run_id": "20260316_164821",
+      "timestamp_start": "2026-03-16T16:48:21.448142",
+      "timestamp_end": "2026-03-16T16:48:21.649230",
+      "output_path": "prompt_sensitivity/output/runs/20260316_164821",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 0.2
+      }
+    },
+    {
+      "run_id": "20260316_164820",
+      "timestamp_start": "2026-03-16T16:48:20.015036",
+      "timestamp_end": "2026-03-16T16:48:20.184105",
+      "output_path": "prompt_sensitivity/output/runs/20260316_164820",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 0.17
+      }
+    },
+    {
+      "run_id": "20260316_164649",
+      "timestamp_start": "2026-03-16T16:46:49.943627",
+      "timestamp_end": "2026-03-16T16:46:50.137244",
+      "output_path": "prompt_sensitivity/output/runs/20260316_164649",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 0.24
+      }
+    },
+    {
+      "run_id": "20260316_164648",
+      "timestamp_start": "2026-03-16T16:46:48.427247",
+      "timestamp_end": "2026-03-16T16:46:48.670371",
+      "output_path": "prompt_sensitivity/output/runs/20260316_164648",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 0.24
+      }
+    },
+    {
+      "run_id": "20260316_164647",
+      "timestamp_start": "2026-03-16T16:46:47.092381",
+      "timestamp_end": "2026-03-16T16:46:47.258499",
+      "output_path": "prompt_sensitivity/output/runs/20260316_164647",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 0.17
+      }
+    },
+    {
+      "run_id": "20260316_164645",
+      "timestamp_start": "2026-03-16T16:46:45.748764",
+      "timestamp_end": "2026-03-16T16:46:45.945577",
+      "output_path": "prompt_sensitivity/output/runs/20260316_164645",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 0.2
+      }
+    },
+    {
+      "run_id": "20260316_164644",
+      "timestamp_start": "2026-03-16T16:46:44.225344",
+      "timestamp_end": "2026-03-16T16:46:44.483857",
+      "output_path": "prompt_sensitivity/output/runs/20260316_164644",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 0.26
+      }
+    },
+    {
+      "run_id": "20260316_164642",
+      "timestamp_start": "2026-03-16T16:46:42.871533",
+      "timestamp_end": "2026-03-16T16:46:43.044166",
+      "output_path": "prompt_sensitivity/output/runs/20260316_164642",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 0.17
+      }
+    },
+    {
+      "run_id": "20260316_164641",
+      "timestamp_start": "2026-03-16T16:46:41.071932",
+      "timestamp_end": "2026-03-16T16:46:41.494202",
+      "output_path": "prompt_sensitivity/output/runs/20260316_164641",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "prompt_sensitivity/scenario/scenario_control.yaml",
+        "duration_seconds": 0.43
+      }
+    }
+  ],
+  "last_updated": "2026-03-17T01:30:46.847641"
+}

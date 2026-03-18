@@ -1,0 +1,7 @@
+experts:
+  - name: "AI/ML Security Researcher"
+    focus: "Machine learning applications in cybersecurity"
+    background: "PhD in Computer Science, specialized in AI security"
+    bias: "Deep understanding of ML/LLM capabilities and limitations"
+    key_trait: "Strong theoretical foundation in AI/ML security boundaries"
+    analytical_approach: "Systematic analysis of how LLMs could assist in different attack phases"

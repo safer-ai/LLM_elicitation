@@ -1,0 +1,13 @@
+WASSERSTEIN DISTANCES TO CONTROL CONDITION
+
+Condition            N     Mean W1      Std W1       Mean W2      Std W2      
+no_baseline          10    0.174880     0.079167     0.195787     0.089803    
+no_ci                10    0.027712     0.016682     0.031511     0.019489    
+no_baseline_no_ci    10    0.239407     0.081699     0.241525     0.080731    
+skip_analysis        21    0.049017     0.022735     0.055281     0.025022    
+trim_reasoning       10    0.026185     0.015146     0.030366     0.018253    
+trim_all             10    0.114692     0.018495     0.125646     0.020911    
+
+Within-control variance:
+  W1: 0.033493 ± 0.016484
+  W2: 0.038846 ± 0.019700

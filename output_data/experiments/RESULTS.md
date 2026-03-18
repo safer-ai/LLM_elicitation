@@ -1,79 +1,67 @@
 # LLM Elicitation Expert Variance Analysis
 
-## Research Questions
+## Model Choice vs Expert Persona Variance
 
-Testing whether LLM expert personas replicate human expert variance patterns:
+**Question**: Does model choice (GPT-4o vs Claude vs Gemini) create more variance than expert persona choice?
 
-1. **H1**: Do quantity estimates (num_actors) show more expert variance than probability estimates?
-2. **H2**: Does expert variance for quantities increase with benchmark task difficulty?
-3. **H3**: For the same attack step, does expert variance on probability estimates remain stable across benchmark task difficulty?
+**Method**: Fréchet ANOVA with Wasserstein distance on fitted distributions. ICC_F = proportion of variance explained by grouping factor.
+
+| Estimate Type | Persona ICC_F | Model ICC_F | Ratio | Model p-value |
+| ------------- | ------------- | ----------- | ----- | ------------- |
+| Probability | 0.12 | 0.58 | ~5× | <0.001 |
+| Quantity (num_actors) | 0.09 | 0.24 | ~2.6× | 0.005 |
+
+**Conclusion**: Model choice creates significantly more variance than persona choice for both estimate types.
+
+**Limitation**: Quantity analysis uses PERT fitting (bounded), which may not suit unbounded integers.
 
 ---
 
 ## Summary
 
-| Hypothesis | Human Experts | GPT-4o | Claude | Gemini |
-| ---------- | ------------- | ------ | ------ | ------ |
+| Hypothesis | Human | GPT-4o | Claude | Gemini |
+| ---------- | ----- | ------ | ------ | ------ |
 | **H1**: Quantities > Probabilities variance | ✓ | ✓ | ✓ | ✓ |
 | **H2**: Quantity variance ↑ with difficulty | ✓ | ✗ | ✗ | ✗ |
 | **H3**: Probability variance stable across difficulty | ✓ | ✓ | ✓ | — |
 
----
-
-## Method
-
-**Metric**: CV (Coefficient of Variation) of expert-mean p50 values
-
-```
-1. Each expert persona gives ~10 estimates across runs
-2. Compute mean p50 per expert → 10 values
-3. CV = std(expert means) / mean(expert means) × 100%
-```
-
-- **Expert variance** = disagreement between personas (not within-persona sampling noise)
-- Each model evaluated independently (no mixing of outputs between models)
-- 10 expert personas, ~10 runs per experiment
+**Metric**: CV (Coefficient of Variation) of expert-mean p50 values. Measures disagreement between 10 expert personas. Each model evaluated independently.
 
 ---
 
-## Experimental Design
+## H1: Quantities Show More Expert Variance Than Probabilities
 
-### Benchmark Tasks (by difficulty)
+**Question**: Do quantity estimates (num_actors) show more expert variance than probability estimates?
 
-| Difficulty | Task | CVSS Score |
-| ---------- | ---- | ---------- |
-| LOW | cURL | 5.3 |
-| MED | Imaginairy | 7.5 |
-| HIGH | MLFlow0 | 10.0 |
+**Design**:
+- Quantity CV: averaged across 3 difficulty levels (LOW/MED/HIGH)
+- Probability CV: averaged across 3 attack steps with different baselines (T1657 30%, TA0002 50%, TA0007 85%)
+- Benchmark tasks: cURL (CVSS 5.3), Imaginairy (CVSS 7.5), MLFlow0 (CVSS 10.0)
 
-### H1 & H2: Quantity Elicitation
-- **Target**: Number of actors capable of executing attack scenario
-- **Experiments**: 3 models × 3 difficulty levels = 9 experiments
-
-### H3: Probability Elicitation
-- **Target**: Probability of successful attack step execution
-- **Attack step**: TA0002 (Execution) — held constant
-- **Baseline**: 50% — held constant
-- **Varying**: Benchmark task difficulty (LOW/MED/HIGH)
-- **Experiments**: 3 models × 3 difficulty levels = 9 experiments
-
----
-
-## Results
-
-### H1: Quantities > Probabilities
+**Results**:
 
 | Model | Quantity CV | Probability CV | Ratio |
 | ----- | ----------- | -------------- | ----- |
 | GPT-4o | 4.7% | 1.9% | 2.5× |
 | Gemini | 6.0% | 2.2% | 2.7× |
-| Claude | 6.2% | 1.7% | 3.7× |
+| Claude | 6.2% | 1.7% | 3.6× |
 
-All three models show ~3× higher expert variance for quantities than probabilities, matching human pattern.
+**Conclusion**: All three models show higher variance for quantities. Matches human pattern.
+
+**Limitation**: Probability CV averages across different baselines (30%, 50%, 85%), which may not be directly comparable due to ceiling/floor effects. However, the ~3× ratio is large enough that this is unlikely to change the conclusion.
 
 ---
 
-### H2: Quantity Variance vs Difficulty
+## H2: Quantity Variance Increases With Difficulty
+
+**Question**: Does expert variance for quantity estimates increase with benchmark task difficulty?
+
+**Design**:
+- Same elicitation target: num_actors
+- Varying: benchmark task difficulty (LOW/MED/HIGH)
+- 10 runs per experiment, 10 experts per model
+
+**Results**:
 
 | Model | LOW (CVSS 5.3) | MED (CVSS 7.5) | HIGH (CVSS 10.0) | Trend |
 | ----- | -------------- | -------------- | ---------------- | ----- |
@@ -81,11 +69,26 @@ All three models show ~3× higher expert variance for quantities than probabilit
 | Gemini | 6.5% | 5.5% | 6.0% | Non-monotonic |
 | Claude | 8.6% | 4.4% | 5.6% | Non-monotonic |
 
-Unlike humans, LLM expert variance does not increase with task difficulty.
+**Conclusion**: Unlike humans, LLM expert variance does not increase with task difficulty.
+
+**Data quality**:
+- GPT-4o: 10 values/expert (complete)
+- Claude: 9-10 values/expert (near-complete)
+- Gemini: 5-10 values/expert (some API failures)
 
 ---
 
-### H3: Probability Variance vs Difficulty
+## H3: Probability Variance Stable Across Difficulty
+
+**Question**: For the same attack step, does expert variance on probability estimates remain stable when we vary benchmark task difficulty?
+
+**Design**:
+- Attack step: TA0002 (Execution) — held constant
+- Baseline: 50% — held constant
+- Varying: benchmark task difficulty only (LOW/MED/HIGH)
+- This isolates the difficulty effect by controlling for baseline and step
+
+**Results**:
 
 | Model | LOW (CVSS 5.3) | MED (CVSS 7.5) | HIGH (CVSS 10.0) | Trend |
 | ----- | -------------- | -------------- | ---------------- | ----- |
@@ -93,12 +96,13 @@ Unlike humans, LLM expert variance does not increase with task difficulty.
 | Claude | 1.07% | 0.69% | 1.18% | Stable |
 | Gemini | 2.21% | 3.53% | [PLACEHOLDER] | — |
 
-CV ranges: GPT-4o = 0.34%, Claude = 0.49%. Expert variance on probability estimates remains stable across difficulty, matching human pattern.
+CV ranges: GPT-4o = 0.34%, Claude = 0.49%.
 
----
+**Conclusion**: Expert variance remains stable across difficulty for GPT-4o and Claude. Matches human pattern.
 
-## Notes
+**Data quality**:
+- GPT-4o: 10 values/expert (complete)
+- Claude: 9-10 values/expert (near-complete)
+- Gemini: 5-9 values/expert (significant data loss); HIGH missing entirely
 
-- **Why CV?** Paper states "greater variance" (absolute spread), not proportion. CV is scale-independent.
-- **H3 design choice**: Fixed baseline (50%) and attack step (TA0002) isolates the effect of benchmark task difficulty. Varying baseline would confound results due to ceiling/floor effects.
-- **Gemini H3 HIGH**: Runs failed, placeholder for later.
+**Limitation**: Gemini incomplete. Cannot draw conclusion for Gemini on H3.
