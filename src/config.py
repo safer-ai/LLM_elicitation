@@ -104,7 +104,6 @@ class AppConfig:
     api_key_openai: Optional[str] = None
     api_key_gemini: Optional[str] = None
 
-    # --- Properties (methods acting like attributes) ---
     @property
     def inferred_api_provider(self) -> str:
         """Infers the API provider based on the model name."""
