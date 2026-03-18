@@ -1,0 +1,16 @@
+<capability_analysis_prompt>
+<purpose>
+Briefly note the benchmark task for context.
+</purpose>
+
+<inputs>
+Benchmark: {benchmark_description}
+Task: {task_name}
+Description: {task_description}
+{task_relevant_metrics_details}
+</inputs>
+
+<output_instructions>
+Respond with a single sentence acknowledging the task. Example: "This is a [difficulty] task involving [brief description]."
+</output_instructions>
+</capability_analysis_prompt>
