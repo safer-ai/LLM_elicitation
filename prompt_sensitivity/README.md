@@ -1,88 +1,31 @@
 # Prompt Sensitivity Experiments
 
-## Goal
+## Conditions
 
-Test how sensitive probability estimates are to specific prompt components. We vary parts of the prompt and measure if the output distribution changes significantly.
+| Condition | What Was Removed |
+|-----------|------------------|
+| **control** | Nothing (full prompt) |
+| **no_ci** | Removed uncertainty range (5th/95th percentile: "20%-90%") from baseline |
+| **no_baseline** | Removed point estimate ("50% chance of success") from baseline |
+| **no_baseline_no_ci** | Removed entire baseline statement |
+| **skip_analysis** | Removed detailed capability analysis instructions (4-section breakdown of task difficulty, capability correlation, boundaries) |
+| **trim_reasoning** | Removed 3-phase reasoning scaffold (Phase 1: establish ranges, Phase 2: check confidence, Phase 3: reality check) |
+| **trim_all** | Removed capability analysis + reasoning scaffold + technical analysis output |
 
-## Design
+## Results
 
-- **Model**: Claude Sonnet 4.5
-- **Expert**: Single persona (AI/ML Security Researcher) to isolate prompt effect
-- **Runs**: 10 per variation
-- **Attack step**: TA0002 (Execution)
-- **Benchmark**: bountybench (MED difficulty)
+| Condition | W1 Distance | W² Variance (×Control) |
+|-----------|-------------|------------------------|
+| no_ci | 0.013 | 0.36× |
+| no_baseline | 0.154 | 18.1× |
+| no_baseline_no_ci | 0.230 | 12.3× |
+| skip_analysis | 0.041 | 0.78× |
+| trim_reasoning | 0.011 | 0.30× |
+| trim_all | 0.016 | 0.07× |
 
-## Variations
+## Findings
 
-
-| Config                          | Baseline  | CI (5th/95th) | Description                     |
-| ------------------------------- | --------- | ------------- | ------------------------------- |
-| `config_control.yaml`           | Yes (50%) | Yes (20%-90%) | Full prompt                     |
-| `config_no_baseline.yaml`       | No        | Yes           | Remove "50% chance of success"  |
-| `config_no_ci.yaml`             | Yes       | No            | Remove 5th/95th percentile info |
-| `config_no_baseline_no_ci.yaml` | No        | No            | Remove both                     |
-
-
-## What Changes
-
-In the scenario assumptions for TA0002:
-
-**Control:**
-
-```
-- The threat actor alone, with no help from the LLM, has a 50% chance of success at this step. Interpret this as the mode of the expert belief distribution for this value, with the 5th percentile of the expert's belief distribution being 20% and the 95th percentile being 90%.
-```
-
-**No baseline:**
-
-```
-- The expert's belief distribution for success probability at this step has a 5th percentile of 20% and a 95th percentile of 90%.
-```
-
-**No CI:**
-
-```
-- The threat actor alone, with no help from the LLM, has a 50% chance of success at this step.
-```
-
-**No baseline + No CI:**
-
-```
-(Line removed entirely)
-```
-
-## Running
-
-```bash
-# From LLM_elicitation directory
-# Run 10 times per variation
-
-for i in {1..10}; do
-  python -m src.main --config prompt_sensitivity/config_control.yaml
-done
-
-for i in {1..10}; do
-  python -m src.main --config prompt_sensitivity/config_no_baseline.yaml
-done
-
-# Or run all at once:
-for config in control no_baseline no_ci no_baseline_no_ci; do
-  for i in {1..10}; do
-    python -m src.main --config prompt_sensitivity/config_${config}.yaml
-  done
-done
-```
-
-## Analysis
-
-Compare groups using:
-
-1. **Fréchet ANOVA** on fitted Beta distributions (Wasserstein distance)
-2. Measure ICC_F to see if prompt variation explains variance
-3. p-value from permutation test
-
-If p < 0.05, the prompt component significantly affects estimates.
-
-## Output
-
-Results go to `output_data/runs/` with timestamps. Move relevant runs to `prompt_sensitivity/output/` for analysis.
+1. **Baseline anchoring**: Removing "50%" baseline causes large distribution shift (W1=0.15-0.23) and explodes variance (12-18×)
+2. **CI has minimal effect**: Removing uncertainty range alone has negligible impact (W1=0.013, variance 0.36×)
+3. **Reasoning scaffold reduces variance**: trim_reasoning and trim_all have lowest variance (0.30× and 0.07×) - model converges to consistent answers
+4. **trim_all extreme convergence**: All 10 runs produced nearly identical outputs (0.07× variance)

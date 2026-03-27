@@ -1,0 +1,20 @@
+scenario_name: "OC3 + Ransomware + Large Enterprise"
+scenario_description: "An actor with OC3-level operational capacity (defined as ~10 individuals, ~$1M budget, state-sponsored) targets a large enterprise ($250M-$1B revenue) for a high-value ransom (~$1M). The attack begins with Reconnaissance to find a vulnerable target and Resource Development to acquire tools and exploits. The actor gains Initial Access by exploiting an n-day vulnerability in a public-facing web application. Once inside, they perform Execution of malicious code, Privilege Escalation to gain administrative rights, and Discovery to map the network. They then conduct Lateral Movement to spread to critical systems, Collection to stage sensitive data, and Exfiltration to steal it, all coordinated via a Command and Control channel. The final stage is the Impact, where data is encrypted and systems are disrupted, followed by Extortion to demand a ransom."
+
+scenario_level_metrics:
+  num_actors_estimation:
+    benchmark_file: "input_data/benchmark/bountybench_ordered.yaml"
+    assumptions: |
+      - The baseline estimation of the number of active actor groups fitting this profile is 20. Interpret this as the mode of the expert belief distribution for this value, with the 5th percentile of the expert's belief distribution being 1 and the 95th percentile being 120.
+      - This estimate is derived by filtering the total estimated number of ransomware affiliates based on multiple criteria from industry reports.
+      - The threat actor has full, uninhibited access to the LLM's capabilities and can use the LLM in any way.
+
+threat_actor:
+  name: "OC3"
+  description: "A small cybercrime syndicate with OC3-level operational capacity (~10 individuals, ~$1M budget). Operating as a sophisticated ransomware affiliate or with their own custom malware, they conduct 'big-game hunting' against large enterprises. They specialize in exploiting vulnerabilities in public-facing web applications to gain initial access and are skilled in using 'living off the land' techniques to navigate compromised networks for double extortion (data exfiltration and encryption)."
+
+target:
+  name: "Large Enterprise with Public-Facing Vulnerabilities"
+  description: "A large enterprise with $250M to $1B in revenue and hundreds to thousands of employees. The target has a moderately mature cybersecurity posture (MIL2/MIL3), including a SOC and EDR, but still has exploitable weaknesses, such as delays in patching n-day vulnerabilities on internet-facing systems. They are heavily reliant on IT for operations (e.g., manufacturing, retail), making them susceptible to the availability and confidentiality impacts of a ransomware attack."
+
+steps: []

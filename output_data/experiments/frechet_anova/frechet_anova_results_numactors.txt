@@ -13,8 +13,8 @@ H₀: All 10 expert personas produce the same distribution.
 
 Model                    N      T_n   p (perm)    ICC_F  W1_within  W1_between
 --------------------------------------------------------------------------------
-GPT-4o                  95 3958.4560     0.1092    0.058     2.1386      2.1104
-Gemini 2.5 Pro          85 353.7797     0.2649    0.115     1.4881      1.4847
+GPT-4o                  95 3958.4559     0.1092    0.058     2.1386      2.1104
+Gemini 2.5 Pro          85 353.7791     0.2649    0.115     1.4881      1.4847
 Claude Sonnet 4.5       92  26.4993     0.7435    0.089     1.2616      1.2484
 
 
@@ -26,7 +26,53 @@ H₀: All three models (GPT-4o, Gemini, Claude) produce the same distribution.
 
     N      T_n   p (perm)    ICC_F  W1_between
 --------------------------------------------------
-  272 1243.2964     0.0048    0.236      2.1358
+  272 1243.2957     0.0048    0.236      2.1358
+
+================================================================================
+CV DOMINANCE ANALYSIS: QUANTITY vs PROBABILITY NODES
+================================================================================
+
+Goal: test whether CV(NumActors) > CV(probability_step) holds at every
+(task, model, step) cell — without averaging across steps/baselines.
+
+Why dominance instead of averages: averaging CV across probability steps
+with different baselines (30%/50%/85%) conflates ceiling effects. The
+dominance check sidesteps this by comparing within each cell.
+
+CV = std(point estimates across all runs×experts) / mean  (ddof=1)
+
+Model                  Step             Task                    CV(qty)  CV(prob) Result            
+----------------------------------------------------------------------------------------------------
+Claude Sonnet 4.5      TA0002 (50%)     Imaginairy               12.1%     4.8%  quantity > prob
+Claude Sonnet 4.5      TA0007 (85%)     Imaginairy               12.1%     1.4%  quantity > prob
+GPT-4o                 TA0002 (50%)     Imaginairy               18.7%     8.3%  quantity > prob
+GPT-4o                 TA0007 (85%)     Imaginairy               18.7%     2.4%  quantity > prob
+Gemini 2.5 Pro         TA0002 (50%)     Imaginairy               16.8%     9.8%  quantity > prob
+Gemini 2.5 Pro         TA0007 (85%)     Imaginairy               16.8%     3.0%  quantity > prob
+
+--------------------------------------------------------------------------------
+SUMMARY
+--------------------------------------------------------------------------------
+  Total cells compared:          6
+  Quantity CV > Probability CV:  6  (100.0%)
+  Probability CV >= Quantity CV: 0  (0.0%)
+
+  Skipped (3 (model, step) pairs — no task overlap):
+    GPT-4o / T1657 (30%)  (no task overlap: qty=['Imaginairy'], prob=['Labyrinth Linguist'])
+    Gemini 2.5 Pro / T1657 (30%)  (no task overlap: qty=['Imaginairy'], prob=['Labyrinth Linguist'])
+    Claude Sonnet 4.5 / T1657 (30%)  (no task overlap: qty=['Imaginairy'], prob=['Labyrinth Linguist'])
+
+  ✓ Strict dominance holds: CV(NumActors) > CV(probability) in every comparable cell.
+
+================================================================================
+
+CV heatmap written: /Users/madhav/SaferAI/LLM_elicitation/output_data/experiments/frechet_anova/cv_heatmap_delphi_style_GPT-4o.png
+
+CV heatmap written: /Users/madhav/SaferAI/LLM_elicitation/output_data/experiments/frechet_anova/cv_heatmap_delphi_style_Gemini_25_Pro.png
+
+CV heatmap written: /Users/madhav/SaferAI/LLM_elicitation/output_data/experiments/frechet_anova/cv_heatmap_delphi_style_Claude_Sonnet_45.png
+
+CV heatmap written: /Users/madhav/SaferAI/LLM_elicitation/output_data/experiments/frechet_anova/cv_heatmap_delphi_style_all_models.png
 
 
 ================================================================================

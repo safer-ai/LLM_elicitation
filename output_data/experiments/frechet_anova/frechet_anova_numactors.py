@@ -24,6 +24,8 @@ from collections import defaultdict
 from typing import Optional, Tuple, List, Dict
 
 import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
 from scipy import stats as sp_stats
 from scipy.optimize import minimize, least_squares
 
@@ -40,6 +42,20 @@ DATA_DIRS = {
 }
 
 MODELS = ["GPT-4o", "Gemini 2.5 Pro", "Claude Sonnet 4.5"]
+
+PROB_DIRS = {
+    ("Claude Sonnet 4.5", "TA0002 (50%)"): EXPERIMENTS_DIR / "anova_probability",
+    ("Claude Sonnet 4.5", "TA0007 (85%)"): EXPERIMENTS_DIR / "pilot_experiments" / "cross_step_TA0007_85pct",
+    ("Claude Sonnet 4.5", "T1657 (30%)"): EXPERIMENTS_DIR / "pilot_experiments" / "cross_step_T1657_30pct",
+    ("GPT-4o", "TA0002 (50%)"): EXPERIMENTS_DIR / "pilot_experiments" / "cross_model_gpt4o",
+    ("GPT-4o", "TA0007 (85%)"): EXPERIMENTS_DIR / "pilot_experiments" / "cross_model_gpt4o_TA0007_85pct",
+    ("GPT-4o", "T1657 (30%)"): EXPERIMENTS_DIR / "pilot_experiments" / "cross_model_gpt4o_T1657_30pct",
+    ("Gemini 2.5 Pro", "TA0002 (50%)"): EXPERIMENTS_DIR / "pilot_experiments" / "cross_model_gemini_TA0002_50pct",
+    ("Gemini 2.5 Pro", "TA0007 (85%)"): EXPERIMENTS_DIR / "pilot_experiments" / "cross_model_gemini_TA0007_85pct",
+    ("Gemini 2.5 Pro", "T1657 (30%)"): EXPERIMENTS_DIR / "pilot_experiments" / "cross_model_gemini_T1657_30pct",
+}
+
+PROB_STEPS = ["TA0002 (50%)", "TA0007 (85%)", "T1657 (30%)"]
 
 QUANTILE_GRID_SIZE = 201
 N_PERMUTATIONS = 5_000
@@ -505,6 +521,468 @@ def run_cross_model_frechet_anova() -> dict:
 
 
 # ---------------------------------------------------------------------------
+# CV Dominance Analysis
+# ---------------------------------------------------------------------------
+
+def _load_raw_quantity_estimates(data_dir: Path) -> pd.DataFrame:
+    """Load point estimates from numactors CSVs.
+
+    Returns DataFrame with columns: task_name, expert_name, estimate.
+    The 'estimate' column is the LLM's direct mode response (number of actors).
+    """
+    rows = []
+    run_dirs = sorted([d for d in data_dir.iterdir() if d.is_dir() and d.name.startswith("run_")])
+    for run_dir in run_dirs:
+        csv_path = run_dir / "detailed_estimates.csv"
+        if not csv_path.exists():
+            continue
+        with open(csv_path, "r") as f:
+            for row in csv.DictReader(f):
+                if row.get("has_error", "").strip().lower() == "true":
+                    continue
+                try:
+                    est = float(row["estimate"].strip())
+                except (ValueError, KeyError):
+                    continue
+                rows.append({
+                    "task_name": row.get("task_name", ""),
+                    "expert_name": row.get("expert_name", ""),
+                    "estimate": est,
+                })
+    return pd.DataFrame(rows) if rows else pd.DataFrame(columns=["task_name", "expert_name", "estimate"])
+
+
+def _load_raw_probability_estimates(data_dir: Path) -> pd.DataFrame:
+    """Load point estimates from probability CSVs.
+
+    Returns DataFrame with columns: task_name, expert_name, estimate.
+    The 'estimate' column is the LLM's most_likely_estimate (probability).
+    """
+    rows = []
+    run_dirs = sorted([d for d in data_dir.iterdir() if d.is_dir() and d.name.startswith("run_")])
+    for run_dir in run_dirs:
+        csv_path = run_dir / "detailed_estimates.csv"
+        if not csv_path.exists():
+            continue
+        with open(csv_path, "r") as f:
+            for row in csv.DictReader(f):
+                if row.get("has_error", "").strip().lower() == "true":
+                    continue
+                try:
+                    est = float(row["most_likely_estimate"].strip())
+                except (ValueError, KeyError):
+                    continue
+                rows.append({
+                    "task_name": row.get("task_name", ""),
+                    "expert_name": row.get("expert_name", ""),
+                    "estimate": est,
+                })
+    return pd.DataFrame(rows) if rows else pd.DataFrame(columns=["task_name", "expert_name", "estimate"])
+
+
+def _compute_cv(values: np.ndarray) -> Optional[float]:
+    """Compute coefficient of variation = std / mean.
+
+    Returns None when there are fewer than 2 values or mean is zero.
+    """
+    if len(values) < 2:
+        return None
+    mean = np.mean(values)
+    if mean == 0.0:
+        return None
+    return float(np.std(values, ddof=1) / mean)
+
+
+def cv_dominance_analysis() -> dict:
+    """Check whether CV(numactors) > CV(probability) at every (task, model, step) cell.
+
+    This is the dominance approach: instead of comparing average CVs across steps with
+    different baselines — which conflates ceiling effects at 50%/85%/30% — we verify
+    the inequality cell by cell.  A single dominant majority makes the argument without
+    requiring any cross-baseline averaging.
+
+    Returns a dict with:
+        comparisons: list of per-cell records
+        n_dominate:  cells where CV(quantity) > CV(probability)
+        n_tied:      cells where they are equal (rare in practice)
+        n_not_dominate: cells where CV(quantity) <= CV(probability)
+    """
+    comparisons = []
+    skipped = []
+    n_dominate = 0
+    n_tied = 0
+    n_not_dominate = 0
+
+    for model in MODELS:
+        quant_dir = DATA_DIRS[model]
+        if not quant_dir.exists():
+            continue
+        quant_df = _load_raw_quantity_estimates(quant_dir)
+        if quant_df.empty:
+            continue
+
+        for step in PROB_STEPS:
+            prob_dir = PROB_DIRS.get((model, step))
+            if prob_dir is None or not prob_dir.exists():
+                skipped.append(f"{model} / {step}  (directory not found)")
+                continue
+            prob_df = _load_raw_probability_estimates(prob_dir)
+            if prob_df.empty:
+                skipped.append(f"{model} / {step}  (no data loaded)")
+                continue
+
+            common_tasks = sorted(
+                set(quant_df["task_name"].unique()) & set(prob_df["task_name"].unique())
+            )
+            if not common_tasks:
+                qty_tasks = quant_df["task_name"].unique().tolist()
+                prob_tasks = prob_df["task_name"].unique().tolist()
+                skipped.append(
+                    f"{model} / {step}  (no task overlap: "
+                    f"qty={qty_tasks}, prob={prob_tasks})"
+                )
+                continue
+            for task in common_tasks:
+                q_vals = quant_df.loc[quant_df["task_name"] == task, "estimate"].values
+                p_vals = prob_df.loc[prob_df["task_name"] == task, "estimate"].values
+
+                cv_q = _compute_cv(q_vals)
+                cv_p = _compute_cv(p_vals)
+
+                if cv_q is None or cv_p is None:
+                    continue
+
+                if cv_q > cv_p:
+                    n_dominate += 1
+                    dominance = "quantity > prob"
+                elif cv_q == cv_p:
+                    n_tied += 1
+                    dominance = "tied"
+                else:
+                    n_not_dominate += 1
+                    dominance = "prob >= quantity"
+
+                comparisons.append({
+                    "model": model,
+                    "step": step,
+                    "task": task,
+                    "cv_quantity": cv_q,
+                    "cv_probability": cv_p,
+                    "dominance": dominance,
+                    "n_quantity": len(q_vals),
+                    "n_probability": len(p_vals),
+                })
+
+    return {
+        "comparisons": comparisons,
+        "skipped": skipped,
+        "n_dominate": n_dominate,
+        "n_tied": n_tied,
+        "n_not_dominate": n_not_dominate,
+    }
+
+
+def format_cv_dominance_section(result: dict) -> str:
+    """Format the CV dominance analysis results as a report section."""
+    comparisons = result["comparisons"]
+    skipped = result.get("skipped", [])
+    n_dom = result["n_dominate"]
+    n_not = result["n_not_dominate"]
+    n_tied = result["n_tied"]
+    n_total = n_dom + n_not + n_tied
+
+    lines = []
+    lines.append("")
+    lines.append("=" * 80)
+    lines.append("CV DOMINANCE ANALYSIS: QUANTITY vs PROBABILITY NODES")
+    lines.append("=" * 80)
+    lines.append("")
+    lines.append("Goal: test whether CV(NumActors) > CV(probability_step) holds at every")
+    lines.append("(task, model, step) cell — without averaging across steps/baselines.")
+    lines.append("")
+    lines.append("Why dominance instead of averages: averaging CV across probability steps")
+    lines.append("with different baselines (30%/50%/85%) conflates ceiling effects. The")
+    lines.append("dominance check sidesteps this by comparing within each cell.")
+    lines.append("")
+    lines.append("CV = std(point estimates across all runs×experts) / mean  (ddof=1)")
+    lines.append("")
+
+    if not comparisons:
+        lines.append("  No comparable (task, model, step) cells found.")
+        if skipped:
+            lines.append("")
+            lines.append("  Skipped (no task overlap between quantity and probability dirs):")
+            for s in skipped:
+                lines.append(f"    {s}")
+        return "\n".join(lines)
+
+    lines.append(f"{'Model':<22} {'Step':<16} {'Task':<22} {'CV(qty)':>8} {'CV(prob)':>9} {'Result':<18}")
+    lines.append("-" * 100)
+    for c in sorted(comparisons, key=lambda x: (x["model"], x["step"], x["task"])):
+        lines.append(
+            f"{c['model']:<22} {c['step']:<16} {c['task']:<22} "
+            f"{c['cv_quantity']:>7.1%} {c['cv_probability']:>8.1%}  {c['dominance']}"
+        )
+
+    lines.append("")
+    lines.append("-" * 80)
+    lines.append("SUMMARY")
+    lines.append("-" * 80)
+    lines.append(f"  Total cells compared:          {n_total}")
+    lines.append(f"  Quantity CV > Probability CV:  {n_dom}  ({100*n_dom/n_total:.1f}%)")
+    if n_tied:
+        lines.append(f"  Tied:                          {n_tied}  ({100*n_tied/n_total:.1f}%)")
+    lines.append(f"  Probability CV >= Quantity CV: {n_not}  ({100*n_not/n_total:.1f}%)")
+    lines.append("")
+
+    if n_not > 0:
+        lines.append("  Exceptions (cells where dominance fails):")
+        for c in comparisons:
+            if c["dominance"] != "quantity > prob":
+                lines.append(
+                    f"    {c['model']} / {c['step']} / {c['task']}: "
+                    f"CV(qty)={c['cv_quantity']:.1%}  CV(prob)={c['cv_probability']:.1%}"
+                )
+        lines.append("")
+
+    if skipped:
+        lines.append(f"  Skipped ({len(skipped)} (model, step) pairs — no task overlap):")
+        for s in skipped:
+            lines.append(f"    {s}")
+        lines.append("")
+
+    if n_dom == n_total:
+        lines.append("  ✓ Strict dominance holds: CV(NumActors) > CV(probability) in every comparable cell.")
+    elif n_total > 0 and n_dom / n_total >= 0.9:
+        lines.append(f"  ✓ Near-strict dominance: holds in {n_dom}/{n_total} cells ({100*n_dom/n_total:.0f}%).")
+        lines.append("    Exceptions are isolated cases, not a systematic pattern.")
+    else:
+        lines.append(f"  ⚠ Dominance holds in {n_dom}/{n_total} cells; check exceptions above.")
+
+    lines.append("")
+    lines.append("=" * 80)
+    return "\n".join(lines)
+
+
+CV_HEATMAP_ROW_LABELS = [
+    ("# of actors", "quantity"),
+    ("TA0002 (50%)", "TA0002 (50%)"),
+    ("TA0007 (85%)", "TA0007 (85%)"),
+    ("T1657 (30%)", "T1657 (30%)"),
+]
+
+
+def build_cv_matrix_for_model(model: str) -> Optional[dict]:
+    """Build mean / CV / n matrices for Delphi-style table (rows=nodes, cols=tasks)."""
+    quant_dir = DATA_DIRS.get(model)
+    if quant_dir is None or not quant_dir.exists():
+        return None
+    quant_df = _load_raw_quantity_estimates(quant_dir)
+    if quant_df.empty:
+        return None
+
+    tasks: set = set(quant_df["task_name"].unique())
+    for step in PROB_STEPS:
+        prob_dir = PROB_DIRS.get((model, step))
+        if prob_dir is not None and prob_dir.exists():
+            p = _load_raw_probability_estimates(prob_dir)
+            if not p.empty:
+                tasks |= set(p["task_name"].unique())
+    col_labels = sorted(tasks)
+    if not col_labels:
+        return None
+
+    n_rows = len(CV_HEATMAP_ROW_LABELS)
+    n_cols = len(col_labels)
+    mean_arr = np.full((n_rows, n_cols), np.nan)
+    cv_arr = np.full((n_rows, n_cols), np.nan)
+    n_arr = np.full((n_rows, n_cols), np.nan)
+    is_prob_row = np.zeros(n_rows, dtype=bool)
+
+    for ri, (row_name, kind) in enumerate(CV_HEATMAP_ROW_LABELS):
+        if kind == "quantity":
+            for ci, task in enumerate(col_labels):
+                vals = quant_df.loc[quant_df["task_name"] == task, "estimate"].values
+                if len(vals) < 2:
+                    continue
+                mean_arr[ri, ci] = np.mean(vals)
+                cv = _compute_cv(vals)
+                if cv is not None:
+                    cv_arr[ri, ci] = cv
+                n_arr[ri, ci] = len(vals)
+        else:
+            is_prob_row[ri] = True
+            prob_dir = PROB_DIRS.get((model, kind))
+            if prob_dir is None or not prob_dir.exists():
+                continue
+            prob_df = _load_raw_probability_estimates(prob_dir)
+            if prob_df.empty:
+                continue
+            for ci, task in enumerate(col_labels):
+                vals = prob_df.loc[prob_df["task_name"] == task, "estimate"].values
+                if len(vals) < 2:
+                    continue
+                mean_arr[ri, ci] = np.mean(vals)
+                cv = _compute_cv(vals)
+                if cv is not None:
+                    cv_arr[ri, ci] = cv
+                n_arr[ri, ci] = len(vals)
+
+    row_labels = [r[0] for r in CV_HEATMAP_ROW_LABELS]
+    return {
+        "row_labels": row_labels,
+        "col_labels": col_labels,
+        "mean": mean_arr,
+        "cv": cv_arr,
+        "n": n_arr,
+        "is_prob_row": is_prob_row,
+    }
+
+
+def plot_cv_heatmap_delphi_style(
+    model: str,
+    out_path: Path,
+    title_suffix: str = "LLM Delphi (runs × personas pooled)",
+) -> bool:
+    """Save a human-Delphi-style heatmap: each cell shows mean, CV%, and n."""
+    data = build_cv_matrix_for_model(model)
+    if data is None:
+        return False
+
+    mean_arr = data["mean"]
+    cv_arr = data["cv"]
+    n_arr = data["n"]
+    row_labels = data["row_labels"]
+    col_labels = data["col_labels"]
+    is_prob_row = data["is_prob_row"]
+
+    n_rows, n_cols = cv_arr.shape
+    fig_w = max(8.0, 1.2 * n_cols + 4)
+    fig_h = max(4.0, 0.65 * n_rows + 2.5)
+    fig, ax = plt.subplots(figsize=(fig_w, fig_h))
+
+    valid_cv = cv_arr[~np.isnan(cv_arr)]
+    vmax = float(np.max(valid_cv) * 1.15) if valid_cv.size else 0.5
+    vmax = max(vmax, 0.05)
+
+    display = np.ma.masked_invalid(cv_arr)
+    cmap = plt.cm.RdYlGn_r
+    im = ax.imshow(display, aspect="auto", cmap=cmap, vmin=0.0, vmax=vmax)
+
+    ax.set_xticks(np.arange(n_cols))
+    ax.set_yticks(np.arange(n_rows))
+    ax.set_xticklabels(col_labels, rotation=35, ha="right", fontsize=9)
+    ax.set_yticklabels(row_labels, fontsize=10)
+    ax.set_title(f"{model}\n{title_suffix}", fontsize=11, pad=12)
+
+    for i in range(n_rows):
+        for j in range(n_cols):
+            if np.isnan(cv_arr[i, j]) and np.isnan(mean_arr[i, j]):
+                txt = "—"
+                ax.text(j, i, txt, ha="center", va="center", fontsize=8, color="0.4")
+                continue
+            m = mean_arr[i, j]
+            cv_pct = 100.0 * cv_arr[i, j]
+            n_i = int(n_arr[i, j]) if not np.isnan(n_arr[i, j]) else 0
+            if is_prob_row[i]:
+                mean_str = f"{m * 100:.1f}%"
+            else:
+                mean_str = f"{m:.2f}"
+            cell = f"{mean_str}\nCV {cv_pct:.0f}%\nn={n_i}"
+            lum = cv_arr[i, j] / vmax if vmax > 0 else 0.5
+            ax.text(
+                j, i, cell, ha="center", va="center", fontsize=8,
+                color="black" if lum < 0.55 else "white",
+            )
+
+    cbar = plt.colorbar(im, ax=ax, fraction=0.035, pad=0.04)
+    cbar.set_label("Coefficient of variation", fontsize=9)
+
+    plt.tight_layout()
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out_path, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    return True
+
+
+def save_cv_heatmap_figures(output_dir: Optional[Path] = None) -> List[Path]:
+    """Write one PNG per model (Delphi-style CV table). Returns paths written."""
+    base = output_dir if output_dir is not None else Path(__file__).parent
+    written: List[Path] = []
+    for model in MODELS:
+        safe = model.replace(" ", "_").replace(".", "")
+        path = base / f"cv_heatmap_delphi_style_{safe}.png"
+        if plot_cv_heatmap_delphi_style(model, path):
+            written.append(path)
+    if written:
+        combined_path = base / "cv_heatmap_delphi_style_all_models.png"
+        _plot_combined_cv_heatmaps(combined_path)
+        written.append(combined_path)
+    return written
+
+
+def _plot_combined_cv_heatmaps(out_path: Path) -> None:
+    """Single figure with 3 subplots (one per model)."""
+    n_models = len(MODELS)
+    fig, axes = plt.subplots(1, n_models, figsize=(6 * n_models, 5))
+    if n_models == 1:
+        axes = [axes]
+
+    global_vmax = 0.05
+    all_data = []
+    for model in MODELS:
+        d = build_cv_matrix_for_model(model)
+        all_data.append(d)
+        if d is not None:
+            v = d["cv"][~np.isnan(d["cv"])]
+            if v.size:
+                global_vmax = max(global_vmax, float(np.max(v) * 1.1))
+
+    for ax, model, data in zip(axes, MODELS, all_data):
+        if data is None:
+            ax.set_visible(False)
+            continue
+        cv_arr = data["cv"]
+        mean_arr = data["mean"]
+        n_arr = data["n"]
+        row_labels = data["row_labels"]
+        col_labels = data["col_labels"]
+        is_prob_row = data["is_prob_row"]
+        n_rows, n_cols = cv_arr.shape
+
+        display = np.ma.masked_invalid(cv_arr)
+        im = ax.imshow(display, aspect="auto", cmap=plt.cm.RdYlGn_r, vmin=0.0, vmax=global_vmax)
+        ax.set_xticks(np.arange(n_cols))
+        ax.set_yticks(np.arange(n_rows))
+        ax.set_xticklabels(col_labels, rotation=30, ha="right", fontsize=7)
+        ax.set_yticklabels(row_labels, fontsize=8)
+        ax.set_title(model, fontsize=9)
+
+        for i in range(n_rows):
+            for j in range(n_cols):
+                if np.isnan(cv_arr[i, j]) and np.isnan(mean_arr[i, j]):
+                    ax.text(j, i, "—", ha="center", va="center", fontsize=7, color="0.4")
+                    continue
+                m = mean_arr[i, j]
+                cv_pct = 100.0 * cv_arr[i, j]
+                n_i = int(n_arr[i, j]) if not np.isnan(n_arr[i, j]) else 0
+                mean_str = f"{m * 100:.1f}%" if is_prob_row[i] else f"{m:.2f}"
+                cell = f"{mean_str}\n{cv_pct:.0f}%\nn={n_i}"
+                lum = cv_arr[i, j] / global_vmax if global_vmax > 0 else 0.5
+                ax.text(
+                    j, i, cell, ha="center", va="center", fontsize=6,
+                    color="black" if lum < 0.55 else "white",
+                )
+        plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+
+    plt.suptitle("LLM elicitation: CV by node × task (pooled runs × personas)", fontsize=11, y=1.02)
+    plt.tight_layout()
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out_path, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -560,6 +1038,29 @@ def main():
         except Exception as e:
             print(f"  ERROR: {e}", flush=True)
             f.write(f"ERROR: {e}\n")
+
+        # Experiment 3: CV dominance analysis
+        print(f"\n>>> CV Dominance Analysis (quantity vs probability nodes)", flush=True)
+        try:
+            cv_result = cv_dominance_analysis()
+            cv_section = format_cv_dominance_section(cv_result)
+            f.write(cv_section + "\n")
+            n_dom = cv_result["n_dominate"]
+            n_total = cv_result["n_dominate"] + cv_result["n_not_dominate"] + cv_result["n_tied"]
+            print(f"  Dominance holds in {n_dom}/{n_total} cells", flush=True)
+        except Exception as e:
+            print(f"  ERROR: {e}", flush=True)
+            f.write(f"\nCV dominance analysis error: {e}\n")
+
+        print(f"\n>>> CV heatmaps (human-Delphi-style tables)", flush=True)
+        try:
+            heatmap_paths = save_cv_heatmap_figures(Path(__file__).parent)
+            for p in heatmap_paths:
+                f.write(f"\nCV heatmap written: {p}\n")
+                print(f"  Saved: {p}", flush=True)
+        except Exception as e:
+            print(f"  ERROR (heatmaps): {e}", flush=True)
+            f.write(f"\nCV heatmap error: {e}\n")
 
         f.write("\n\n")
         f.write("=" * 80 + "\n")

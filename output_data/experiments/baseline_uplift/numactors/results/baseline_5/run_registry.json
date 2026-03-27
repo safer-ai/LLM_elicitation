@@ -1,0 +1,77 @@
+{
+  "runs": [
+    {
+      "run_id": "20260321_222607",
+      "timestamp_start": "2026-03-21T22:26:07.196606",
+      "timestamp_end": "2026-03-21T22:27:31.721877",
+      "output_path": "output_data/experiments/baseline_uplift/numactors/results/baseline_5/runs/20260321_222607",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-6",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 0,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "output_data/experiments/baseline_uplift/numactors/scenarios/scenario_numactors_5.yaml",
+        "duration_seconds": 84.53
+      }
+    },
+    {
+      "run_id": "20260321_222444",
+      "timestamp_start": "2026-03-21T22:24:44.223643",
+      "timestamp_end": "2026-03-21T22:26:00.825722",
+      "output_path": "output_data/experiments/baseline_uplift/numactors/results/baseline_5/runs/20260321_222444",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-6",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 0,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "output_data/experiments/baseline_uplift/numactors/scenarios/scenario_numactors_5.yaml",
+        "duration_seconds": 76.6
+      }
+    },
+    {
+      "run_id": "20260321_222316",
+      "timestamp_start": "2026-03-21T22:23:16.870571",
+      "timestamp_end": "2026-03-21T22:24:37.822694",
+      "output_path": "output_data/experiments/baseline_uplift/numactors/results/baseline_5/runs/20260321_222316",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-6",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 0,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "output_data/experiments/baseline_uplift/numactors/scenarios/scenario_numactors_5.yaml",
+        "duration_seconds": 80.95
+      }
+    },
+    {
+      "run_id": "20260321_222147",
+      "timestamp_start": "2026-03-21T22:21:47.547253",
+      "timestamp_end": "2026-03-21T22:23:10.448458",
+      "output_path": "output_data/experiments/baseline_uplift/numactors/results/baseline_5/runs/20260321_222147",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-6",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 0,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "output_data/experiments/baseline_uplift/numactors/scenarios/scenario_numactors_5.yaml",
+        "duration_seconds": 82.9
+      }
+    }
+  ],
+  "last_updated": "2026-03-21T22:27:31.722663"
+}

@@ -362,6 +362,28 @@ Var_max = mean × (1 - mean)
 - `frechet_anova/beta_cross_model_distributions.png`
 - `frechet_anova/beta_full_distribution_grid.png`
 
+### 7.3 NumActors (PERT) + human-Delphi-style CV tables (LLM)
+
+**Script:** `frechet_anova/frechet_anova_numactors.py`
+
+**Text output (Fréchet ANOVA + CV dominance, no figure):**
+- `frechet_anova/frechet_anova_results_numactors.txt`
+
+**LLM analogue of the human Delphi CV grid** (mean, CV%, and *n* in each cell; rows = `# of actors` + probability steps, columns = benchmark tasks):
+- `frechet_anova/cv_heatmap_delphi_style_GPT-4o.png`
+- `frechet_anova/cv_heatmap_delphi_style_Gemini_25_Pro.png`
+- `frechet_anova/cv_heatmap_delphi_style_Claude_Sonnet_45.png`
+- `frechet_anova/cv_heatmap_delphi_style_all_models.png` (three panels)
+
+Regenerate by running `python3 frechet_anova_numactors.py` from the `frechet_anova/` directory, or only the figures:
+
+```bash
+cd output_data/experiments/frechet_anova
+python3 -c "from frechet_anova_numactors import save_cv_heatmap_figures; save_cv_heatmap_figures()"
+```
+
+*Note:* Human Delphi used *n* experts per cell; here *n* is the count of pooled observations (runs × personas) in the CSVs. Tasks that appear only in probability runs (e.g. T1657 on `Labyrinth Linguist`) show a filled row for that step and “—” for `# of actors` if there is no matching quantity run.
+
 ---
 
 ## 8. Adaptation Plan for Percentile Format

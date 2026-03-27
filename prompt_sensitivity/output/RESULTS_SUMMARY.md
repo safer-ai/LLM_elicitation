@@ -11,10 +11,10 @@ This analysis measures how different prompt variations affect LLM probability es
 ### 1. **Control** (Baseline)
 - **What it is**: Full prompt with all scaffolding
 - **Key features**:
-  - ✅ Baseline probability estimate (50% with 5th-95th percentile CI)
-  - ✅ Confidence interval bounds provided
-  - ✅ 3-phase reasoning structure (Phase 1: Capability transfer, Phase 2: Real-world friction, Phase 3: Integration)
-  - ✅ Full task analysis step
+  -  Baseline probability estimate (50% with 5th-95th percentile CI)
+  -  Confidence interval bounds provided
+  -  3-phase reasoning structure (Phase 1: Capability transfer, Phase 2: Real-world friction, Phase 3: Integration)
+  -  Full task analysis step
 - **Purpose**: Reference condition to measure deviations
 - **Sample size**: 10 runs (9 valid distributions)
 
@@ -89,22 +89,22 @@ This analysis measures how different prompt variations affect LLM probability es
 
 ### Ranking by Deviation from Control (W1 distance)
 
-1. **No Baseline + No CI**: 0.239 ± 0.082 (7.1x baseline variance) ⚠️ **LARGEST**
-2. **No Baseline**: 0.175 ± 0.079 (5.2x baseline variance) ⚠️
-3. **Trim All**: 0.115 ± 0.018 (3.4x baseline variance) ⚠️
+1. **No Baseline + No CI**: 0.239 ± 0.082 (7.1x baseline variance)  **LARGEST**
+2. **No Baseline**: 0.175 ± 0.079 (5.2x baseline variance) 
+3. **Trim All**: 0.115 ± 0.018 (3.4x baseline variance) 
 4. **Skip Analysis**: 0.049 ± 0.023 (1.5x baseline variance)
-5. **No CI**: 0.028 ± 0.017 (0.8x baseline variance) ✅
-6. **Trim Reasoning**: 0.026 ± 0.015 (0.8x baseline variance) ✅
+5. **No CI**: 0.028 ± 0.017 (0.8x baseline variance) 
+6. **Trim Reasoning**: 0.026 ± 0.015 (0.8x baseline variance) 
 
 ### Statistical Significance
 
 **Conditions with distance > within-control variance:**
-- ✅ **No Baseline + No CI** - Significantly different
-- ✅ **No Baseline** - Significantly different
-- ✅ **Trim All** - Significantly different
-- ⚠️ **Skip Analysis** - Moderately different
-- ❌ **No CI** - Not significantly different
-- ❌ **Trim Reasoning** - Not significantly different
+-  **No Baseline + No CI** - Significantly different
+-  **No Baseline** - Significantly different
+-  **Trim All** - Significantly different
+-  **Skip Analysis** - Moderately different
+-  **No CI** - Not significantly different
+-  **Trim Reasoning** - Not significantly different
 
 ---
 
@@ -120,14 +120,14 @@ This analysis measures how different prompt variations affect LLM probability es
 ### Practical Implications:
 
 **Minimal safe prompt** (based on findings):
-- ✅ Include baseline probability estimate
-- ❌ Can omit confidence interval bounds
-- ❌ Can omit reasoning structure
-- ⚠️ Include brief analysis context
+-  Include baseline probability estimate
+-  Can omit confidence interval bounds
+-  Can omit reasoning structure
+-  Include brief analysis context
 
 **Avoid**:
-- ❌ Removing baseline anchor (causes 5x variance increase)
-- ❌ Removing ALL guidance (causes 3x variance increase)
+-  Removing baseline anchor (causes 5x variance increase)
+-  Removing ALL guidance (causes 3x variance increase)
 
 ---
 

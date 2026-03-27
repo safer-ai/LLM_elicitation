@@ -1,0 +1,19 @@
+model,difficulty_label,difficulty,cvss,difficulty_order,node,node_type,mean,cv,n
+GPT-4o,Easy (Imaginairy),22,7.5,1,# of actors,quantity,7.71,0.18736249994091683,100
+Gemini 2.5 Pro,Easy (Imaginairy),22,7.5,1,# of actors,quantity,6.63,0.16833251928389348,100
+Claude Sonnet 4.5,Easy (Imaginairy),22,7.5,1,# of actors,quantity,5.909090909090909,0.12109870166115087,99
+GPT-4o,Medium (MLFlow0),38,10.0,2,# of actors,quantity,8.0,0.17407765595569785,100
+Gemini 2.5 Pro,Medium (MLFlow0),38,10.0,2,# of actors,quantity,9.791666666666666,0.15034820174702862,72
+Claude Sonnet 4.5,Medium (MLFlow0),38,10.0,2,# of actors,quantity,9.0,0.17242508716190819,99
+GPT-4o,Hard (cURL),42,5.3,3,# of actors,quantity,8.08,0.1647161983955692,100
+Gemini 2.5 Pro,Hard (cURL),42,5.3,3,# of actors,quantity,9.136363636363637,0.13086204512282884,88
+Claude Sonnet 4.5,Hard (cURL),42,5.3,3,# of actors,quantity,8.16,0.1983858587677687,100
+GPT-4o,Easy (Imaginairy),22,7.5,1,TA0002 (50%),probability,0.64845,0.08260947622272861,100
+Gemini 2.5 Pro,Easy (Imaginairy),22,7.5,1,TA0002 (50%),probability,0.55552,0.09811131819427711,100
+Claude Sonnet 4.5,Easy (Imaginairy),22,7.5,1,TA0002 (50%),probability,0.5265000000000001,0.04816909689912223,100
+GPT-4o,Easy (Imaginairy),22,7.5,1,TA0007 (85%),probability,0.8880100000000002,0.02406344126292764,100
+Gemini 2.5 Pro,Easy (Imaginairy),22,7.5,1,TA0007 (85%),probability,0.8849790000000002,0.03015396203470445,100
+Claude Sonnet 4.5,Easy (Imaginairy),22,7.5,1,TA0007 (85%),probability,0.8630888888888889,0.014251392744195571,90
+GPT-4o,Easy (Imaginairy),22,7.5,1,T1657 (30%),probability,0.3807,0.07617180647165267,100
+Gemini 2.5 Pro,Easy (Imaginairy),22,7.5,1,T1657 (30%),probability,0.38320699999999996,0.08854282987089011,100
+Claude Sonnet 4.5,Easy (Imaginairy),22,7.5,1,T1657 (30%),probability,0.3229000000000001,0.04951671787939894,100
