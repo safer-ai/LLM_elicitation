@@ -2,7 +2,7 @@
 authors = ["m-smith <matt.ja.smith@gmail.com>"]
 channels = ["conda-forge"]
 name = "difficulty_estimation"
-platforms = ["osx-arm64"]
+platforms = ["osx-arm64", "linux-64"]
 version = "0.1.0"
 
 [tasks]
@@ -15,7 +15,13 @@ marimo = ">=0.18.0,<1"
 matplotlib = ">=3.10.7,<4"
 numpy = ">=2.3.4,<3"
 scipy = ">=1.16.3,<2"
+attrs = ">=26.1.0,<27"
+platformdirs = ">=4.9.4,<5"
+multidict = ">=6.7.1,<7"
+aiohttp = ">=3.13.3,<4"
 
 [pypi-dependencies]
-dotenv = ">=0.9.9, <0.10"
+python-dotenv = ">=1.0.0"
 anthropic = ">=0.72.0, <0.73"
+epochai = "*"
+boto3 = "*"
