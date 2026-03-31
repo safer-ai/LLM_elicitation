@@ -1,0 +1,660 @@
+{
+  "metadata": {
+    "benchmark_name": "livebench_coding_completion",
+    "source": "livebench/model_judgment (HuggingFace)",
+    "n_models": 162,
+    "n_questions": 50,
+    "score_scale": "fraction_0_1",
+    "notes": "Pass@1 rate across 50 coding_completion coding tasks from LiveBench."
+  },
+  "results": [
+    {
+      "model": "o3-mini-2025-01-31-high",
+      "score": 0.86
+    },
+    {
+      "model": "gemini-2.5-pro-exp-03-25",
+      "score": 0.82
+    },
+    {
+      "model": "claude-3-7-sonnet-20250219-base",
+      "score": 0.76
+    },
+    {
+      "model": "claude-3-7-sonnet-20250219-thinking-64k",
+      "score": 0.76
+    },
+    {
+      "model": "gpt-4.5-preview-2025-02-27",
+      "score": 0.76
+    },
+    {
+      "model": "claude-3-5-sonnet-20241022",
+      "score": 0.74
+    },
+    {
+      "model": "o1-2024-12-17-high",
+      "score": 0.74
+    },
+    {
+      "model": "claude-3-7-sonnet-20250219-thinking-25k",
+      "score": 0.7
+    },
+    {
+      "model": "deepseek-v3-0324",
+      "score": 0.7
+    },
+    {
+      "model": "gemini-2.0-pro-exp-02-05",
+      "score": 0.68
+    },
+    {
+      "model": "wbot-4:347b_no_s",
+      "score": 0.68
+    },
+    {
+      "model": "chatgpt-4o-latest-2025-01-29",
+      "score": 0.66
+    },
+    {
+      "model": "qwen2.5-max",
+      "score": 0.66
+    },
+    {
+      "model": "Qwen2.5-72B-Instruct-Turbo",
+      "score": 0.64
+    },
+    {
+      "model": "claude-3-5-sonnet-20240620",
+      "score": 0.64
+    },
+    {
+      "model": "dracarys2-72b-instruct",
+      "score": 0.64
+    },
+    {
+      "model": "gemini-exp-1206",
+      "score": 0.64
+    },
+    {
+      "model": "chatgpt-4o-latest-2025-03-27",
+      "score": 0.62
+    },
+    {
+      "model": "codegen3_5k-qwen2.5-72b-instruct-2-chk-50",
+      "score": 0.62
+    },
+    {
+      "model": "deepseek-v3",
+      "score": 0.62
+    },
+    {
+      "model": "gemini-2.0-flash-exp",
+      "score": 0.6
+    },
+    {
+      "model": "sonar-pro",
+      "score": 0.6
+    },
+    {
+      "model": "gpt-4o-2024-08-06",
+      "score": 0.58
+    },
+    {
+      "model": "Qwen2.5-Coder-32B-Instruct",
+      "score": 0.56
+    },
+    {
+      "model": "gemini-exp-1114",
+      "score": 0.56
+    },
+    {
+      "model": "grok-3",
+      "score": 0.56
+    },
+    {
+      "model": "o1-2024-12-17-medium",
+      "score": 0.56
+    },
+    {
+      "model": "qwq-32b",
+      "score": 0.56
+    },
+    {
+      "model": "claude-3-5-haiku-20241022",
+      "score": 0.54
+    },
+    {
+      "model": "deepseek-r1",
+      "score": 0.54
+    },
+    {
+      "model": "gemini-1.5-pro-002",
+      "score": 0.54
+    },
+    {
+      "model": "gemini-2.0-flash-001",
+      "score": 0.54
+    },
+    {
+      "model": "learnlm-1.5-pro-experimental",
+      "score": 0.54
+    },
+    {
+      "model": "o1",
+      "score": 0.54
+    },
+    {
+      "model": "sky-t1-32b-preview",
+      "score": 0.54
+    },
+    {
+      "model": "gemini-exp-1121",
+      "score": 0.52
+    },
+    {
+      "model": "gpt-4-1106-preview",
+      "score": 0.52
+    },
+    {
+      "model": "step-2-16k-202411",
+      "score": 0.52
+    },
+    {
+      "model": "deepseek-chat",
+      "score": 0.5
+    },
+    {
+      "model": "deepseek-r1-local-2",
+      "score": 0.5
+    },
+    {
+      "model": "gpt-4o-2024-05-13",
+      "score": 0.5
+    },
+    {
+      "model": "o1-2024-12-17-low",
+      "score": 0.5
+    },
+    {
+      "model": "o3-mini-2025-01-31-medium",
+      "score": 0.5
+    },
+    {
+      "model": "chatgpt-4o-latest-2025-01-30",
+      "score": 0.48
+    },
+    {
+      "model": "gemini-2.0-flash-lite-001",
+      "score": 0.48
+    },
+    {
+      "model": "gemini-2.0-flash-thinking-exp-01-21",
+      "score": 0.48
+    },
+    {
+      "model": "gpt-4-turbo-2024-04-09",
+      "score": 0.48
+    },
+    {
+      "model": "grok-2-1212",
+      "score": 0.48
+    },
+    {
+      "model": "grok-beta",
+      "score": 0.48
+    },
+    {
+      "model": "mistral-large-2407",
+      "score": 0.48
+    },
+    {
+      "model": "mistral-large-2411",
+      "score": 0.48
+    },
+    {
+      "model": "gemini-1.5-pro-exp-0827",
+      "score": 0.46
+    },
+    {
+      "model": "gemini-2.0-flash-thinking-exp-1219",
+      "score": 0.46
+    },
+    {
+      "model": "gpt-4o-2024-11-20",
+      "score": 0.46
+    },
+    {
+      "model": "grok-3-beta",
+      "score": 0.46
+    },
+    {
+      "model": "o3-mini-2025-01-31-low",
+      "score": 0.46
+    },
+    {
+      "model": "Meta-Llama-3.1-405B-Instruct-Turbo",
+      "score": 0.44
+    },
+    {
+      "model": "gemini-1.5-flash-002",
+      "score": 0.44
+    },
+    {
+      "model": "gemini-1.5-flash-exp-0827",
+      "score": 0.44
+    },
+    {
+      "model": "gemini-1.5-pro-exp-0801",
+      "score": 0.44
+    },
+    {
+      "model": "gemini-2.0-flash-lite-preview-02-05",
+      "score": 0.44
+    },
+    {
+      "model": "gpt-4o-mini-2024-07-18",
+      "score": 0.44
+    },
+    {
+      "model": "o1-preview-2024-09-12",
+      "score": 0.44
+    },
+    {
+      "model": "deepseek-coder",
+      "score": 0.42
+    },
+    {
+      "model": "lcb-math-qwen2-72b-instructv3-merged-50",
+      "score": 0.42
+    },
+    {
+      "model": "meta-llama-3.1-405b-instruct-turbo",
+      "score": 0.42
+    },
+    {
+      "model": "claude-3-opus-20240229",
+      "score": 0.4
+    },
+    {
+      "model": "gemma-3-27b-it",
+      "score": 0.4
+    },
+    {
+      "model": "gpt-4-0125-preview",
+      "score": 0.4
+    },
+    {
+      "model": "gpt-4-0613",
+      "score": 0.4
+    },
+    {
+      "model": "qwen2-math-72b-instruct",
+      "score": 0.4
+    },
+    {
+      "model": "Qwen2.5-7B-Instruct-Turbo",
+      "score": 0.38
+    },
+    {
+      "model": "coding2-amcfull-apifull-mmlu12k-meta-llama-3.1-70b-instruct-chk-150",
+      "score": 0.38
+    },
+    {
+      "model": "dracarys2-llama-3.1-70b-instruct",
+      "score": 0.38
+    },
+    {
+      "model": "hunyuan-turbos-20250313",
+      "score": 0.38
+    },
+    {
+      "model": "gemma-2-27b-it",
+      "score": 0.36
+    },
+    {
+      "model": "llama-3.3-70b-instruct-turbo",
+      "score": 0.36
+    },
+    {
+      "model": "mistral-small-2501",
+      "score": 0.36
+    },
+    {
+      "model": "Qwen2-72B-Instruct",
+      "score": 0.34
+    },
+    {
+      "model": "amazon.nova-pro-v1:0",
+      "score": 0.34
+    },
+    {
+      "model": "deepseek-r1-distill-llama-70b",
+      "score": 0.34
+    },
+    {
+      "model": "gemini-1.5-flash-001",
+      "score": 0.34
+    },
+    {
+      "model": "grok-2",
+      "score": 0.34
+    },
+    {
+      "model": "grok-2-mini",
+      "score": 0.34
+    },
+    {
+      "model": "grok-3-mini-reasoning-beta",
+      "score": 0.34
+    },
+    {
+      "model": "meta-llama-3.1-70b-instruct-turbo",
+      "score": 0.34
+    },
+    {
+      "model": "mistral-small-2503",
+      "score": 0.34
+    },
+    {
+      "model": "Meta-Llama-3.1-70B-Instruct-Turbo",
+      "score": 0.32
+    },
+    {
+      "model": "acm_rewrite_qwen2-72B-Chat",
+      "score": 0.32
+    },
+    {
+      "model": "azerogpt",
+      "score": 0.32
+    },
+    {
+      "model": "coding-meta-llama-3.1-70b-instruct-chk-50",
+      "score": 0.32
+    },
+    {
+      "model": "hermes-3-llama-3.1-70b",
+      "score": 0.32
+    },
+    {
+      "model": "llama-3.1-nemotron-70b-instruct",
+      "score": 0.32
+    },
+    {
+      "model": "o1-mini-2024-09-12",
+      "score": 0.32
+    },
+    {
+      "model": "gemini-1.5-pro-001",
+      "score": 0.3
+    },
+    {
+      "model": "amazon.nova-lite-v1:0",
+      "score": 0.28
+    },
+    {
+      "model": "gemini-1.5-flash-8b-exp-0827",
+      "score": 0.28
+    },
+    {
+      "model": "open-mistral-nemo",
+      "score": 0.28
+    },
+    {
+      "model": "phi-4",
+      "score": 0.28
+    },
+    {
+      "model": "sonar",
+      "score": 0.28
+    },
+    {
+      "model": "Mixtral-8x22B-Instruct-v0.1",
+      "score": 0.26
+    },
+    {
+      "model": "gpt-3.5-turbo-0125",
+      "score": 0.26
+    },
+    {
+      "model": "gemini-1.5-flash-8b-exp-0924",
+      "score": 0.24
+    },
+    {
+      "model": "gpt-3.5-turbo-1106",
+      "score": 0.24
+    },
+    {
+      "model": "mistral-large-2402",
+      "score": 0.24
+    },
+    {
+      "model": "Qwen2-7B-Instruct",
+      "score": 0.22
+    },
+    {
+      "model": "claude-3-haiku-20240307",
+      "score": 0.22
+    },
+    {
+      "model": "claude-3-sonnet-20240229",
+      "score": 0.22
+    },
+    {
+      "model": "mistral-small-2409",
+      "score": 0.22
+    },
+    {
+      "model": "DeepSeek-Coder-V2-Lite-Instruct",
+      "score": 0.2
+    },
+    {
+      "model": "Phi-3-small-128k-instruct",
+      "score": 0.2
+    },
+    {
+      "model": "Qwen1.5-72B-Chat",
+      "score": 0.2
+    },
+    {
+      "model": "QwQ-32B-Preview",
+      "score": 0.18
+    },
+    {
+      "model": "Qwen1.5-110B-Chat",
+      "score": 0.18
+    },
+    {
+      "model": "gemma-2-9b-it",
+      "score": 0.18
+    },
+    {
+      "model": "mistral-small-2402",
+      "score": 0.18
+    },
+    {
+      "model": "qwq-32b-preview",
+      "score": 0.18
+    },
+    {
+      "model": "Phi-3-medium-128k-instruct",
+      "score": 0.16
+    },
+    {
+      "model": "Phi-3-small-8k-instruct",
+      "score": 0.16
+    },
+    {
+      "model": "amazon.nova-micro-v1:0",
+      "score": 0.16
+    },
+    {
+      "model": "Meta-Llama-3-8B-Instruct",
+      "score": 0.14
+    },
+    {
+      "model": "Phi-3-medium-4k-instruct",
+      "score": 0.14
+    },
+    {
+      "model": "Phi-3.5-MoE-instruct",
+      "score": 0.14
+    },
+    {
+      "model": "command-r-08-2024",
+      "score": 0.14
+    },
+    {
+      "model": "Meta-Llama-3-70B-Instruct",
+      "score": 0.12
+    },
+    {
+      "model": "Smaug-Qwen2-72B-Instruct",
+      "score": 0.12
+    },
+    {
+      "model": "command-r-plus-04-2024",
+      "score": 0.12
+    },
+    {
+      "model": "command-r-plus-08-2024",
+      "score": 0.12
+    },
+    {
+      "model": "llama-4-maverick-17b-128e-instruct",
+      "score": 0.12
+    },
+    {
+      "model": "Meta-Llama-3.1-8B-Instruct-Turbo",
+      "score": 0.1
+    },
+    {
+      "model": "Phi-3-mini-4k-instruct",
+      "score": 0.1
+    },
+    {
+      "model": "Phi-3.5-mini-instruct",
+      "score": 0.1
+    },
+    {
+      "model": "Starling-LM-7B-beta",
+      "score": 0.1
+    },
+    {
+      "model": "command-r-03-2024",
+      "score": 0.1
+    },
+    {
+      "model": "deepseek-r1-distill-qwen-32b",
+      "score": 0.1
+    },
+    {
+      "model": "DeepSeek-R1-Distill-Qwen-32B",
+      "score": 0.08
+    },
+    {
+      "model": "olmo-2-1124-13b-instruct",
+      "score": 0.08
+    },
+    {
+      "model": "Mistral-7B-Instruct-v0.2",
+      "score": 0.06
+    },
+    {
+      "model": "OpenHermes-2.5-Mistral-7B",
+      "score": 0.06
+    },
+    {
+      "model": "Phi-3-mini-128k-instruct",
+      "score": 0.06
+    },
+    {
+      "model": "Qwen1.5-7B-Chat",
+      "score": 0.06
+    },
+    {
+      "model": "Reflection-Llama-3.1-70B",
+      "score": 0.06
+    },
+    {
+      "model": "mathstral-7B-v0.1",
+      "score": 0.06
+    },
+    {
+      "model": "meta-llama-3.1-8b-instruct-turbo",
+      "score": 0.06
+    },
+    {
+      "model": "open-mixtral-8x22b",
+      "score": 0.06
+    },
+    {
+      "model": "DeepSeek-V2-Lite-Chat",
+      "score": 0.04
+    },
+    {
+      "model": "Mistral-7B-Instruct-v0.3",
+      "score": 0.04
+    },
+    {
+      "model": "Qwen2-1.5B-Instruct",
+      "score": 0.04
+    },
+    {
+      "model": "Yi-6B-Chat",
+      "score": 0.04
+    },
+    {
+      "model": "vicuna-7b-v1.5-16k",
+      "score": 0.04
+    },
+    {
+      "model": "zephyr-7b-alpha",
+      "score": 0.04
+    },
+    {
+      "model": "Mixtral-8x7B-Instruct-v0.1",
+      "score": 0.02
+    },
+    {
+      "model": "open-mixtral-8x7b",
+      "score": 0.02
+    },
+    {
+      "model": "perplexity-sonar-reasoning",
+      "score": 0.02
+    },
+    {
+      "model": "zephyr-7b-beta",
+      "score": 0.02
+    },
+    {
+      "model": "Llama-2-7b-chat-hf",
+      "score": 0.0
+    },
+    {
+      "model": "Qwen1.5-0.5B-Chat",
+      "score": 0.0
+    },
+    {
+      "model": "Qwen1.5-1.8B-Chat",
+      "score": 0.0
+    },
+    {
+      "model": "Qwen1.5-4B-Chat",
+      "score": 0.0
+    },
+    {
+      "model": "Qwen2-0.5B-Instruct",
+      "score": 0.0
+    },
+    {
+      "model": "gemma-1.1-7b-it",
+      "score": 0.0
+    },
+    {
+      "model": "vicuna-7b-v1.5",
+      "score": 0.0
+    }
+  ]
+}
