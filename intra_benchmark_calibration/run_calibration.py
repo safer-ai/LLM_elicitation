@@ -13,10 +13,12 @@ import argparse
 import sys
 from pathlib import Path
 
-# Import local modules
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 from config import load_intra_benchmark_config
-from llm_client import initialize_client
-from loaders import load_prompts, load_experts, load_benchmark
+from shared.llm_client import initialize_client
+from shared.loaders import load_prompts, load_experts, load_benchmark
 from workflow import run_intra_benchmark_estimation
 
 logger = logging.getLogger("IntraBenchmarkCalibration")

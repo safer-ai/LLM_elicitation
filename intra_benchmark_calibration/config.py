@@ -12,7 +12,11 @@ import logging
 from pathlib import Path
 from dataclasses import dataclass, field
 from typing import Optional
-from llm_client import LLMSettings
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from shared.llm_client import LLMSettings
 
 logger = logging.getLogger(__name__)
 
