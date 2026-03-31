@@ -11,6 +11,7 @@ import asyncio
 import datetime
 import logging
 import time
+from pathlib import Path
 import numpy as np
 from typing import List, Dict, Any, Optional, Union
 from asyncio import Semaphore
@@ -25,10 +26,12 @@ try:
 except ImportError:
     AsyncOpenAI = None
 
-# Import local modules
-from data_models import ExpertProfile
-from llm_client import make_api_call
-from parsing import parse_probability_response
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from shared.data_models import ExpertProfile
+from shared.llm_client import make_api_call
+from shared.parsing import parse_probability_response
 from config import IntraBenchmarkConfig
 from data_loader import load_ground_truth, validate_ground_truth_data
 from task_selector import (

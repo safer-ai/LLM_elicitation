@@ -1,17 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-Input data loading utilities (backward-compatible shim).
+Input data loading utilities shared across experiments.
 
-Re-exports from shared.loaders for backward compatibility.
+Functions to load prompts, expert profiles, and benchmark files.
 """
-
-import sys
-from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import yaml
 import logging
+from pathlib import Path
 from typing import Dict, List, Optional
 from shared.data_models import ExpertProfile, BenchmarkTask, Benchmark
 from shared.benchmark_adapter import get_adapter
@@ -22,9 +19,6 @@ logger = logging.getLogger(__name__)
 def load_prompts(prompts_dir: Path) -> Optional[Dict[str, str]]:
     """
     Loads all prompt template files from the specified directory.
-
-    Args:
-        prompts_dir: Path to directory containing prompt .txt files
 
     Returns:
         Dictionary mapping prompt names (without .txt extension) to their content strings.
@@ -46,7 +40,7 @@ def load_prompts(prompts_dir: Path) -> Optional[Dict[str, str]]:
         return {}
 
     for prompt_file in prompt_files:
-        prompt_name = prompt_file.stem  # Filename without extension
+        prompt_name = prompt_file.stem
         try:
             with open(prompt_file, 'r', encoding='utf-8') as f:
                 content = f.read()
@@ -63,9 +57,6 @@ def load_prompts(prompts_dir: Path) -> Optional[Dict[str, str]]:
 def load_experts(expert_profiles_file: Path) -> Optional[List[ExpertProfile]]:
     """
     Loads expert profiles from a YAML file.
-
-    Args:
-        expert_profiles_file: Path to the expert profiles YAML file
 
     Returns:
         List of ExpertProfile objects, or None if loading fails.
@@ -118,10 +109,6 @@ def load_benchmark(benchmark_file: Path, benchmark_name: str) -> Optional[Benchm
     """
     Loads a benchmark definition from a YAML file.
 
-    Args:
-        benchmark_file: Path to the benchmark YAML file
-        benchmark_name: Name of the benchmark
-
     Returns:
         Benchmark object, or None if loading fails.
     """
@@ -143,25 +130,22 @@ def load_benchmark(benchmark_file: Path, benchmark_name: str) -> Optional[Benchm
         logger.error("Benchmark file must contain a YAML dictionary")
         return None
 
-    # Extract benchmark metadata
     description = data.get('benchmark_description', '')
     metrics_to_use = data.get('metrics_to_use_for_estimation', [])
 
-    # Extract tasks
     tasks_data = data.get('tasks', [])
     if not isinstance(tasks_data, list):
         logger.error("'tasks' must be a list of task dictionaries")
         return None
-    
+
     if not tasks_data:
         logger.warning("No tasks found in benchmark file")
         return None
 
-    # Get the appropriate adapter for this benchmark
     if not benchmark_name:
         logger.error("benchmark_name parameter is required but was not provided")
         return None
-    
+
     adapter = get_adapter(benchmark_name)
     logger.info(f"Using adapter for benchmark: {benchmark_name}")
 
@@ -170,7 +154,7 @@ def load_benchmark(benchmark_file: Path, benchmark_name: str) -> Optional[Benchm
         try:
             task_name = adapter.get_task_name(task_dict)
             task_description = adapter.get_task_description(task_dict)
-            
+
             task = BenchmarkTask(
                 name=task_name,
                 description=task_description,
@@ -193,4 +177,3 @@ def load_benchmark(benchmark_file: Path, benchmark_name: str) -> Optional[Benchm
     logger.info(f"  - Metrics to use: {metrics_to_use}")
 
     return benchmark
-
