@@ -293,7 +293,8 @@ async def run_inter_benchmark_estimation(
         temperature=config.llm_settings.temperature,
         output_base_dir=config.output_dir,
         n_source_bins=ground_truth_data['metadata'].get('n_source_bins', 0),
-        n_target_percentiles=ground_truth_data['metadata'].get('n_target_percentiles', 0)
+        n_target_percentiles=ground_truth_data['metadata'].get('n_target_percentiles', 0),
+        ground_truth_file=str(config.ground_truth_file)
     )
 
     if not run_info:
@@ -440,6 +441,17 @@ async def run_inter_benchmark_estimation(
         else:
             final_mean = final_median = final_std = None
 
+        source_task_solve_rates = []
+        for bm_name, tasks in source_tasks_by_bm.items():
+            for task in tasks:
+                sr = task.metrics.get('solve_rate')
+                if sr is not None:
+                    source_task_solve_rates.append({
+                        'name': task.name,
+                        'solve_rate': float(sr),
+                        'benchmark': bm_name
+                    })
+
         prediction_result = {
             "source_bin": src_bin,
             "source_bin_range": src_bin_range,
@@ -447,6 +459,7 @@ async def run_inter_benchmark_estimation(
             "target_percentile": target_pct,
             "target_task_index": target_task_idx,
             "target_task_name": target_task.name,
+            "source_task_solve_rates": source_task_solve_rates,
             "delphi_rounds": delphi_rounds_data,
             "final_aggregated_probability": final_mean,
             "final_median": final_median,

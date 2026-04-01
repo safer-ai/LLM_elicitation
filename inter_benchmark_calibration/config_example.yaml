@@ -1,6 +1,3 @@
-# Inter-Benchmark Calibration: LiveBench LCB_generation -> coding_completion
-# Predicts P(model solves target coding_completion task | model scores X% on LCB_generation)
-
 # ============================================================================
 # INTER-BENCHMARK SPECIFIC SETTINGS
 # ============================================================================
