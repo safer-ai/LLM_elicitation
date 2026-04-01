@@ -820,6 +820,10 @@ def plot_cdf_pairs(
             )
             ax.plot(prob_fine, ya, "-", color=_COLOR_A, lw=1.8, label=label_a)
             ax.plot(prob_fine, yb, "-", color=_COLOR_B, lw=1.8, label=label_b)
+            pts_a_q, pts_a_v = zip(*dist_a)
+            pts_b_q, pts_b_v = zip(*dist_b)
+            ax.plot(pts_a_q, pts_a_v, "o", color=_COLOR_A, ms=5, zorder=5)
+            ax.plot(pts_b_q, pts_b_v, "o", color=_COLOR_B, ms=5, zorder=5)
             w1 = w1_distance_beta(dist_a, dist_b)
             prob_levels = np.array([0.0, 0.25, 0.5, 0.75, 1.0])
             tick_labels = ["0%", "25%", "50%", "75%", "100%"]
@@ -843,8 +847,8 @@ def plot_cdf_pairs(
             ax.plot(qa, va, "o-", color=_COLOR_A, lw=1.8, ms=5, label=label_a)
             ax.plot(qb, vb, "o-", color=_COLOR_B, lw=1.8, ms=5, label=label_b)
             w1 = w1_distance(dist_a, dist_b)
-            prob_levels = np.array(sorted(set(qa) | set(qb)))
-            tick_labels = [f"{q:.0%}" for q in prob_levels]
+            prob_levels = np.array([0.0, 0.25, 0.5, 0.75])
+            tick_labels = ["0%", "25%", "50%", "75%"]
 
         ax.set_title(f"W\u2081 = {w1:.4f}  ({label_a} vs {label_b})", fontsize=9, fontweight="bold")
         ax.set_xlabel("Quantile level", fontsize=9)
