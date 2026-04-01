@@ -23,6 +23,16 @@ if not logger.hasHandlers():
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(name)s - %(message)s')
 
 
+def _pair_label(results: Dict) -> str:
+    """Build a 'source → target' label from run metadata."""
+    meta = results.get('run_metadata', {})
+    src = meta.get('source_benchmark', '')
+    tgt = meta.get('target_benchmark', '')
+    if src and tgt:
+        return f"{src} → {tgt}"
+    return ''
+
+
 def load_results(json_path: Path) -> Optional[Dict]:
     """Load inter-benchmark results from JSON."""
     try:
@@ -56,7 +66,7 @@ def extract_calibration_data(results: Dict) -> pd.DataFrame:
     return df
 
 
-def plot_calibration_scatter(df: pd.DataFrame, output_path: Optional[Path] = None, show: bool = False) -> plt.Figure:
+def plot_calibration_scatter(df: pd.DataFrame, output_path: Optional[Path] = None, show: bool = False, benchmark_pair: str = '') -> plt.Figure:
     """Calibration scatter: predicted P(solve) vs ground truth, coloured by source bin."""
     fig, ax = plt.subplots(figsize=(10, 8))
 
@@ -79,7 +89,10 @@ def plot_calibration_scatter(df: pd.DataFrame, output_path: Optional[Path] = Non
 
     ax.set_xlabel('Ground Truth P(solve)', fontsize=14, fontweight='bold')
     ax.set_ylabel('LLM Estimate P(solve)', fontsize=14, fontweight='bold')
-    ax.set_title('Inter-Benchmark Calibration: LLM vs Ground Truth', fontsize=16, fontweight='bold', pad=20)
+    title = 'Inter-Benchmark Calibration: LLM vs Ground Truth'
+    if benchmark_pair:
+        title += f'\n({benchmark_pair})'
+    ax.set_title(title, fontsize=16, fontweight='bold', pad=20)
     ax.legend(fontsize=11, loc='upper left')
     ax.grid(True, alpha=0.3, linestyle='--')
     ax.set_xlim(-0.05, 1.05)
@@ -95,7 +108,7 @@ def plot_calibration_scatter(df: pd.DataFrame, output_path: Optional[Path] = Non
     return fig
 
 
-def plot_transfer_curves(df: pd.DataFrame, output_path: Optional[Path] = None, show: bool = False) -> plt.Figure:
+def plot_transfer_curves(df: pd.DataFrame, output_path: Optional[Path] = None, show: bool = False, benchmark_pair: str = '') -> plt.Figure:
     """Transfer curves: P(solve) vs target percentile, one line per source bin."""
     source_bins = sorted(df['source_bin'].unique())
     n_bins = len(source_bins)
@@ -124,8 +137,10 @@ def plot_transfer_curves(df: pd.DataFrame, output_path: Optional[Path] = None, s
 
     ax.set_xlabel('Target Task Percentile', fontsize=14, fontweight='bold')
     ax.set_ylabel('P(solve)', fontsize=14, fontweight='bold')
-    ax.set_title('Transfer Curves: P(solve target) vs Target Difficulty per Source Bin',
-                 fontsize=16, fontweight='bold', pad=20)
+    title = 'Transfer Curves: P(solve target) vs Target Difficulty per Source Bin'
+    if benchmark_pair:
+        title += f'\n({benchmark_pair})'
+    ax.set_title(title, fontsize=16, fontweight='bold', pad=20)
     ax.legend(fontsize=9, loc='best', ncol=2, framealpha=0.9)
     ax.grid(True, alpha=0.3, linestyle='--')
     ax.set_ylim(-0.05, 1.05)
@@ -139,7 +154,7 @@ def plot_transfer_curves(df: pd.DataFrame, output_path: Optional[Path] = None, s
     return fig
 
 
-def plot_heatmap_comparison(df: pd.DataFrame, output_path: Optional[Path] = None, show: bool = False) -> plt.Figure:
+def plot_heatmap_comparison(df: pd.DataFrame, output_path: Optional[Path] = None, show: bool = False, benchmark_pair: str = '') -> plt.Figure:
     """Side-by-side heatmaps: source bins (rows) x target percentiles (cols)."""
     source_bins = sorted(df['source_bin'].unique())
     target_pcts = sorted(df['target_percentile'].unique())
@@ -186,8 +201,10 @@ def plot_heatmap_comparison(df: pd.DataFrame, output_path: Optional[Path] = None
                         location='right', shrink=0.6, pad=0.05)
     cbar.set_label('Probability', fontsize=13, fontweight='bold', labelpad=15)
 
-    plt.suptitle('Inter-Benchmark: Ground Truth vs LLM Estimates',
-                 fontsize=18, fontweight='bold', y=1.02)
+    suptitle = 'Inter-Benchmark: Ground Truth vs LLM Estimates'
+    if benchmark_pair:
+        suptitle += f'\n({benchmark_pair})'
+    plt.suptitle(suptitle, fontsize=18, fontweight='bold', y=1.02)
 
     if output_path:
         fig.savefig(output_path, dpi=300, bbox_inches='tight')
@@ -197,7 +214,7 @@ def plot_heatmap_comparison(df: pd.DataFrame, output_path: Optional[Path] = None
     return fig
 
 
-def plot_violin_plots(results: Dict, output_path: Optional[Path] = None, show: bool = False) -> plt.Figure:
+def plot_violin_plots(results: Dict, output_path: Optional[Path] = None, show: bool = False, benchmark_pair: str = '') -> plt.Figure:
     """Violin plots: expert estimate distributions per prediction, with GT diamond."""
     predictions = results.get('predictions', [])
     data_rows = []
@@ -247,8 +264,10 @@ def plot_violin_plots(results: Dict, output_path: Optional[Path] = None, show: b
 
     ax.set_xlabel('Prediction (Source Bin -> Target Percentile)', fontsize=14, fontweight='bold')
     ax.set_ylabel('P(solve)', fontsize=14, fontweight='bold')
-    ax.set_title('Expert Estimate Distributions (Final Round)',
-                 fontsize=16, fontweight='bold', pad=20)
+    title = 'Expert Estimate Distributions (Final Round)'
+    if benchmark_pair:
+        title += f'\n({benchmark_pair})'
+    ax.set_title(title, fontsize=16, fontweight='bold', pad=20)
     ax.set_xticks(range(len(unique_pairs)))
     ax.set_xticklabels(unique_pairs['pair'], rotation=45, ha='right')
     ax.legend(fontsize=11, loc='best')
@@ -259,6 +278,100 @@ def plot_violin_plots(results: Dict, output_path: Optional[Path] = None, show: b
     if output_path:
         fig.savefig(output_path, dpi=300, bbox_inches='tight')
         logger.info(f"Saved violin plot to {output_path}")
+    if show:
+        plt.show()
+    return fig
+
+
+def plot_source_target_solve_rates(results: Dict, output_path: Optional[Path] = None, show: bool = False, benchmark_pair: str = '') -> Optional[plt.Figure]:
+    """
+    Scatter plot of P(solve source task) [x] vs P(solve target task) [y].
+
+    Two series per point:
+      - Empirical ground truth (no y error bar)
+      - LLM estimate (y error bar = std across experts)
+
+    X error bar = std across the representative source tasks shown to the LLM.
+    For old results files lacking 'source_task_solve_rates', falls back to
+    source_bin_range midpoint with half-range as x error bar.
+    """
+    predictions = results.get('predictions', [])
+    if not predictions:
+        logger.warning("No predictions for source-target solve rate plot")
+        return None
+
+    n_preds = len(predictions)
+    colours = plt.cm.tab20(np.linspace(0, 1, max(n_preds, 1)))
+
+    using_fallback = not any('source_task_solve_rates' in p for p in predictions)
+
+    fig, ax = plt.subplots(figsize=(10, 8))
+
+    for i, pred in enumerate(predictions):
+        colour = colours[i]
+        gt_p = pred.get('ground_truth_p_solve')
+        llm_p = pred.get('final_aggregated_probability')
+        llm_std = pred.get('final_std_dev') or 0.0
+
+        src_rates = pred.get('source_task_solve_rates')
+        if src_rates:
+            rates = [t['solve_rate'] for t in src_rates]
+            x_mean = float(np.mean(rates))
+            x_err = float(np.std(rates)) if len(rates) > 1 else 0.0
+        else:
+            lo, hi = pred['source_bin_range'][0], pred['source_bin_range'][1]
+            x_mean = (lo + hi) / 2.0
+            x_err = (hi - lo) / 2.0
+
+        tgt_pct = pred.get('target_percentile', '')
+        pair_label = f"bin{pred['source_bin']} → {tgt_pct}%"
+
+        if gt_p is not None:
+            ax.errorbar(
+                x_mean, gt_p,
+                xerr=x_err if x_err > 0 else None,
+                fmt='o', color=colour, markersize=9,
+                ecolor=colour, elinewidth=1.5, capsize=4, capthick=1.5,
+                alpha=0.9, markeredgecolor='black', markeredgewidth=0.8
+            )
+
+        if llm_p is not None:
+            ax.errorbar(
+                x_mean, llm_p,
+                xerr=x_err if x_err > 0 else None,
+                yerr=llm_std if llm_std > 0 else None,
+                fmt='s', color=colour, markersize=9,
+                ecolor=colour, elinewidth=1.5, capsize=4, capthick=1.5,
+                alpha=0.55, markeredgecolor='black', markeredgewidth=0.8
+            )
+
+    ax.plot([0, 1], [0, 1], 'k--', alpha=0.35, linewidth=1.5)
+
+    from matplotlib.lines import Line2D
+    ax.legend(handles=[
+        Line2D([0], [0], marker='o', color='gray', linestyle='None',
+               markersize=9, markeredgecolor='black', label='Empirical solve rate'),
+        Line2D([0], [0], marker='s', color='gray', linestyle='None',
+               markersize=9, markeredgecolor='black', alpha=0.6, label='LLM estimate (±1 std, experts)'),
+        Line2D([0], [0], linestyle='--', color='black', alpha=0.5, label='y = x'),
+    ], fontsize=10, loc='upper left', framealpha=0.9)
+
+    x_label = 'P(solve source task) — bin midpoint ± half-range (approx.)' if using_fallback \
+        else 'P(solve source task) — mean ± std of representative tasks'
+    ax.set_xlabel(x_label, fontsize=12, fontweight='bold')
+    ax.set_ylabel('P(solve target task)', fontsize=12, fontweight='bold')
+    title = 'Source vs Target Solve Rate: Empirical and LLM Estimate'
+    if benchmark_pair:
+        title += f'\n({benchmark_pair})'
+    ax.set_title(title, fontsize=14, fontweight='bold', pad=15)
+    ax.grid(True, alpha=0.3, linestyle='--')
+    ax.set_xlim(-0.05, 1.05)
+    ax.set_ylim(-0.05, 1.05)
+    plt.tight_layout()
+
+    if output_path:
+        fig.savefig(output_path, dpi=300, bbox_inches='tight')
+        logger.info(f"Saved source-target solve rate plot to {output_path}")
     if show:
         plt.show()
     return fig
@@ -344,21 +457,25 @@ if __name__ == '__main__':
         exit(1)
 
     run_id = results['run_metadata']['run_id']
+    pair = _pair_label(results)
     df = extract_calibration_data(results)
 
     print("\nGenerating plots...\n")
 
     p1 = output_dir / f"{run_id}_calibration_scatter.png" if not args.no_save else None
-    plot_calibration_scatter(df, output_path=p1, show=args.show)
+    plot_calibration_scatter(df, output_path=p1, show=args.show, benchmark_pair=pair)
 
     p2 = output_dir / f"{run_id}_transfer_curves.png" if not args.no_save else None
-    plot_transfer_curves(df, output_path=p2, show=args.show)
+    plot_transfer_curves(df, output_path=p2, show=args.show, benchmark_pair=pair)
 
     p3 = output_dir / f"{run_id}_heatmap_comparison.png" if not args.no_save else None
-    plot_heatmap_comparison(df, output_path=p3, show=args.show)
+    plot_heatmap_comparison(df, output_path=p3, show=args.show, benchmark_pair=pair)
 
     p4 = output_dir / f"{run_id}_expert_distributions.png" if not args.no_save else None
-    plot_violin_plots(results, output_path=p4, show=args.show)
+    plot_violin_plots(results, output_path=p4, show=args.show, benchmark_pair=pair)
+
+    p5 = output_dir / f"{run_id}_source_target_solve_rates.png" if not args.no_save else None
+    plot_source_target_solve_rates(results, output_path=p5, show=args.show, benchmark_pair=pair)
 
     print("\nComputing statistics...\n")
     stats = compute_statistics(df)
