@@ -54,7 +54,8 @@ def initialize_inter_benchmark_run(
     temperature: float,
     output_base_dir: Path,
     n_source_bins: int = 0,
-    n_target_percentiles: int = 0
+    n_target_percentiles: int = 0,
+    ground_truth_file: str = ''
 ) -> Optional[Dict[str, Any]]:
     """
     Initialise directory structure and files for an inter-benchmark run.
@@ -109,6 +110,7 @@ def initialize_inter_benchmark_run(
             "mode": "inter_benchmark",
             "source_benchmark": source_name,
             "target_benchmark": target_name,
+            "ground_truth_file": ground_truth_file,
             "n_source_bins": n_source_bins,
             "n_target_percentiles": n_target_percentiles,
             "model": model,
