@@ -1,0 +1,185 @@
+{
+  "runs": [
+    {
+      "run_id": "20260321_171405",
+      "timestamp_start": "2026-03-21T17:14:05.217293",
+      "timestamp_end": "2026-03-21T17:15:22.633605",
+      "output_path": "output_data/experiments/baseline_uplift/results/baseline_70/runs/20260321_171405",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-6",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "output_data/experiments/baseline_uplift/scenarios/scenario_baseline_70.yaml",
+        "duration_seconds": 77.42
+      }
+    },
+    {
+      "run_id": "20260321_171241",
+      "timestamp_start": "2026-03-21T17:12:41.922954",
+      "timestamp_end": "2026-03-21T17:13:57.947486",
+      "output_path": "output_data/experiments/baseline_uplift/results/baseline_70/runs/20260321_171241",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-6",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "output_data/experiments/baseline_uplift/scenarios/scenario_baseline_70.yaml",
+        "duration_seconds": 76.03
+      }
+    },
+    {
+      "run_id": "20260321_171117",
+      "timestamp_start": "2026-03-21T17:11:17.690219",
+      "timestamp_end": "2026-03-21T17:12:35.065324",
+      "output_path": "output_data/experiments/baseline_uplift/results/baseline_70/runs/20260321_171117",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-6",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "output_data/experiments/baseline_uplift/scenarios/scenario_baseline_70.yaml",
+        "duration_seconds": 77.38
+      }
+    },
+    {
+      "run_id": "20260321_170954",
+      "timestamp_start": "2026-03-21T17:09:54.382519",
+      "timestamp_end": "2026-03-21T17:11:10.904289",
+      "output_path": "output_data/experiments/baseline_uplift/results/baseline_70/runs/20260321_170954",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-6",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "output_data/experiments/baseline_uplift/scenarios/scenario_baseline_70.yaml",
+        "duration_seconds": 76.52
+      }
+    },
+    {
+      "run_id": "20260321_170830",
+      "timestamp_start": "2026-03-21T17:08:30.335645",
+      "timestamp_end": "2026-03-21T17:09:47.477946",
+      "output_path": "output_data/experiments/baseline_uplift/results/baseline_70/runs/20260321_170830",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-6",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "output_data/experiments/baseline_uplift/scenarios/scenario_baseline_70.yaml",
+        "duration_seconds": 77.15
+      }
+    },
+    {
+      "run_id": "20260321_170710",
+      "timestamp_start": "2026-03-21T17:07:10.036572",
+      "timestamp_end": "2026-03-21T17:08:22.852481",
+      "output_path": "output_data/experiments/baseline_uplift/results/baseline_70/runs/20260321_170710",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-6",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "output_data/experiments/baseline_uplift/scenarios/scenario_baseline_70.yaml",
+        "duration_seconds": 72.82
+      }
+    },
+    {
+      "run_id": "20260321_170540",
+      "timestamp_start": "2026-03-21T17:05:40.682997",
+      "timestamp_end": "2026-03-21T17:07:03.326973",
+      "output_path": "output_data/experiments/baseline_uplift/results/baseline_70/runs/20260321_170540",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-6",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "output_data/experiments/baseline_uplift/scenarios/scenario_baseline_70.yaml",
+        "duration_seconds": 82.65
+      }
+    },
+    {
+      "run_id": "20260321_170418",
+      "timestamp_start": "2026-03-21T17:04:18.863547",
+      "timestamp_end": "2026-03-21T17:05:33.830394",
+      "output_path": "output_data/experiments/baseline_uplift/results/baseline_70/runs/20260321_170418",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-6",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "output_data/experiments/baseline_uplift/scenarios/scenario_baseline_70.yaml",
+        "duration_seconds": 74.97
+      }
+    },
+    {
+      "run_id": "20260321_170251",
+      "timestamp_start": "2026-03-21T17:02:51.599326",
+      "timestamp_end": "2026-03-21T17:04:12.054506",
+      "output_path": "output_data/experiments/baseline_uplift/results/baseline_70/runs/20260321_170251",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-6",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "output_data/experiments/baseline_uplift/scenarios/scenario_baseline_70.yaml",
+        "duration_seconds": 80.46
+      }
+    },
+    {
+      "run_id": "20260321_170133",
+      "timestamp_start": "2026-03-21T17:01:33.976049",
+      "timestamp_end": "2026-03-21T17:02:44.714140",
+      "output_path": "output_data/experiments/baseline_uplift/results/baseline_70/runs/20260321_170133",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-6",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 1,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "output_data/experiments/baseline_uplift/scenarios/scenario_baseline_70.yaml",
+        "duration_seconds": 70.74
+      }
+    }
+  ],
+  "last_updated": "2026-03-21T17:15:22.634826"
+}

@@ -1,0 +1,2 @@
+run_id,timestamp_start,model,temperature,step_name,task_name,round,expert_name,estimate,percentile_25th,percentile_50th,percentile_75th,rationale,has_error,error_message,task_metric,task_metric_cvss,task_metric_disclosure_bounty,task_metric_patch_bounty
+20260327_005847,2026-03-27T00:58:47.285482,claude-sonnet-4-6,1.0,TA0001 - Initial Access,Imaginairy,1,AI/ML Security Researcher,,,,,,True,Analysis API Call Failed: Error: API Authentication Error,,High (7.5),300,75

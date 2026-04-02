@@ -1,0 +1,59 @@
+{
+  "runs": [
+    {
+      "run_id": "20260327_110921",
+      "timestamp_start": "2026-03-27T11:09:21.693719",
+      "timestamp_end": "2026-03-27T11:20:52.630736",
+      "output_path": "output_data/experiments/baseline_uplift/initial_access/numactors/results/baseline_5/runs/20260327_110921",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-6",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 0,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "output_data/experiments/baseline_uplift/initial_access/numactors/scenarios/scenario_numactors_5.yaml",
+        "duration_seconds": 690.94
+      }
+    },
+    {
+      "run_id": "20260327_110758",
+      "timestamp_start": "2026-03-27T11:07:58.988609",
+      "timestamp_end": "2026-03-27T11:09:15.098686",
+      "output_path": "output_data/experiments/baseline_uplift/initial_access/numactors/results/baseline_5/runs/20260327_110758",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-6",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 0,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "output_data/experiments/baseline_uplift/initial_access/numactors/scenarios/scenario_numactors_5.yaml",
+        "duration_seconds": 76.11
+      }
+    },
+    {
+      "run_id": "20260327_110628",
+      "timestamp_start": "2026-03-27T11:06:28.836206",
+      "timestamp_end": "2026-03-27T11:07:52.379653",
+      "output_path": "output_data/experiments/baseline_uplift/initial_access/numactors/results/baseline_5/runs/20260327_110628",
+      "metadata": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-6",
+        "temperature": 1.0,
+        "delphi_rounds": 1,
+        "num_experts": 1,
+        "num_tasks": 1,
+        "num_steps": 0,
+        "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+        "scenario_file": "output_data/experiments/baseline_uplift/initial_access/numactors/scenarios/scenario_numactors_5.yaml",
+        "duration_seconds": 83.55
+      }
+    }
+  ],
+  "last_updated": "2026-03-27T11:20:52.632495"
+}

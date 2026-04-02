@@ -77,3 +77,6 @@ run
 
 # Temporary experiment data
 input_data/reruns/
+
+# Experiment output: copied configs/scenarios (keep local only)
+output_data/experiments/**/*.yaml

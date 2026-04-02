@@ -1,0 +1,40 @@
+{
+  "run_metadata": {
+    "timestamp_start": "2026-03-27T01:39:36.783639",
+    "config_used": {
+      "llm_settings": {
+        "model": "claude-sonnet-4-6",
+        "temperature": 1.0,
+        "max_concurrent_calls": 1,
+        "rate_limit_calls": 4,
+        "rate_limit_period": 60,
+        "min_seconds_between_calls": 20.0,
+        "thinking": {
+          "enabled": false,
+          "budget_tokens": 6000
+        }
+      },
+      "workflow_settings": {
+        "num_tasks": 1,
+        "num_experts": 1,
+        "scenario_steps": [
+          "TA0001 - Initial Access"
+        ],
+        "delphi_rounds": 1,
+        "convergence_threshold": 100.0,
+        "include_easier_tasks": true,
+        "num_example_tasks": 2,
+        "estimate_num_actors_per_task_benchmark": false,
+        "estimate_num_attacks_per_task_benchmark": false,
+        "estimate_damage_per_task_benchmark": false
+      },
+      "provider": "anthropic",
+      "benchmark_file": "input_data/benchmark/bountybench_ordered.yaml",
+      "scenario_file": "output_data/experiments/baseline_uplift/initial_access/scenarios/scenario_baseline_60.yaml",
+      "num_experts_run": 1,
+      "num_steps_run": 1,
+      "num_tasks_run": 1
+    }
+  },
+  "results_per_step": []
+}
