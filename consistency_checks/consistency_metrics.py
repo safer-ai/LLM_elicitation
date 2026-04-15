@@ -1,6 +1,5 @@
 import itertools
 
-import re
 import numpy as np
 import pandas as pd
 from scipy.stats import beta
@@ -125,6 +124,52 @@ def fit_beta(pts: list[tuple[float, float]]) -> tuple[float, float]:
     result = least_squares(residuals, x0=[np.log(2.0), np.log(2.0)])
     return float(np.exp(result.x[0])), float(np.exp(result.x[1]))
 
+_BETA_GRID_N = 2048
+_BETA_X_GRID = np.linspace(0.0, 1.0, _BETA_GRID_N)
+_BETA_U_GRID = np.linspace(0.0, 1.0, _BETA_GRID_N)
+
+
+def _beta_grids(a: float, b: float) -> tuple[np.ndarray, np.ndarray]:
+    """Precompute CDF and inverse-CDF grids for a Beta(a, b) distribution."""
+    cdf_vals = beta.cdf(_BETA_X_GRID, a, b)
+    ppf_vals = beta.ppf(_BETA_U_GRID, a, b)
+    return cdf_vals, ppf_vals
+
+
+def _w1_from_cdf_grids(cdf1: np.ndarray, cdf2: np.ndarray) -> float:
+    """W1 distance from precomputed CDF grids via trapezoid rule."""
+    return float(np.trapz(np.abs(cdf1 - cdf2), _BETA_X_GRID))
+
+
+def _w2_from_ppf_grids(ppf1: np.ndarray, ppf2: np.ndarray) -> float:
+    """W2 distance from precomputed inverse-CDF grids via trapezoid rule."""
+    return float(np.sqrt(np.trapz((ppf1 - ppf2) ** 2, _BETA_U_GRID)))
+
+
+def _w1_distance_beta_params(
+    a1: float, b1: float, a2: float, b2: float
+) -> float:
+    """W1 distance between two Beta distributions given pre-fit parameters."""
+    def integrand(x):
+        return abs(beta.cdf(x, a1, b1) - beta.cdf(x, a2, b2))
+
+    val, _ = quad(integrand, 0.0, 1.0, epsabs=1e-9, epsrel=1e-9)
+    return val
+
+
+def _w2_distance_beta_params(
+    a1: float, b1: float, a2: float, b2: float
+) -> float:
+    """W2 distance between two Beta distributions given pre-fit parameters."""
+    def integrand(u):
+        q1 = beta.ppf(u, a1, b1)
+        q2 = beta.ppf(u, a2, b2)
+        return (q1 - q2) ** 2
+
+    val, _ = quad(integrand, 0.0, 1.0, epsabs=1e-9, epsrel=1e-9)
+    return val**0.5
+
+
 def w1_distance_beta(
     a: list[tuple[float, float]], b: list[tuple[float, float]]
 ) -> float:
@@ -142,12 +187,7 @@ def w1_distance_beta(
     """
     a1, b1 = fit_beta(a)
     a2, b2 = fit_beta(b)
-
-    def integrand(x):
-        return abs(beta.cdf(x, a1, b1) - beta.cdf(x, a2, b2))
-
-    val, _ = quad(integrand, 0.0, 1.0, epsabs=1e-9, epsrel=1e-9)
-    return val
+    return _w1_distance_beta_params(a1, b1, a2, b2)
 
 def w2_distance_beta(
     a: list[tuple[float, float]], b: list[tuple[float, float]]
@@ -166,14 +206,7 @@ def w2_distance_beta(
     """
     a1, b1 = fit_beta(a)
     a2, b2 = fit_beta(b)
-
-    def integrand(u):
-        q1 = beta.ppf(u, a1, b1)
-        q2 = beta.ppf(u, a2, b2)
-        return (q1 - q2) ** 2
-
-    val, _ = quad(integrand, 0.0, 1.0, epsabs=1e-9, epsrel=1e-9)
-    return val**0.5
+    return _w2_distance_beta_params(a1, b1, a2, b2)
 
 
 def p50_divergence(a: list[tuple[float, float]], b: list[tuple[float, float]]) -> float:
@@ -213,15 +246,16 @@ def iqr_divergence(a: list[tuple[float, float]], b: list[tuple[float, float]]) -
 
     return abs(_iqr(a) - _iqr(b))
 
-def row_to_pairs(row):
-    pattern = re.compile(r'percentile_(\d+)th_mean')
-    pairs = []
-    for col in row.index:
-        m = pattern.search(col)
-        if m:
-            pct = int(m.group(1)) / 100.0
-            pairs.append((pct, row[col]))
-    return sorted(pairs)
+def row_to_pairs(estimates: dict) -> list[tuple[float, float]]:
+    """Convert an estimates dict {percentile_int: value} to sorted (quantile_level, value) pairs.
+
+    Args:
+        estimates: dict with int percentile keys and float values, e.g. {20: 0.4, 60: 0.7}
+
+    Returns:
+        sorted list of (percentile / 100, value) pairs, e.g. [(0.2, 0.4), (0.6, 0.7)]
+    """
+    return sorted((int(p) / 100.0, v) for p, v in estimates.items() if v is not None)
 
 
 def compute_pairwise_results(
@@ -255,19 +289,31 @@ def compute_pairwise_results(
             'w2_beta'         -- beta-fit W2 distance (only if include_beta=True)
     """
     index1 = list(df1.index)
-    records1 = df1.apply(row_to_pairs, axis=1).tolist()
+    records1 = df1["estimates"].apply(row_to_pairs).tolist()
 
     if df2 is None:
         index_pairs = list(itertools.combinations(index1, 2))
-        record_pairs = list(itertools.combinations(records1, 2))
+        record_pairs = list(itertools.combinations(range(len(records1)), 2))
     else:
         index2 = list(df2.index)
-        records2 = df2.apply(row_to_pairs, axis=1).tolist()
+        records2 = df2["estimates"].apply(row_to_pairs).tolist()
         index_pairs = list(itertools.product(index1, index2))
-        record_pairs = list(itertools.product(records1, records2))
+        record_pairs = list(itertools.product(range(len(records1)), range(len(records2))))
+
+    # Pre-fit beta parameters and grids once per distribution
+    if include_beta:
+        beta_params1 = [fit_beta(r) for r in records1]
+        grids1 = [_beta_grids(a, b) for a, b in beta_params1]
+        if df2 is not None:
+            beta_params2 = [fit_beta(r) for r in records2]
+            grids2 = [_beta_grids(a, b) for a, b in beta_params2]
+        else:
+            grids2 = None
 
     rows = []
-    for (ia, ib), (a, b) in zip(index_pairs, record_pairs):
+    for (ia, ib), (ri, rj) in zip(index_pairs, record_pairs):
+        a = records1[ri]
+        b = (records2[rj] if df2 is not None else records1[rj])
         row = {
             "idx_a": ia,
             "idx_b": ib,
@@ -277,8 +323,10 @@ def compute_pairwise_results(
             "iqr_divergence": iqr_divergence(a, b),
         }
         if include_beta:
-            row["w1_beta"] = w1_distance_beta(a, b)
-            row["w2_beta"] = w2_distance_beta(a, b)
+            cdf_i, ppf_i = grids1[ri]
+            cdf_j, ppf_j = (grids2[rj] if df2 is not None else grids1[rj])
+            row["w1_beta"] = _w1_from_cdf_grids(cdf_i, cdf_j)
+            row["w2_beta"] = _w2_from_ppf_grids(ppf_i, ppf_j)
         rows.append(row)
 
     return pd.DataFrame(rows)
@@ -412,6 +460,124 @@ def _percentile_ci(
     return lower, upper
 
 
+def _precompute_pairwise_cache(
+    records1: list[list[tuple[float, float]]],
+    records2: list[list[tuple[float, float]]] | None,
+    include_beta: bool,
+) -> dict[tuple[int, int], dict[str, float]]:
+    """Precompute all unique pairwise distances between row distributions.
+
+    For single-group (records2 is None): computes all combinations(N, 2)
+    distances. Keys are canonical (i, j) with i < j. Self-pairs (i, i)
+    are implicitly zero and not stored.
+
+    For two-group: computes all product(N1, N2) distances. Keys are (i, j)
+    where i indexes into records1 and j indexes into records2.
+
+    Returns:
+        dict mapping (i, j) -> {"w1": ..., "w2": ..., "p50_divergence": ...,
+        "iqr_divergence": ..., and optionally "w1_beta": ..., "w2_beta": ...}
+    """
+    cache: dict[tuple[int, int], dict[str, float]] = {}
+
+    # Pre-fit beta parameters and grids once per distribution
+    if include_beta:
+        beta_params1 = [fit_beta(r) for r in records1]
+        grids1 = [_beta_grids(a, b) for a, b in beta_params1]
+        if records2 is not None:
+            beta_params2 = [fit_beta(r) for r in records2]
+            grids2 = [_beta_grids(a, b) for a, b in beta_params2]
+        else:
+            grids2 = None
+
+    if records2 is None:
+        for i, j in itertools.combinations(range(len(records1)), 2):
+            a, b = records1[i], records1[j]
+            entry = {
+                "w1": w1_distance(a, b),
+                "w2": w2_distance(a, b),
+                "p50_divergence": p50_divergence(a, b),
+                "iqr_divergence": iqr_divergence(a, b),
+            }
+            if include_beta:
+                cdf_i, ppf_i = grids1[i]
+                cdf_j, ppf_j = grids1[j]
+                entry["w1_beta"] = _w1_from_cdf_grids(cdf_i, cdf_j)
+                entry["w2_beta"] = _w2_from_ppf_grids(ppf_i, ppf_j)
+            cache[(i, j)] = entry
+    else:
+        for i in range(len(records1)):
+            for j in range(len(records2)):
+                a, b = records1[i], records2[j]
+                entry = {
+                    "w1": w1_distance(a, b),
+                    "w2": w2_distance(a, b),
+                    "p50_divergence": p50_divergence(a, b),
+                    "iqr_divergence": iqr_divergence(a, b),
+                }
+                if include_beta:
+                    cdf_i, ppf_i = grids1[i]
+                    cdf_j, ppf_j = grids2[j]
+                    entry["w1_beta"] = _w1_from_cdf_grids(cdf_i, cdf_j)
+                    entry["w2_beta"] = _w2_from_ppf_grids(ppf_i, ppf_j)
+                cache[(i, j)] = entry
+
+    return cache
+
+
+_ZERO_METRICS = {"w1": 0.0, "w2": 0.0, "p50_divergence": 0.0, "iqr_divergence": 0.0}
+_ZERO_METRICS_BETA = {**_ZERO_METRICS, "w1_beta": 0.0, "w2_beta": 0.0}
+
+
+def _bootstrap_mean_from_cache(
+    cache: dict[tuple[int, int], dict[str, float]],
+    sampled_indices: np.ndarray,
+    two_group: bool,
+    include_beta: bool,
+) -> dict[str, float]:
+    """Compute mean pairwise metrics for one bootstrap sample using cached distances.
+
+    Args:
+        cache: Precomputed pairwise distances.
+        sampled_indices: Resampled positional indices into the original rows.
+        two_group: If True, pairs are cross-product (df1 x df2) with jointly
+                   resampled aligned indices. If False, pairs are combinations
+                   within a single group.
+        include_beta: Whether beta metrics are present in the cache.
+
+    Returns:
+        dict with mean metric values across all pairs.
+    """
+    zeros = _ZERO_METRICS_BETA if include_beta else _ZERO_METRICS
+    metric_keys = list(zeros.keys())
+
+    if two_group:
+        pairs = list(itertools.product(sampled_indices, sampled_indices))
+    else:
+        pairs = list(itertools.combinations(sampled_indices, 2))
+
+    if not pairs:
+        return {k: float("nan") for k in metric_keys}
+
+    totals = {k: 0.0 for k in metric_keys}
+    for i, j in pairs:
+        if not two_group:
+            key = (min(i, j), max(i, j)) if i != j else None
+        else:
+            key = (i, j)
+
+        if key is None:
+            entry = zeros
+        else:
+            entry = cache[key]
+
+        for k in metric_keys:
+            totals[k] += entry[k]
+
+    n = len(pairs)
+    return {k: totals[k] / n for k in metric_keys}
+
+
 def _compute_pairwise_metric_ci(
     df1: pd.DataFrame,
     df2: pd.DataFrame | None = None,
@@ -425,6 +591,9 @@ def _compute_pairwise_metric_ci(
     The bootstrap resamples the original run rows used to construct the
     pairwise comparisons. With one dataframe, rows are resampled within the
     dataframe. With two dataframes, aligned row pairs are resampled jointly.
+
+    Distances are precomputed once for all unique pairs, then each bootstrap
+    iteration only performs index resampling and cache lookups.
 
     Args:
         df1: DataFrame with 'percentile_Nth_mean' columns.
@@ -463,18 +632,36 @@ def _compute_pairwise_metric_ci(
         else np.random.default_rng(random_state)
     )
 
+    # Precompute all unique pairwise distances once
+    records1 = df1["estimates"].apply(row_to_pairs).tolist()
+    two_group = df2 is not None
+    if two_group:
+        if len(df1) != len(df2):
+            raise ValueError(
+                "Bootstrap resampling with two dataframes requires the same number "
+                "of rows so run pairs can be resampled jointly."
+            )
+        records2 = df2["estimates"].apply(row_to_pairs).tolist()
+    else:
+        records2 = None
+
+    cache = _precompute_pairwise_cache(records1, records2, include_beta)
+
+    n1 = len(df1)
     w1_samples = []
     w2_samples = []
+    w1_beta_samples = [] if include_beta else None
+    w2_beta_samples = [] if include_beta else None
     for _ in range(n_bootstrap):
-        boot_df1, boot_df2 = _resample_runs(df1, df2, rng)
-        boot_metrics = compute_pairwise_metrics(
-            boot_df1,
-            boot_df2,
-            include_beta=include_beta,
-            compute_ci=False,
+        sampled_indices = rng.integers(0, n1, size=n1)
+        means = _bootstrap_mean_from_cache(
+            cache, sampled_indices, two_group, include_beta
         )
-        w1_samples.append(boot_metrics["w1"])
-        w2_samples.append(boot_metrics["w2"])
+        w1_samples.append(means["w1"])
+        w2_samples.append(means["w2"])
+        if include_beta:
+            w1_beta_samples.append(means["w1_beta"])
+            w2_beta_samples.append(means["w2_beta"])
 
     result["w1_ci_lower"], result["w1_ci_upper"] = _percentile_ci(
         w1_samples, confidence_level
@@ -482,6 +669,13 @@ def _compute_pairwise_metric_ci(
     result["w2_ci_lower"], result["w2_ci_upper"] = _percentile_ci(
         w2_samples, confidence_level
     )
+    if include_beta:
+        result["w1_beta_ci_lower"], result["w1_beta_ci_upper"] = _percentile_ci(
+            w1_beta_samples, confidence_level
+        )
+        result["w2_beta_ci_lower"], result["w2_beta_ci_upper"] = _percentile_ci(
+            w2_beta_samples, confidence_level
+        )
     return result
 
 
