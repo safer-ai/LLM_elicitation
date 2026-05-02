@@ -60,6 +60,8 @@ run
 intra_benchmark_calibration/config*.yaml
 !intra_benchmark_calibration/config_example.yaml
 
+inter_benchmark_calibration/config*.yaml
+!inter_benchmark_calibration/config_example.yaml
 
 # Temporary experiment data
 input_data/reruns/

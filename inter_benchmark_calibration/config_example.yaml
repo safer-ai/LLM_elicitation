@@ -1,0 +1,67 @@
+# ============================================================================
+# INTER-BENCHMARK SPECIFIC SETTINGS
+# ============================================================================
+inter_benchmark_settings:
+  source_benchmarks:
+    - name: "livebench_LCB_generation"
+      sorted_benchmark_file: "input_data/benchmarks/livebench_LCB_generation_ordered.yaml"
+      score_file: "input_data/ground_truth/livebench_LCB_generation_leaderboard.json"
+      benchmark_description: |
+        LiveBench LCB Generation is a code generation benchmark comprising 78 competition
+        programming problems from LeetCode and AtCoder. Models must parse a problem statement
+        and write a complete Python 3 solution. Evaluated with pass@1.
+      n_easier_tasks: 3
+
+  target_benchmark:
+    name: "livebench_coding_completion"
+    sorted_benchmark_file: "input_data/benchmarks/livebench_coding_completion_ordered.yaml"
+    score_file: "input_data/ground_truth/livebench_coding_completion_leaderboard.json"
+    benchmark_description: |
+      LiveBench Coding Completion comprises 50 competition programming problems where a
+      partial correct solution is provided and the model must complete it. Problems are from
+      LeetCode via LiveCodeBench, with partial solutions from GitHub. Evaluated with pass@1.
+
+    # target_percentiles: [20, 30, 40, 50, 60, 70, 80]
+    target_percentiles: [30]
+
+  source_bins: "auto"
+  n_source_bins: 2
+  # n_source_bins: 4
+
+  ground_truth_file: "input_data/ground_truth/livebench_LCB_generation_to_coding_completion_gt.json"
+
+# ============================================================================
+# API KEYS
+# ============================================================================
+anthropic_api_key: "YOUR_ANTHROPIC_API_KEY_HERE"
+openai_api_key: "YOUR_OPENAI_API_KEY_HERE"
+
+# ============================================================================
+# INPUT DATA PATHS (relative to inter_benchmark_calibration/)
+# ============================================================================
+prompts_dir: prompts
+expert_profiles_file: input_data/expert_profiles/expert_profiles.yaml
+
+# ============================================================================
+# LLM & API INTERACTION SETTINGS
+# ============================================================================
+llm_settings:
+  model: "claude-sonnet-4-6-20260326"
+  temperature: 0.8
+  max_concurrent_calls: 5
+  rate_limit_calls: 45
+  rate_limit_period: 60
+
+# ============================================================================
+# DELPHI WORKFLOW SETTINGS
+# ============================================================================
+workflow_settings:
+  # num_experts: 5
+  num_experts: 2
+  delphi_rounds: 1
+  convergence_threshold: 0.05
+
+# ============================================================================
+# OUTPUT DIRECTORY
+# ============================================================================
+output_dir: results

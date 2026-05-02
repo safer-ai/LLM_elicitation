@@ -1,0 +1,105 @@
+We are examining cross-benchmark capability transfer to calibrate prediction models. This analysis helps understand how model performance on one benchmark predicts performance on a different benchmark.
+
+<source_benchmark_context>
+{source_benchmarks_description}
+</source_benchmark_context>
+
+<demonstrated_capabilities>
+The model has demonstrated the following capabilities on the source benchmark(s):
+
+{source_tasks_list}
+
+These tasks represent the capability ceiling of the model on the source benchmark(s). The model can solve these tasks and likely many easier ones.
+</demonstrated_capabilities>
+
+<target_benchmark_context>
+{target_benchmark_description}
+</target_benchmark_context>
+
+<target_task>
+We want to estimate the probability that this model can solve the following task on the target benchmark:
+
+Task Name: {target_task_name}
+Description: {target_task_description}
+Difficulty Metrics: {target_task_metrics}
+</target_task>
+
+<analysis_provided>
+Below is an analysis of the cross-benchmark capability relationship:
+
+{technical_analysis}
+</analysis_provided>
+
+<probability_estimation_task>
+Based on this analysis, please answer the following:
+
+**Your task is to estimate a CONDITIONAL PROBABILITY:**
+
+P(model can solve the target task | model demonstrates the source capabilities shown above)
+
+This is NOT asking about the absolute difficulty of the target task. This is asking: given what we KNOW about the model's capabilities from its source benchmark performance, what is the probability it can solve this specific target task on a different benchmark?
+
+Key considerations:
+- The source and target benchmarks test DIFFERENT domains/skills, so capability transfer is not guaranteed
+- However, there are often latent general capabilities (reasoning, code understanding, problem decomposition) that correlate across benchmarks
+- A model scoring highly on a challenging source benchmark likely has strong general capabilities
+- The question is whether those general capabilities are sufficient for this specific target task
+- Consider both the model's capability level AND the specific demands of the target task
+</probability_estimation_task>
+
+<reasoning_structure>
+Please follow this structured reasoning process:
+
+**Phase 1: Establish Probability Ranges**
+
+First, consider the extreme cases:
+- What is the LOWEST reasonable probability? Consider scenarios where source capabilities don't transfer.
+- What is the HIGHEST reasonable probability? Consider scenarios where general capabilities strongly predict target performance.
+- What range does this suggest?
+
+Factors to weigh:
+- Domain similarity between source and target benchmarks
+- The model's relative standing on the source benchmark
+- Difficulty level of the target task within its benchmark
+- Strength of latent capability correlations across these specific domains
+
+**Phase 2: Refine and Check for Over/Under-confidence**
+
+Critically examine your reasoning:
+- Am I assuming too much cross-domain transfer? Different benchmarks can test genuinely different capabilities.
+- Am I assuming too little transfer? Models with strong source performance often have broad general capabilities.
+- What does empirical evidence suggest about correlations between these types of benchmarks?
+
+**Phase 3: Reality Check**
+
+Test against practical expectations:
+- If I say 80%: This means 4 out of 5 models at this source level would solve this target task. Is that plausible?
+- If I say 50%: This means it's a coin flip whether source capabilities predict target success. Does that match the domain gap?
+- If I say 20%: This means the source performance is a weak predictor for this specific target task. Is the gap really that large?
+</reasoning_structure>
+
+<distribution_fitting_note>
+**Important**: Your estimates will be used to fit a Beta distribution with support [0, 1]. We elicit three percentiles:
+- **25th percentile**: The lower quartile - 25% of the probability mass lies below this value
+- **50th percentile**: The median - the midpoint of your distribution
+- **75th percentile**: The upper quartile - 75% of the probability mass lies below this value
+</distribution_fitting_note>
+
+<output_format>
+**Phase 1 - Range Establishment:**
+[Your reasoning about probability ranges and cross-domain factors]
+
+**Phase 2 - Confidence Check:**
+[Your critical examination of potential over/under-confidence]
+
+**Phase 3 - Reality Check:**
+[Your testing of the estimate against practical expectations]
+
+**Percentile Estimates:**
+- 25th percentile: [0.xx]
+- 50th percentile (median): [0.xx]
+- 75th percentile: [0.xx]
+
+**Rationale:**
+[2-3 sentence summary: What source capabilities transfer? What is the cross-domain gap? Why does this justify your probability estimate?]
+</output_format>
