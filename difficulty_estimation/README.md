@@ -168,6 +168,8 @@ responses = [{r["task_id"]:r for r in load_yaml(f)} for f in response_files]
 
 ## Benchmark Tasks
 
+### BountyBench
+
 Tasks are defined in `benchmark_tasks/bountybench.yaml`. Each task includes:
 
 - **name**: Vulnerability title
@@ -177,6 +179,33 @@ Tasks are defined in `benchmark_tasks/bountybench.yaml`. Each task includes:
 - **metadata**: Repository info, patch details, exploit chain
 
 The BountyBench dataset contains real-world vulnerabilities across 30+ open source projects.
+
+### LiveBench (Per-Task Solve Rates)
+
+For benchmarks with per-task model solve data (e.g., from HuggingFace), the pipeline can generate difficulty rankings from **actual model performance** rather than LLM estimates. This provides ground truth task difficulty based on real model capabilities.
+
+**Generating LiveBench benchmark files**:
+
+```bash
+cd benchmark_tasks
+python livebench_processing.py
+```
+
+This script:
+1. Downloads `livebench/model_judgment` and `livebench/coding` datasets from HuggingFace
+2. Filters for coding tasks (`task == 'LCB_generation'` or `task == 'coding_completion'`)
+3. Produces for each task type:
+   - `livebench_<task>.yaml` -- Raw benchmark questions
+   - `livebench_<task>_leaderboard.json` -- Per-model pass@1 scores
+   - `livebench_<task>_ordered.yaml` -- Tasks sorted by increasing difficulty (per-task solve rates)
+   - `livebench_<task>_solve_matrix.json` -- Binary model×task solve outcomes
+
+**Example output files** (already generated):
+- `livebench_LCB_generation_ordered.yaml` (78 tasks, 182 models)
+- `livebench_coding_completion_ordered.yaml` (50 tasks, 162 models)
+- Distribution plots: `livebench_distributions.png`
+
+See `inter_benchmark_calibration/` for how to use these for cross-benchmark calibration.
 
 ## Output Format
 

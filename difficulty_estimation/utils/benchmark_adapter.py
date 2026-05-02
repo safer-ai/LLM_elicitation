@@ -82,11 +82,31 @@ class SWEBenchAdapter(BenchmarkAdapter):
         return "\n\n".join(sections)
 
 
+class BigCodeBenchFullCompleteAdapter(BenchmarkAdapter):
+    def get_task_id(self, task: dict) -> str:
+        return task.get('task_id', '').replace('/', '_')
+
+    def get_description(self, task: dict) -> str:
+        return task.get('complete_prompt', '')
+
+    def format_code_section(self, task: dict, cache_dir: Optional[str] = None) -> str:
+        sections = []
+
+        if canonical_solution := task.get('canonical_solution'):
+            sections.append(f"**Reference implementation (canonical solution):**\n```python\n{canonical_solution}\n```")
+
+        if test := task.get('test'):
+            sections.append(f"**Test cases:**\n```python\n{test}\n```")
+
+        return "\n\n".join(sections)
+
+
 def get_adapter(benchmark_type: str) -> BenchmarkAdapter:
     """Factory function to get the right adapter"""
     adapters = {
         'bountybench': BountyBenchAdapter,
         'swebench_verified': SWEBenchAdapter,
+        'bigcodebench_full_complete': BigCodeBenchFullCompleteAdapter,
     }
     adapter_class = adapters.get(benchmark_type)
     if not adapter_class:

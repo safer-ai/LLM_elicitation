@@ -1,0 +1,78 @@
+<cross_benchmark_analysis_prompt>
+<purpose>
+You will analyse the relationship between a model's demonstrated capabilities on one or more source benchmarks and a target task on a different benchmark. This analysis establishes the cross-domain capability gap and informs probability estimation.
+</purpose>
+
+<source_benchmark_context>
+{source_benchmarks_description}
+</source_benchmark_context>
+
+<demonstrated_capabilities>
+The model has demonstrated the following capabilities on the source benchmark(s):
+
+{source_tasks_list}
+
+These tasks represent the capability ceiling of the model on the source benchmark(s). The model can solve these tasks and likely many easier ones below this level.
+</demonstrated_capabilities>
+
+<target_benchmark_context>
+{target_benchmark_description}
+</target_benchmark_context>
+
+<target_task>
+We want to predict whether this model can solve the following task on the target benchmark:
+
+Task Name: {target_task_name}
+Description: {target_task_description}
+Difficulty Metrics: {target_task_metrics}
+</target_task>
+
+<analysis_requirements>
+<section name="source_capability_profile">
+<instruction>Analyse what the model's source benchmark performance reveals about its general capabilities.</instruction>
+<questions>
+- What specific technical skills and knowledge domains does solving these source tasks demonstrate?
+- What is the overall capability level indicated by this performance?
+- What broader AI capabilities (reasoning, code generation, problem decomposition, etc.) are implied?
+</questions>
+</section>
+
+<section name="target_task_requirements">
+<instruction>Analyse what the target task requires.</instruction>
+<questions>
+- What specific steps, skills, and knowledge domains does the target task require?
+- What makes this task challenging?
+- What types of errors or obstacles might be encountered?
+</questions>
+</section>
+
+<section name="cross_domain_transfer">
+<instruction>Assess how capabilities from the source domain(s) transfer to the target domain.</instruction>
+<questions>
+- Which source capabilities are directly relevant to the target task?
+- Which target task requirements go beyond what the source benchmark tests?
+- How similar are the cognitive/computational demands across these benchmarks?
+- Are there latent capabilities (general reasoning, code understanding, etc.) that bridge both domains?
+</questions>
+</section>
+
+<section name="capability_gap_assessment">
+<instruction>Evaluate the gap between demonstrated source capabilities and target task requirements.</instruction>
+<questions>
+- Is the gap primarily about domain knowledge, reasoning complexity, or task structure?
+- How does the model's source performance level (relative to the source benchmark's difficulty range) inform expectations about its target performance?
+- What would a model at this source capability level typically be able to do on the target benchmark?
+</questions>
+</section>
+</analysis_requirements>
+
+<output_instructions>
+Provide a comprehensive cross-benchmark capability analysis addressing each section. Focus on:
+1. What the source performance reveals about general model capability
+2. What the target task specifically requires
+3. How well capabilities transfer across these benchmark domains
+4. The magnitude and nature of the capability gap (small, moderate, or large)
+
+Be specific about which capabilities transfer and which represent genuine gaps.
+</output_instructions>
+</cross_benchmark_analysis_prompt>
