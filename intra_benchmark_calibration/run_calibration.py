@@ -1,201 +1,218 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-Main entry point for intra-benchmark calibration experiments.
+Entry point for the intra-benchmark calibration experiment.
 
-This script orchestrates the LLM-based Delphi estimation process for predicting
-conditional probabilities P(j|i) between benchmark task bins.
+Wires together: config -> Lyptus data load -> binning -> cell planning ->
+expert + prompt loading -> async LLM client -> async Delphi workflow ->
+progressive results persistence.
+
+Usage:
+    python intra_benchmark_calibration/run_calibration.py \\
+        -c intra_benchmark_calibration/config_full.yaml -d
 """
 
-import asyncio
-import logging
+from __future__ import annotations
+
 import argparse
+import asyncio
+import dataclasses
+import logging
 import sys
 from pathlib import Path
 
-import sys
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+REPO_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(REPO_ROOT))
 
-from config import load_intra_benchmark_config
-from shared.llm_client import initialize_client
-from shared.loaders import load_prompts, load_experts, load_benchmark
-from workflow import run_intra_benchmark_estimation
+from intra_benchmark_calibration.binning import compute_bins  # noqa: E402
+from intra_benchmark_calibration.config import (  # noqa: E402
+    IntraBenchmarkConfig,
+    load_intra_benchmark_config,
+)
+from intra_benchmark_calibration.lyptus_data import load_lyptus_dataset  # noqa: E402
+from intra_benchmark_calibration.results_handler import (  # noqa: E402
+    finalize_run,
+    initialize_run,
+    update_registry,
+)
+from intra_benchmark_calibration.task_selector import build_cell_plans  # noqa: E402
+from intra_benchmark_calibration.workflow import run_intra_benchmark_workflow  # noqa: E402
+
+from shared.llm_client import initialize_client  # noqa: E402
+from shared.loaders import load_experts, load_prompts  # noqa: E402
 
 logger = logging.getLogger("IntraBenchmarkCalibration")
 
-async def main(config_path: str):
-    """
-    Orchestrates the intra-benchmark calibration experiment.
 
-    Args:
-        config_path: Path to the configuration YAML file.
-    """
+def _config_snapshot(cfg: IntraBenchmarkConfig) -> dict:
+    """JSON-safe snapshot of the config (without API keys)."""
+    def to_serialisable(v):
+        if dataclasses.is_dataclass(v):
+            return {k: to_serialisable(getattr(v, k)) for k in v.__dataclass_fields__}
+        if isinstance(v, Path):
+            return str(v)
+        if isinstance(v, (list, tuple)):
+            return [to_serialisable(x) for x in v]
+        if isinstance(v, dict):
+            return {k: to_serialisable(x) for k, x in v.items()}
+        return v
+    snap = to_serialisable(cfg)
+    snap.pop("api_key_anthropic", None)
+    snap.pop("api_key_openai", None)
+    return snap
+
+
+async def main(config_path: str) -> int:
     logger.info("--- Starting Intra-Benchmark Calibration Experiment ---")
-    logger.info(f"Config file: {config_path}")
+    logger.info(f"Config: {config_path}")
 
-    # 1. Load Configuration
+    # 1. Config
     try:
-        # Get the directory where this script resides (intra_benchmark_calibration/)
-        script_dir = Path(__file__).parent.resolve()
-        config = load_intra_benchmark_config(config_path, base_dir=script_dir)
-        logger.info("Configuration loaded successfully")
-        logger.info(f"  Benchmark: {config.intra_benchmark_settings.benchmark_name}")
-        logger.info(f"  N_bins: {config.intra_benchmark_settings.n_bins}")
-        logger.info(f"  Model: {config.llm_settings.model}")
-    except (FileNotFoundError, ValueError, TypeError) as e:
-        logger.error(f"Failed to load configuration: {e}", exc_info=True)
-        return
-
-    # 2. Load Input Data
-    try:
-        # Load prompts
-        prompts = load_prompts(config.prompts_dir)
-        if not prompts:
-            logger.error("Failed to load prompts")
-            return
-
-        # Load experts
-        experts = load_experts(config.expert_profiles_file)
-        if not experts:
-            logger.error("Failed to load experts")
-            return
-
-        # Load sorted benchmark
-        benchmark = load_benchmark(config.benchmark_file, config.intra_benchmark_settings.benchmark_name)
-        if not benchmark:
-            logger.error(f"Failed to load benchmark from {config.benchmark_file}")
-            return
-
-        logger.info(f"Loaded {len(benchmark.tasks)} benchmark tasks")
-        logger.info(f"Loaded {len(experts)} expert profiles")
-        logger.info(f"Loaded {len(prompts)} prompt templates")
-
-        # Package input data
-        input_data = {
-            "prompts": prompts,
-            "experts": experts,
-            "benchmark_tasks": benchmark.tasks,
-            "benchmark_description": benchmark.description,
-            "metrics_to_use": benchmark.metrics_to_use,
-        }
-
+        cfg = load_intra_benchmark_config(config_path)
     except Exception as e:
-        logger.error(
-            f"An unexpected error occurred during input data loading: {e}",
-            exc_info=True,
-        )
-        return
+        logger.error(f"Failed to load config: {e}", exc_info=True)
+        return 1
 
-    # 3. Initialize API Client
-    try:
-        client = initialize_client(
-            config.api_key_anthropic, config.api_key_openai, config.llm_settings.model
-        )
-        model_lower = config.llm_settings.model.lower()
-        provider = "anthropic" if "claude" in model_lower else "openai"
-        logger.info(f"API client initialized successfully for {provider}")
-    except (ImportError, ValueError) as e:
-        logger.error(f"Failed to initialize API client: {e}", exc_info=True)
-        logger.error(
-            "Please ensure the correct API library is installed and the API key is set in the configuration file."
-        )
-        return
+    # 2. Data
+    dataset = load_lyptus_dataset(cfg.lyptus_repo_dir, drop_models=cfg.drop_models)
+    forecasted = cfg.forecasted_models or list(dataset.outcomes.models)
+    missing = [m for m in forecasted if m not in dataset.outcomes.models]
+    if missing:
+        logger.error(f"forecasted_models not in outcomes matrix: {missing}")
+        return 1
 
-    # 4. Create Semaphore
-    semaphore = asyncio.Semaphore(config.llm_settings.max_concurrent_calls)
-    logger.debug(
-        f"Semaphore created with limit: {config.llm_settings.max_concurrent_calls}"
+    # 3. Bins + cell plans
+    bins = compute_bins(
+        dataset.fst_array(),
+        n_bins=cfg.binning.n_bins,
+        strategy=cfg.binning.strategy,
+        explicit_edges=cfg.binning.explicit_edges,
     )
 
-    # 5. Run Intra-Benchmark Workflow
+    cell_plans = build_cell_plans(
+        bins=bins,
+        dataset=dataset,
+        forecasted_models=forecasted,
+        source_bins_to_show=cfg.source_profile.source_bins_to_show,
+        n_examples_per_source_bin=cfg.source_profile.n_examples_per_source_bin,
+        n_target_tasks_per_cell=cfg.target_selection.n_target_tasks_per_cell,
+        target_sampling_seed=cfg.target_selection.sampling_seed,
+        explicit_target_tasks=cfg.target_selection.explicit_target_tasks,
+        resample_anchors_per_target=cfg.source_profile.resample_anchors_per_target,
+    )
+    if not cell_plans:
+        logger.error("No admissible cell plans were produced. Aborting.")
+        return 1
+
+    # 4. Prompts + experts
+    prompt_templates = load_prompts(cfg.prompts_dir)
+    if not prompt_templates:
+        logger.error(f"Failed to load prompts from {cfg.prompts_dir}")
+        return 1
+    experts_all = load_experts(cfg.expert_profiles_file)
+    if not experts_all:
+        logger.error(f"Failed to load experts from {cfg.expert_profiles_file}")
+        return 1
+    n = cfg.workflow_settings.num_experts
+    experts = experts_all[:n]
+    logger.info(f"Using {len(experts)}/{len(experts_all)} expert profiles: "
+                f"{[e.name for e in experts]}")
+
+    # 5. LLM client + concurrency
     try:
-        logger.info("Starting intra-benchmark calibration workflow...")
-        results = await run_intra_benchmark_estimation(
-            client, semaphore, config, input_data
+        client = initialize_client(
+            cfg.api_key_anthropic, cfg.api_key_openai, cfg.llm_settings.model
         )
+    except (ImportError, ValueError) as e:
+        logger.error(f"Failed to initialise LLM client: {e}", exc_info=True)
+        return 1
+    semaphore = asyncio.Semaphore(cfg.llm_settings.max_concurrent_calls)
 
-        if "error" in results:
-            logger.error(f"Workflow completed with an error: {results['error']}")
-        else:
-            logger.info("Intra-benchmark calibration workflow completed successfully")
-            logger.info(f"Run ID: {results.get('run_id')}")
-            logger.info(
-                f"Predictions completed: {results.get('predictions_completed')}/{results.get('predictions_attempted')}"
-            )
-            logger.info(f"Output path: {results.get('output_path')}")
+    # 6. Init run handles
+    handles = initialize_run(
+        output_base_dir=cfg.output_dir,
+        model=cfg.llm_settings.model,
+        num_experts=len(experts),
+        delphi_rounds=cfg.workflow_settings.delphi_rounds,
+        temperature=cfg.llm_settings.temperature,
+        config_snapshot=_config_snapshot(cfg),
+        dataset_provenance=dataset.provenance_dict(),
+        bin_definition={
+            "strategy": bins.strategy,
+            "n_bins": bins.n_bins,
+            "edges_minutes": bins.edges_minutes,
+            "n_tasks_per_bin": [int(c) for c in
+                                __import__("numpy").bincount(bins.bin_index_per_task,
+                                                              minlength=bins.n_bins)],
+        },
+        n_cells_planned=len(cell_plans),
+    )
+    logger.info(f"Run ID: {handles.run_id}")
+    logger.info(f"Run dir: {handles.run_dir}")
 
+    # 7. Workflow
+    try:
+        result = await run_intra_benchmark_workflow(
+            cfg=cfg,
+            cell_plans=cell_plans,
+            experts=experts,
+            prompt_templates=prompt_templates,
+            dataset=dataset,
+            client=client,
+            semaphore=semaphore,
+            handles=handles,
+        )
     except Exception as e:
-        logger.error(
-            f"An unexpected critical error occurred during the workflow: {e}",
-            exc_info=True,
-        )
+        logger.error(f"Workflow crashed: {e}", exc_info=True)
+        return 1
 
-    logger.info("--- Intra-Benchmark Calibration Experiment Finished ---")
+    # 8. Finalise
+    finalize_run(
+        handles,
+        n_elicitations_attempted=result["n_elicitations_attempted"],
+        n_elicitations_succeeded=result["n_elicitations_completed"],
+    )
+    update_registry(
+        registry_file=cfg.registry_file,
+        run_id=handles.run_id,
+        model=cfg.llm_settings.model,
+        num_experts=len(experts),
+        delphi_rounds=cfg.workflow_settings.delphi_rounds,
+        n_elicitations_attempted=result["n_elicitations_attempted"],
+        n_elicitations_completed=result["n_elicitations_completed"],
+        output_path=handles.run_dir,
+        config_file=str(Path(config_path).resolve()),
+        timestamp_start=handles.run_id,  # already in YYYYMMDD_HHMMSS form
+    )
+
+    logger.info(f"Run complete. CSV: {handles.csv_path}")
+    logger.info(f"           JSON: {handles.json_path}")
+    logger.info(f"  Successful elicitations: {result['n_elicitations_completed']} / {result['n_elicitations_attempted']}")
+    return 0
+
+
+def cli() -> int:
+    p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    p.add_argument("-c", "--config", required=True, help="Path to YAML config")
+    p.add_argument("-d", "--debug", action="store_true", help="Enable debug logging")
+    args = p.parse_args()
+
+    log_level = logging.DEBUG if args.debug else logging.INFO
+    log_format = "%(asctime)s %(levelname)s %(name)s: %(message)s"
+    logging.basicConfig(level=log_level, format=log_format,
+                        handlers=[logging.StreamHandler(sys.stdout)])
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logger.setLevel(log_level)
+
+    if not Path(args.config).exists():
+        logger.error(f"Config file not found: {args.config}")
+        return 1
+    try:
+        return asyncio.run(main(args.config))
+    except KeyboardInterrupt:
+        logger.info("Interrupted by user.")
+        return 130
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Run the Intra-Benchmark Calibration Experiment",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Example usage:
-  python run_calibration.py -c config_example.yaml
-  python run_calibration.py -c config_example.yaml -d
-        """,
-    )
-    parser.add_argument(
-        "-c",
-        "--config",
-        default="config_example.yaml",
-        help="Path to the configuration YAML file (default: config_example.yaml)",
-    )
-    parser.add_argument(
-        "-d",
-        "--debug",
-        action="store_true",
-        help="Enable debug level logging for detailed output",
-    )
-    args = parser.parse_args()
-
-    # Set up logging
-    if args.debug:
-        log_level = logging.DEBUG
-        print("DEBUG logging enabled.", file=sys.stderr)
-    else:
-        log_level = logging.INFO
-
-    log_format = "%(asctime)s - %(levelname)s - %(name)s - [%(filename)s:%(lineno)d] - %(message)s"
-
-    logging.basicConfig(
-        level=log_level, format=log_format, handlers=[logging.StreamHandler(sys.stdout)]
-    )
-
-    # Suppress overly verbose logs from HTTP libraries
-    logging.getLogger("httpx").setLevel(logging.WARNING)
-
-    # Set logger level
-    logger.setLevel(log_level)
-
-    if args.debug:
-        logger.info("DEBUG logging enabled (confirmed by logger).")
-    else:
-        logger.info(
-            f"Standard logging enabled (level: {logging.getLevelName(log_level)}). Use -d for DEBUG."
-        )
-
-    try:
-        config_file = Path(args.config)
-        if not config_file.exists():
-            logger.error(f"Configuration file does not exist: {args.config}")
-            sys.exit(1)
-
-        asyncio.run(main(config_path=args.config))
-
-    except KeyboardInterrupt:
-        logger.info("Experiment interrupted by user (Ctrl+C).")
-        sys.exit(0)
-    except Exception as e:
-        logger.critical(
-            f"A critical unexpected error occurred at the top level: {e}", exc_info=True
-        )
-        sys.exit(1)
+    sys.exit(cli())
