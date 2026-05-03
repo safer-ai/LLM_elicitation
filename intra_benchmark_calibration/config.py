@@ -189,7 +189,6 @@ class SourceProfileSettings:
 
     source_bins_to_show: Union[List[int], str] = field(default_factory=list)
     n_examples_per_source_bin: int = 2
-    resample_anchors_per_target: bool = False
 
 
 @dataclass
@@ -318,7 +317,6 @@ def load_intra_benchmark_config(config_path: str | Path, base_dir: Optional[Path
     source_profile = SourceProfileSettings(
         source_bins_to_show=parsed_bins,
         n_examples_per_source_bin=int(sp_data.get("n_examples_per_source_bin", 2)),
-        resample_anchors_per_target=bool(sp_data.get("resample_anchors_per_target", False)),
     )
 
     forecasted_models = ib.get("forecasted_models")

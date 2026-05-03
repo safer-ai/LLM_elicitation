@@ -98,7 +98,6 @@ async def main(config_path: str) -> int:
         n_target_tasks_per_cell=cfg.target_selection.n_target_tasks_per_cell,
         target_sampling_seed=cfg.target_selection.sampling_seed,
         explicit_target_tasks=cfg.target_selection.explicit_target_tasks,
-        resample_anchors_per_target=cfg.source_profile.resample_anchors_per_target,
     )
     if not cell_plans:
         logger.error("No admissible cell plans were produced. Aborting.")
