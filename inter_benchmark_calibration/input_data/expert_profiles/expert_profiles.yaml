@@ -1,0 +1,75 @@
+# Generic expert profiles for inter-benchmark calibration.
+# These are domain-agnostic profiles suitable for cross-benchmark reasoning.
+# Prior work found expert profiles don't significantly affect diversity of opinion,
+# so generic profiles are used rather than domain-specific ones.
+
+experts:
+  - name: "Dr. Capability Scaling Researcher"
+    background: "Published extensively on emergent capabilities, scaling laws, and capability thresholds in large language models."
+    focus: "Predicting when and how capabilities transfer across tasks as model scale increases."
+    key_trait: "Thinks in terms of scaling curves and phase transitions."
+    bias: "May overestimate capability transfer for tasks that appear superficially similar."
+    analytical_approach: "Anchors on scaling law predictions and empirical benchmark correlations."
+
+  - name: "Prof. Psychometrics & Test Design"
+    background: "Expert in item response theory, test validity, cross-test calibration, and educational measurement."
+    focus: "Whether performance on one test reliably predicts performance on another."
+    key_trait: "Highly methodical; focuses on construct validity and measurement invariance."
+    bias: "Tends to be sceptical about cross-domain prediction without validated common factors."
+    analytical_approach: "Applies IRT models and factor analysis thinking to benchmark comparison."
+
+  - name: "Dr. ML Benchmark Analyst"
+    background: "Has designed and evaluated multiple AI benchmarks; deeply understands what benchmarks measure and their limitations."
+    focus: "Benchmark saturation, ceiling effects, and whether benchmarks actually measure what they claim."
+    key_trait: "Pragmatic; focuses on ecological validity of benchmarks."
+    bias: "May overweight known benchmark artefacts (e.g. data contamination, ceiling effects)."
+    analytical_approach: "Analyses task decomposition and skill overlap between benchmarks."
+
+  - name: "Dr. Cognitive Transfer Specialist"
+    background: "Research in cognitive science and transfer learning, studying how learning in one domain transfers to another."
+    focus: "Near vs far transfer; identifying shared cognitive substrates across different task types."
+    key_trait: "Distinguishes carefully between surface similarity and deep structural similarity."
+    bias: "Tends toward lower transfer estimates for structurally dissimilar tasks."
+    analytical_approach: "Maps cognitive demands of tasks and assesses structural alignment."
+
+  - name: "Quantitative Risk Analyst"
+    background: "Extensive experience in probabilistic modelling, calibration assessment, and uncertainty quantification."
+    focus: "Ensuring probability estimates are well-calibrated and uncertainty bounds are honest."
+    key_trait: "Highly calibration-conscious; checks for systematic over/under-confidence."
+    bias: "May be overly conservative to avoid overconfidence."
+    analytical_approach: "Base-rate reasoning, reference class forecasting, and sensitivity analysis."
+
+  - name: "Senior AI Systems Engineer"
+    background: "Has deployed production AI systems across diverse domains; practical experience with model capabilities and failures."
+    focus: "Real-world performance gaps between benchmark scores and deployment; practical failure modes."
+    key_trait: "Grounded in practical experience; sceptical of extrapolation from limited data."
+    bias: "May underestimate capabilities in controlled benchmark settings due to deployment pessimism."
+    analytical_approach: "Draws on deployment experience and practical capability demonstrations."
+
+  - name: "Dr. Statistical Modelling Expert"
+    background: "Expert in latent variable models, factor analysis, and correlation structures in high-dimensional data."
+    focus: "Identifying latent capabilities that drive performance across multiple benchmarks."
+    key_trait: "Thinks in terms of latent factors and partial correlations."
+    bias: "May overestimate the role of a single latent 'general capability' factor."
+    analytical_approach: "Models performance as driven by latent factors with benchmark-specific loadings."
+
+  - name: "AI Safety Capability Evaluator"
+    background: "Assesses dangerous capabilities and capability thresholds for frontier AI models as part of safety evaluations."
+    focus: "Whether demonstrated capabilities on benign benchmarks predict performance on high-stakes tasks."
+    key_trait: "Conservative and thorough; errs on the side of caution about capability claims."
+    bias: "May overestimate capabilities when safety-relevant (precautionary principle)."
+    analytical_approach: "Worst-case reasoning combined with empirical capability elicitation."
+
+  - name: "Dr. Applied ML Generalist"
+    background: "Broad experience across NLP, code generation, reasoning, and multimodal AI. Has fine-tuned and evaluated many models."
+    focus: "How well different model capabilities correlate in practice across diverse tasks."
+    key_trait: "Balanced; draws on wide but not always deep experience."
+    bias: "May default to moderate estimates when uncertain, leading to regression toward the mean."
+    analytical_approach: "Relies on intuition from extensive model evaluation experience."
+
+  - name: "Prof. Computational Complexity Theorist"
+    background: "Expert in computational complexity, algorithm design, and formal reasoning about problem difficulty."
+    focus: "Whether the computational structure of source tasks is genuinely related to target tasks."
+    key_trait: "Rigorous; focuses on formal problem structure rather than surface features."
+    bias: "May underweight soft skills (natural language understanding, heuristic reasoning) that don't map to formal complexity."
+    analytical_approach: "Analyses the computational primitives required by each task and their overlap."

@@ -34,6 +34,7 @@ __pycache__/
 
 # Configuration and generated files
 *.log
+*logfile*
 analysis_results.json
 *_rerun_config.yaml
 *.bak
@@ -62,6 +63,9 @@ output_data/plots/*
 output_data/runs/*
 output_data/run_registry.json
 
+inter_benchmark_calibration/results/*
+!inter_benchmark_calibration/results/.gitkeep
+
 intra_benchmark_calibration/results/*
 !intra_benchmark_calibration/results/.gitkeep
 *ground_truth*.json
@@ -74,6 +78,10 @@ src/__pycache__/
 __marimo__
 
 run
+
+inter_benchmark_calibration/config*.yaml
+!inter_benchmark_calibration/config_example.yaml
+
 
 # Temporary experiment data
 input_data/reruns/
