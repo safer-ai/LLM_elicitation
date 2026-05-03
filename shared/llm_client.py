@@ -164,7 +164,7 @@ async def make_api_call(
     settings: LLMSettings,
     system_prompt: str,
     user_prompt: str,
-    max_tokens: int = 6000
+    max_tokens: int = 20000
 ) -> str:
     """
     Makes an asynchronous call to the configured LLM API (Anthropic or OpenAI),
