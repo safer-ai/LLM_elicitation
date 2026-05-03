@@ -84,7 +84,6 @@ Brier on p50; CRPS via Beta fit is the v2 stub.
 | `target_selection.sampling_seed` | 42 | RNG seed for stratified-by-log-FST sampling |
 | `source_profile.source_bins_to_show` | `[]` (= `[i]`) | Which bins to include in capability profile |
 | `source_profile.n_examples_per_source_bin` | 2 | Easier-tasks count per shown bin (1 anchor + N) |
-| `source_profile.resample_anchors_per_target` | `false` | Re-pick anchor for each target task |
 | `include_target_solution` | `false` | Show `solution_walkthrough` to forecaster |
 | `llm_settings.model` | `claude-sonnet-4-6` | Anthropic alias or OpenAI model name |
 | `llm_settings.max_concurrent_calls` | 5 | Concurrent in-flight API calls |

@@ -215,7 +215,6 @@ def build_cell_plans(
     n_target_tasks_per_cell: int,
     target_sampling_seed: int,
     explicit_target_tasks: Optional[Dict[int, List[str]]] = None,
-    resample_anchors_per_target: bool = False,
 ) -> List[CellPlan]:
     """
     Enumerate all admissible cells, with three source-profile modes:
@@ -292,40 +291,26 @@ def build_cell_plans(
     for (i, j) in ij_pairs:
         shown = shown_bins_for(i, j)
         for M in forecasted_models:
-            base_profiles: Optional[List[SourceBinProfile]] = None
-            if not resample_anchors_per_target:
-                base_profiles = []
-                bad = False
-                for b in shown:
-                    prof = select_anchor_and_easier(b, bins, dataset, M, n_examples_per_source_bin)
-                    if prof is None:
-                        bad = True
-                        break
-                    base_profiles.append(prof)
-                if bad:
-                    n_dropped_no_anchor += 1
-                    continue
+            # Anchor + easier-task selection is currently fully deterministic
+            # given (M, source_bin), so we compute it once per (i, M) and reuse
+            # across all K target tasks for that cell.
+            profiles: List[SourceBinProfile] = []
+            bad = False
+            for b in shown:
+                prof = select_anchor_and_easier(b, bins, dataset, M, n_examples_per_source_bin)
+                if prof is None:
+                    bad = True
+                    break
+                profiles.append(prof)
+            if bad:
+                n_dropped_no_anchor += 1
+                continue
 
             for t in targets_cache[j]:
                 out_t = dataset.outcomes.outcome(M, t.task_id)
                 if out_t is None:
                     n_dropped_no_target_outcome += 1
                     continue
-
-                if resample_anchors_per_target:
-                    profiles = []
-                    bad = False
-                    for b in shown:
-                        prof = select_anchor_and_easier(b, bins, dataset, M, n_examples_per_source_bin)
-                        if prof is None:
-                            bad = True
-                            break
-                        profiles.append(prof)
-                    if bad:
-                        n_dropped_no_anchor += 1
-                        continue
-                else:
-                    profiles = base_profiles  # type: ignore[assignment]
 
                 shown_task_ids = {p.anchor.task_id for p in profiles}
                 for p in profiles:
