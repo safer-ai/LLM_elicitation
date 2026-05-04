@@ -1,25 +1,138 @@
 # src/config.py
 
+import os
 import yaml
 import logging
 from pathlib import Path
 from dataclasses import dataclass, field
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Set, Union
 
-# Basic logger setup
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(name)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# --- Data Structure Definitions ---
-@dataclass
-class ThinkingSettings:
-    """Settings to control Anthropic's extended thinking feature."""
-    enabled: bool = False
-    budget_tokens: int = 4000
 
-    def __post_init__(self):
-        if self.budget_tokens <= 0:
-            raise ValueError("ThinkingSettings: 'budget_tokens' must be positive.")
+# --- API key resolution helpers (.env support) ---
+
+
+def _redact(key: Optional[str]) -> str:
+    """Return a short, safe-to-log prefix of an API key."""
+    if not key:
+        return "(empty)"
+    return f"{key[:14]}…[len={len(key)}]"
+
+
+def _parse_num_repeats(raw: Any) -> int:
+    """Coerce the raw `workflow_settings.num_repeats` YAML value to a positive int.
+
+    Rejects bools explicitly (otherwise YAML `true` would silently become 1 via
+    `int(True)`), and emits a clearer error than the bare `int()` traceback for
+    non-integer strings.
+    """
+    if isinstance(raw, bool):
+        raise TypeError(
+            "WorkflowSettings: 'num_repeats' must be a positive integer (got bool). "
+            "Did you mean `num_repeats: 1` or `num_repeats: 20`?"
+        )
+    if isinstance(raw, int):
+        return raw
+    if isinstance(raw, float):
+        if raw.is_integer():
+            return int(raw)
+        raise TypeError(
+            f"WorkflowSettings: 'num_repeats' must be a positive integer; got float {raw!r}."
+        )
+    try:
+        coerced_str = str(raw).strip()
+        return int(coerced_str)
+    except (TypeError, ValueError) as exc:
+        raise TypeError(
+            f"WorkflowSettings: 'num_repeats' must be a positive integer; got {raw!r}."
+        ) from exc
+
+
+def _parse_dotenv(path: Path) -> Dict[str, str]:
+    """Minimal stdlib parser for KEY=VALUE lines in a .env file.
+
+    Ignores blanks and lines starting with '#'. Strips wrapping quotes.
+    Last assignment wins. No shell-style variable expansion.
+    """
+    out: Dict[str, str] = {}
+    if not path.is_file():
+        return out
+    try:
+        for line in path.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            k, _, v = line.partition("=")
+            k = k.strip()
+            v = v.strip()
+            if (v.startswith("'") and v.endswith("'")) or (v.startswith('"') and v.endswith('"')):
+                v = v[1:-1]
+            if k:
+                out[k] = v
+    except Exception as e:
+        logger.warning(f"Failed to parse {path}: {e}")
+    return out
+
+
+def _resolve_api_key(env_var: str, project_root: Path) -> Optional[str]:
+    """Resolve an API key with explicit precedence:
+
+      1. KEY=VALUE in <project_root>/.env (project-local wins over shell env so
+         a stale shell-exported key cannot silently override a per-experiment key).
+      2. Process environment variable `env_var`.
+
+    Returns None if no source has a value.
+    """
+    parsed = _parse_dotenv(project_root / ".env")
+    if env_var in parsed and parsed[env_var]:
+        v = parsed[env_var]
+        logger.info(f"{env_var}: source = {project_root / '.env'}, key = {_redact(v)}")
+        return v
+
+    env_val = os.environ.get(env_var)
+    if env_val:
+        logger.info(f"{env_var}: source = process env, key = {_redact(env_val)}")
+        return env_val
+
+    logger.debug(f"{env_var}: no value found in .env or process env")
+    return None
+
+
+# --- Provider inference ---
+def get_provider_for_model(model: str) -> str:
+    """Infers the API provider based on a single model name.
+
+    Recognises:
+      - Anthropic: 'claude' in name (e.g. 'claude-sonnet-4-6').
+      - Google:   'gemini' in name (e.g. 'gemini-3-flash-preview').
+      - OpenAI:   'gpt-' in name, or starts with 'o1'/'o2'/'o3'/'o4'/'o5'
+                  (e.g. 'gpt-5-mini', 'o3-mini').
+    """
+    m = model.lower().strip()
+    if 'claude' in m:
+        return 'anthropic'
+    if 'gemini' in m:
+        return 'google'
+    if 'gpt-' in m or any(m.startswith(prefix) for prefix in ('o1', 'o2', 'o3', 'o4', 'o5')):
+        return 'openai'
+    raise ValueError(
+        f"Could not infer API provider from model name: '{model}'. "
+        f"Expected name containing 'claude', 'gemini', 'gpt-', or starting with 'o1'..'o5'."
+    )
+
+# --- Data Structure Definitions ---
+
+# Allowed values for the unified, provider-agnostic reasoning dial. Each
+# value is mapped per-provider in shared/llm_client.py:
+#   - Anthropic: maps to a `thinking={"type":"enabled","budget_tokens":N}` block,
+#     or omitted entirely for "off".
+#   - OpenAI (gpt-5*, o-series): maps to the `reasoning_effort` request param;
+#     "off" -> "minimal" since reasoning models always reason internally.
+#   - Google Gemini (via OpenAI-compat): same `reasoning_effort` param.
+REASONING_EFFORT_VALUES = ("off", "minimal", "low", "medium", "high")
+
 
 @dataclass
 class LLMSettings:
@@ -29,10 +142,13 @@ class LLMSettings:
     max_concurrent_calls: int = 5 # Max parallel API requests
     rate_limit_calls: int = 45    # Max calls per rate_limit_period
     rate_limit_period: int = 60   # Time window for rate limit (seconds)
-    thinking: ThinkingSettings = field(default_factory=ThinkingSettings)
+    # Provider-agnostic reasoning/thinking knob. One of REASONING_EFFORT_VALUES.
+    # "off" means: don't request extended reasoning. For OpenAI reasoning models
+    # (gpt-5*, o-series) this is translated to reasoning_effort="minimal" because
+    # those models always reason internally and "minimal" is the smallest budget.
+    reasoning_effort: str = "off"
 
     def __post_init__(self):
-        # Basic validation within the dataclass
         if not self.model:
             raise ValueError("LLMSettings: 'model' cannot be empty.")
         if not 0.0 <= self.temperature <= 2.0:
@@ -43,29 +159,50 @@ class LLMSettings:
             raise ValueError("LLMSettings: 'rate_limit_calls' must be positive.")
         if self.rate_limit_period <= 0:
             raise ValueError("LLMSettings: 'rate_limit_period' must be positive.")
+        if self.reasoning_effort not in REASONING_EFFORT_VALUES:
+            raise ValueError(
+                f"LLMSettings: 'reasoning_effort' must be one of "
+                f"{list(REASONING_EFFORT_VALUES)}, got {self.reasoning_effort!r}."
+            )
 
 @dataclass
 class WorkflowSettings:
     """Settings controlling the Delphi workflow execution."""
-    num_tasks: Optional[int] = None     # Max tasks to process (None = all)
-    num_experts: Optional[int] = None   # Max experts to use (None = all)
-    scenario_steps: Optional[List[str]] = None # Specific scenario steps to run (None = all)
-    delphi_rounds: int = 3              # Total number of Delphi rounds
-    convergence_threshold: float = 0.05 # Std dev threshold for early stopping
+    # num_tasks accepts three modes:
+    #   - None: process all tasks for every benchmark.
+    #   - int: process the first N tasks of every benchmark.
+    #   - List[str]: an explicit list of task names (e.g. ["Paddle", "Labyrinth Linguist"]).
+    #     For each benchmark, if any of the listed names match its tasks, only those
+    #     tasks are run. Benchmarks whose names are not present in the list fall back
+    #     to running their full task set
+    num_tasks: Union[None, int, List[str]] = None
+    num_experts: Optional[int] = None
+    scenario_steps: Optional[List[str]] = None
+    delphi_rounds: int = 3
+    convergence_threshold: float = 0.05
+    # Number of independent repeats of the full Delphi pipeline per model.
+    # rows are distinguished by # the `repeat_index` column (1-based).
+    num_repeats: int = 1
 
-    # Example Task Settings
-    include_easier_tasks: bool = True  # Include easier example tasks alongside hardest task
-    num_example_tasks: Optional[int] = 3 # Number of example tasks to include (including previous task)
+    include_easier_tasks: bool = True
+    num_example_tasks: Optional[int] = 3
 
-    # NEW Scenario-Level Metric Estimation Flags
     estimate_num_actors_per_task_benchmark: bool = False
     estimate_num_attacks_per_task_benchmark: bool = False
     estimate_damage_per_task_benchmark: bool = False
 
 
     def __post_init__(self):
-        if self.num_tasks is not None and self.num_tasks < 0:
-            raise ValueError("WorkflowSettings: 'num_tasks' cannot be negative.")
+        if isinstance(self.num_tasks, bool):
+            raise TypeError("WorkflowSettings: 'num_tasks' must be null, an int, or a list of strings (got bool).")
+        if isinstance(self.num_tasks, int):
+            if self.num_tasks < 0:
+                raise ValueError("WorkflowSettings: 'num_tasks' cannot be negative.")
+        elif isinstance(self.num_tasks, list):
+            if not all(isinstance(s, str) for s in self.num_tasks):
+                raise TypeError("WorkflowSettings: when 'num_tasks' is a list, all entries must be strings.")
+        elif self.num_tasks is not None:
+            raise TypeError("WorkflowSettings: 'num_tasks' must be null, an int, or a list of strings.")
         if self.num_experts is not None and self.num_experts <= 0:
             raise ValueError("WorkflowSettings: 'num_experts' must be positive if specified.")
         if self.delphi_rounds <= 0:
@@ -74,7 +211,10 @@ class WorkflowSettings:
             raise ValueError("WorkflowSettings: 'convergence_threshold' cannot be negative.")
         if self.scenario_steps is not None and not isinstance(self.scenario_steps, list):
             raise TypeError("WorkflowSettings: 'scenario_steps' must be a list of strings or null.")
-        # No specific validation needed for the new boolean flags, as they default to False.
+        if isinstance(self.num_repeats, bool) or not isinstance(self.num_repeats, int):
+            raise TypeError("WorkflowSettings: 'num_repeats' must be a positive integer.")
+        if self.num_repeats < 1:
+            raise ValueError("WorkflowSettings: 'num_repeats' must be >= 1 (1 = run once).")
 
 
 @dataclass
@@ -92,34 +232,31 @@ class AppConfig:
     workflow_settings: WorkflowSettings
 
     # --- Fields WITH default values ---
-    # Output Paths (base directories)
     output_dir: Path = Path("output_data")
 
-    # API Keys (loaded but potentially sensitive)
+    # API keys for each supported provider. Resolved from .env > process env.
     api_key_anthropic: Optional[str] = None
     api_key_openai: Optional[str] = None
+    api_key_gemini: Optional[str] = None
 
-    # --- Properties (methods acting like attributes) ---
+    models_to_run: List[str] = field(default_factory=list)
+
     @property
     def inferred_api_provider(self) -> str:
-        """Infers the API provider based on the model name."""
-        model_lower = self.llm_settings.model.lower()
-        if 'claude' in model_lower:
-            return 'anthropic'
-        elif 'gpt-' in model_lower or 'o' in model_lower: # Broader check for OpenAI models
-            return 'openai'
-        else:
-            logger.error(f"Could not infer API provider from model name: '{self.llm_settings.model}'. Add specific check if needed.")
-            raise ValueError(f"Could not infer API provider from model name: {self.llm_settings.model}")
+        """Provider for the currently active single model in `llm_settings.model`."""
+        return get_provider_for_model(self.llm_settings.model)
+
+    @property
+    def required_providers(self) -> Set[str]:
+        """Set of providers needed across `models_to_run`."""
+        return {get_provider_for_model(m) for m in self.models_to_run}
 
     @property
     def runs_dir(self) -> Path:
-        """Convenience property for the runs subdirectory."""
         return self.output_dir / "runs"
 
     @property
     def registry_file(self) -> Path:
-        """Convenience property for the run registry file path."""
         return self.output_dir / "run_registry.json"
 
 
@@ -173,27 +310,84 @@ def load_config(config_path: str = "config.yaml") -> AppConfig:
         if not isinstance(workflow_settings_raw, dict):
             raise ValueError("'workflow_settings' must be a dictionary.")
         
-        thinking_settings_raw = llm_settings_raw.get("thinking", {})
-        if not isinstance(thinking_settings_raw, dict):
-            raise ValueError("'llm_settings.thinking' must be a dictionary.")
+        # Reasoning effort: prefer the new unified `reasoning_effort` field.
+        # If the legacy `thinking: {enabled, budget_tokens}` block is present
+        # (and `reasoning_effort` is not), translate it with a deprecation
+        # warning so existing configs keep working.
+        reasoning_effort_raw = llm_settings_raw.get("reasoning_effort")
+        legacy_thinking_raw = llm_settings_raw.get("thinking")
 
-        thinking_settings = ThinkingSettings(
-            enabled=bool(thinking_settings_raw.get("enabled", ThinkingSettings.enabled)),
-            budget_tokens=int(thinking_settings_raw.get("budget_tokens", ThinkingSettings.budget_tokens)),
-        )
+        if reasoning_effort_raw is not None:
+            if not isinstance(reasoning_effort_raw, str):
+                raise TypeError(
+                    "'llm_settings.reasoning_effort' must be a string, one of "
+                    f"{list(REASONING_EFFORT_VALUES)}."
+                )
+            reasoning_effort = reasoning_effort_raw.strip().lower()
+            if legacy_thinking_raw is not None:
+                logger.warning(
+                    "Both 'reasoning_effort' and the legacy 'thinking' block are set in "
+                    "llm_settings; using 'reasoning_effort' and ignoring 'thinking'."
+                )
+        elif isinstance(legacy_thinking_raw, dict):
+            enabled = bool(legacy_thinking_raw.get("enabled", False))
+            budget_tokens = int(legacy_thinking_raw.get("budget_tokens", 4000))
+            if not enabled:
+                reasoning_effort = "off"
+            elif budget_tokens < 3000:
+                reasoning_effort = "low"
+            elif budget_tokens < 10000:
+                reasoning_effort = "medium"
+            else:
+                reasoning_effort = "high"
+            logger.warning(
+                "Config uses the legacy 'thinking: {enabled, budget_tokens}' block. "
+                "This is deprecated in favour of the unified 'reasoning_effort' field. "
+                f"Translated to reasoning_effort='{reasoning_effort}'. "
+                "Please replace `thinking: ...` with `reasoning_effort: \"%s\"` "
+                "in your config.",
+                reasoning_effort,
+            )
+        elif legacy_thinking_raw is not None:
+            raise ValueError("'llm_settings.thinking' must be a dictionary.")
+        else:
+            reasoning_effort = LLMSettings.reasoning_effort
+
+        # `model` may be a single string or a list of strings. Normalise to a list
+        # internally; LLMSettings.model holds the active model for the current run
+        # (main.py rotates it through `models_to_run`).
+        raw_model = llm_settings_raw.get("model")
+        if raw_model is None:
+            raise ValueError("'llm_settings.model' is required (string or list of strings).")
+        if isinstance(raw_model, str):
+            models_to_run: List[str] = [raw_model.strip()]
+        elif isinstance(raw_model, list):
+            if not raw_model:
+                raise ValueError("'llm_settings.model' is an empty list; provide at least one model.")
+            if not all(isinstance(m, str) and m.strip() for m in raw_model):
+                raise TypeError("'llm_settings.model' list must contain non-empty strings only.")
+            models_to_run = [m.strip() for m in raw_model]
+        else:
+            raise TypeError(f"'llm_settings.model' must be a string or a list of strings (got {type(raw_model).__name__}).")
 
         # Instantiate nested settings (validation happens in __post_init__)
+        # The active `model` defaults to the first entry; main.py overrides per run.
         llm_settings = LLMSettings(
-            model=str(llm_settings_raw.get("model")), # Required, let potential None raise error later
+            model=models_to_run[0],
             temperature=float(llm_settings_raw.get("temperature", LLMSettings.temperature)),
             max_concurrent_calls=int(llm_settings_raw.get("max_concurrent_calls", LLMSettings.max_concurrent_calls)),
             rate_limit_calls=int(llm_settings_raw.get("rate_limit_calls", LLMSettings.rate_limit_calls)),
             rate_limit_period=int(llm_settings_raw.get("rate_limit_period", LLMSettings.rate_limit_period)),
-            thinking=thinking_settings
+            reasoning_effort=reasoning_effort,
         )
 
         workflow_settings = WorkflowSettings(
-            num_tasks=int(n) if (n := workflow_settings_raw.get("num_tasks")) is not None else None,
+            # num_tasks: pass through None / list as-is; coerce numeric scalars to int.
+            num_tasks=(
+                None if (n := workflow_settings_raw.get("num_tasks")) is None
+                else (list(n) if isinstance(n, list)
+                      else int(n))
+            ),
             num_experts=int(n) if (n := workflow_settings_raw.get("num_experts")) is not None else None,
             scenario_steps=workflow_settings_raw.get("scenario_steps"), # Keep as None or list
             delphi_rounds=int(workflow_settings_raw.get("delphi_rounds", WorkflowSettings.delphi_rounds)),
@@ -205,6 +399,7 @@ def load_config(config_path: str = "config.yaml") -> AppConfig:
             estimate_num_actors_per_task_benchmark=bool(workflow_settings_raw.get("estimate_num_actors_per_task_benchmark", WorkflowSettings.estimate_num_actors_per_task_benchmark)),
             estimate_num_attacks_per_task_benchmark=bool(workflow_settings_raw.get("estimate_num_attacks_per_task_benchmark", WorkflowSettings.estimate_num_attacks_per_task_benchmark)),
             estimate_damage_per_task_benchmark=bool(workflow_settings_raw.get("estimate_damage_per_task_benchmark", WorkflowSettings.estimate_damage_per_task_benchmark)),
+            num_repeats=_parse_num_repeats(workflow_settings_raw.get("num_repeats", WorkflowSettings.num_repeats)),
         )
 
 
@@ -240,34 +435,50 @@ def load_config(config_path: str = "config.yaml") -> AppConfig:
         output_dir = (project_root / Path(str(output_dir_str))).resolve()
 
 
-        # --- Load API Keys ---
-        api_key_anthropic = raw_config.get("anthropic_api_key")
-        api_key_openai = raw_config.get("openai_api_key")
+        # --- Load API Keys (<root>/.env > process env) ---
+        api_key_anthropic = _resolve_api_key("ANTHROPIC_API_KEY", project_root)
+        api_key_openai = _resolve_api_key("OPENAI_API_KEY", project_root)
+        # Accept either GEMINI_API_KEY or GOOGLE_API_KEY as the env-var name.
+        api_key_gemini = _resolve_api_key("GEMINI_API_KEY", project_root)
+        if not api_key_gemini:
+            api_key_gemini = _resolve_api_key("GOOGLE_API_KEY", project_root)
 
-        # --- Instantiate Final AppConfig ---
-        # Order fields here according to the corrected dataclass definition
         app_config = AppConfig(
-            # Non-defaults first
             prompts_dir=prompts_dir,
-            default_benchmark_file=default_benchmark_file, # Use new name
+            default_benchmark_file=default_benchmark_file,
             scenario_file=scenario_file,
             expert_profiles_file=expert_profiles_file,
             llm_settings=llm_settings,
             workflow_settings=workflow_settings,
-            # Defaults last
             output_dir=output_dir,
-            api_key_anthropic=str(api_key_anthropic) if api_key_anthropic else None,
-            api_key_openai=str(api_key_openai) if api_key_openai else None,
+            api_key_anthropic=api_key_anthropic,
+            api_key_openai=api_key_openai,
+            api_key_gemini=api_key_gemini,
+            models_to_run=models_to_run,
         )
 
-        # --- Validate API Key Presence based on inferred provider ---
-        provider = app_config.inferred_api_provider # This might raise ValueError if model is unknown
-        if provider == 'anthropic' and not app_config.api_key_anthropic:
-            raise ValueError("Model indicates Anthropic provider, but 'anthropic_api_key' is missing or empty in config.")
-        if provider == 'openai' and not app_config.api_key_openai:
-            raise ValueError("Model indicates OpenAI provider, but 'openai_api_key' is missing or empty in config.")
+        # --- Validate API key presence based on the union of providers ---
+        required = app_config.required_providers
+        if 'anthropic' in required and not app_config.api_key_anthropic:
+            raise ValueError(
+                "At least one configured model is from Anthropic, but no Anthropic API key found "
+                "(checked <root>/.env, ANTHROPIC_API_KEY env var)."
+            )
+        if 'openai' in required and not app_config.api_key_openai:
+            raise ValueError(
+                "At least one configured model is from OpenAI, but no OpenAI API key found "
+                "(checked <root>/.env, OPENAI_API_KEY env var)."
+            )
+        if 'google' in required and not app_config.api_key_gemini:
+            raise ValueError(
+                "At least one configured model is from Google (Gemini), but no Gemini API key found "
+                "(checked <root>/.env, GEMINI_API_KEY/GOOGLE_API_KEY env vars)."
+            )
 
-        logger.info("Configuration loaded and validated successfully.")
+        logger.info(
+            f"Configuration loaded. Models to run ({len(models_to_run)}): {models_to_run}. "
+            f"Providers required: {sorted(required)}."
+        )
         return app_config
 
     # Catch potential errors during processing/validation

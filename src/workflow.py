@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import sys
 import time
 import datetime
 from dataclasses import asdict
@@ -8,6 +9,10 @@ from typing import List, Dict, Optional, Union, Any, Tuple
 from asyncio import Semaphore
 from pathlib import Path
 
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if str(_PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_PROJECT_ROOT))
+from shared.llm_client import _ANTHROPIC_BUDGET_BY_EFFORT
 # Conditional imports for type hinting client
 try:
     from anthropic import AsyncAnthropic
@@ -69,9 +74,54 @@ def _select_items(items: List[Any], num_to_select: Optional[int], item_type_name
         selected = items[:num_to_select]
         logger.debug(f"Selected first {len(selected)} of {len(items)} {item_type_name}s based on config.")
         return selected
-    else: # Should be caught by config validation, but defensive check
+    else:
         logger.warning(f"Invalid negative number ({num_to_select}) specified for {item_type_name}s. Processing all.")
         return items
+
+
+def _select_tasks_for_benchmark(
+    tasks: List[BenchmarkTask],
+    num_tasks_setting: Union[None, int, List[str]],
+    benchmark_label: str,
+) -> List[BenchmarkTask]:
+    """Selects tasks from a benchmark for a Delphi run.
+
+    Modes (driven by `workflow_settings.num_tasks`):
+      - None: every task in the benchmark.
+      - int: the first N tasks (back-compat with the original semantics).
+      - List[str]: explicit list of real task names. Only tasks whose `name`
+        is an exact match for an entry in the list are run. If no listed name
+        matches any task in this benchmark, this benchmark contributes ZERO
+        tasks to the run (we do *not* fall back to running every task — that
+        would burn tokens on a config that didn't mention this benchmark).
+
+    `benchmark_label` is only used for logging.
+    """
+    if num_tasks_setting is None:
+        return tasks
+    if isinstance(num_tasks_setting, int):
+        return _select_items(tasks, num_tasks_setting, f"task in '{benchmark_label}'")
+    if isinstance(num_tasks_setting, list):
+        wanted = {n.strip() for n in num_tasks_setting if n and n.strip()}
+        if not wanted:
+            return tasks
+        matched = [t for t in tasks if t.name in wanted]
+        if not matched:
+            logger.warning(
+                f"Benchmark '{benchmark_label}': no exact-name match against num_tasks "
+                f"({sorted(wanted)}). Skipping this benchmark for this scenario step."
+            )
+            return []
+        logger.info(
+            f"Benchmark '{benchmark_label}': matched {len(matched)}/{len(tasks)} "
+            f"tasks against num_tasks: {[t.name for t in matched]}."
+        )
+        return matched
+    logger.warning(
+        f"Unrecognised num_tasks setting type ({type(num_tasks_setting).__name__}); "
+        f"falling back to all tasks for '{benchmark_label}'."
+    )
+    return tasks
 
 
 
@@ -131,8 +181,23 @@ async def _run_expert_round(
 
     prompt_data["task_relevant_metrics_details"] = "Relevant Task Metrics: " + ", ".join(relevant_metrics_parts) + "." if relevant_metrics_parts else "Relevant Task Metrics: None specified or available for this task."
 
-    max_tokens_analysis = 8000
-    max_tokens_estimation = 8000
+    # Reasoning models (gpt-5*, gemini-3*, claude with extended thinking) burn
+    # part of the completion budget on hidden reasoning tokens before producing
+    # the visible <percentile_estimates>/<rationale> blocks. For Anthropic with
+    # extended thinking, max_tokens MUST be > thinking.budget_tokens. We compute
+    # these dynamically to satisfy that constraint while still allowing headroom
+    # for actual completions. See _get_final_text_openai for the finish_reason='length'
+    # warning when this is still hit.
+    
+    # Determine thinking budget based on config
+    thinking_budget = 0
+    if config.inferred_api_provider == "anthropic" and config.llm_settings.reasoning_effort != "off":
+        thinking_budget = _ANTHROPIC_BUDGET_BY_EFFORT.get(config.llm_settings.reasoning_effort, 0)
+    
+    # Ensure max_tokens > thinking_budget + room for actual output
+    min_reasoning_output_tokens = 2000
+    max_tokens_analysis = max(8000, thinking_budget + min_reasoning_output_tokens)
+    max_tokens_estimation = max(8000, thinking_budget + min_reasoning_output_tokens)
 
     try:
         if round_num == 1:
@@ -318,7 +383,13 @@ async def _run_expert_round_for_scenario_metric(
     
     prompt_data["task_relevant_metrics_details"] = "Relevant Task Metrics (for this capability benchmark task): " + ", ".join(relevant_metrics_parts) + "." if relevant_metrics_parts else "Relevant Task Metrics: None specified or available for this capability benchmark task."
 
-    max_tokens_estimation = 8000
+    # Ensure max_tokens > thinking_budget for Anthropic with extended thinking
+    thinking_budget = 0
+    if config.inferred_api_provider == "anthropic" and config.llm_settings.reasoning_effort != "off":
+        thinking_budget = _ANTHROPIC_BUDGET_BY_EFFORT.get(config.llm_settings.reasoning_effort, 0)
+    
+    min_reasoning_output_tokens = 2000
+    max_tokens_estimation = max(8000, thinking_budget + min_reasoning_output_tokens)
 
     try:
         if round_num == 1:
@@ -480,7 +551,11 @@ async def _run_scenario_level_metric_estimation_phase(
                 benchmark_file_path_normalized = metric_config.benchmark_file
                 current_dedicated_benchmark = input_data.loaded_benchmarks.get(benchmark_file_path_normalized)
                 if current_dedicated_benchmark:
-                    tasks_for_this_metric_benchmark = _select_items(current_dedicated_benchmark.tasks, config.workflow_settings.num_tasks, f"task for {suite_cfg['metric_name_logging']}")
+                    tasks_for_this_metric_benchmark = _select_tasks_for_benchmark(
+                        current_dedicated_benchmark.tasks,
+                        config.workflow_settings.num_tasks,
+                        benchmark_label=f"{benchmark_file_path_normalized} (metric={suite_cfg['metric_name_logging']})",
+                    )
                     total_metric_tasks_to_process_phase2 += len(tasks_for_this_metric_benchmark)
     
     processed_metric_tasks_phase2 = 0
@@ -514,7 +589,11 @@ async def _run_scenario_level_metric_estimation_phase(
         
         logger.info(f"  Using Benchmark for {metric_name_log}: '{benchmark_file_path_normalized}' ({current_dedicated_benchmark.description[:30]}...)")
         
-        tasks_for_this_metric_benchmark = _select_items(current_dedicated_benchmark.tasks, config.workflow_settings.num_tasks, f"task for {metric_name_log}")
+        tasks_for_this_metric_benchmark = _select_tasks_for_benchmark(
+            current_dedicated_benchmark.tasks,
+            config.workflow_settings.num_tasks,
+            benchmark_label=f"{benchmark_file_path_normalized} (metric={metric_name_log})",
+        )
         if not tasks_for_this_metric_benchmark:
             logger.warning(f"No tasks selected for {metric_name_log} from benchmark '{benchmark_file_path_normalized}'.")
             phase2_results[pseudo_step_name] = []
@@ -569,7 +648,8 @@ async def _run_scenario_level_metric_estimation_phase(
                     task_metrics=task_from_bench.metrics, round_num=current_round, responses=current_round_processed_responses,
                     run_id=run_info["run_id"], model=overall_results["run_metadata"]["config_used"]["llm_settings"]["model"],
                     temperature=overall_results["run_metadata"]["config_used"]["llm_settings"]["temperature"],
-                    timestamp_start=overall_results["run_metadata"]["timestamp_start"]
+                    timestamp_start=overall_results["run_metadata"]["timestamp_start"],
+                    repeat_index=overall_results["run_metadata"]["repeat_index"],
                 )
 
                 valid_estimates = [r["estimate"] for r in current_round_processed_responses if "error" not in r and r.get("estimate") is not None]
@@ -622,31 +702,63 @@ async def run_delphi_estimation(
     client: Union[AsyncAnthropic, AsyncOpenAI],
     semaphore: Semaphore,
     config: AppConfig,
-    input_data: InputData
+    input_data: InputData,
+    run_info: Dict[str, Any],
+    combined_state: Dict[str, Any],
+    repeat_index: int = 1,
 ) -> Dict[str, Any]:
-    """
-    Runs the main Delphi estimation workflow.
+    """Runs the Delphi estimation workflow for the active model in `config.llm_settings`.
+
+    Both `run_info` (from `initialize_run`) and `combined_state` are owned by
+    the caller (see `main.py`). The workflow appends its per-model result
+    block to `combined_state['results_per_model']` and persists that combined
+    structure to JSON after every task / metric, so a multi-model run produces
+    exactly one CSV and one JSON regardless of how many models are looped over.
+
+    `repeat_index` (1-based) identifies which independent repeat of the full
+    pipeline this is, when `workflow_settings.num_repeats > 1`. The analysis
+    cache is reset on every call (line below), so each repeat is a truly
+    independent sample including a fresh task analysis.
     """
     global _analysis_cache
     _analysis_cache = {}
 
     run_start_time = time.time()
-    logger.info("\n\n--- Starting Full Delphi Estimation Workflow ---")
+    num_repeats_total = max(1, getattr(config.workflow_settings, "num_repeats", 1))
+    rep_label = f" (repeat {repeat_index}/{num_repeats_total})" if num_repeats_total > 1 else ""
+    logger.info(f"\n\n--- Starting Delphi Workflow for model '{config.llm_settings.model}'{rep_label} ---")
     project_root = Path.cwd()
 
     if not all([input_data.prompts, input_data.experts, input_data.scenario, input_data.loaded_benchmarks]):
         return {"error": "One or more critical input data components are missing."}
 
+    # warn if a name in num_tasks doesn't exist in
+    # any loaded benchmark. Matches must be EXACT
+    nt = config.workflow_settings.num_tasks
+    unknown_task_names: List[str] = []
+    if isinstance(nt, list) and nt:
+        all_task_names = {t.name for b in input_data.loaded_benchmarks.values() for t in b.tasks}
+        unknown_task_names = [n for n in nt if n not in all_task_names]
+        if unknown_task_names:
+            logger.warning(
+                f"num_tasks contains task names not present in any loaded benchmark: "
+                f"{unknown_task_names}. These will be skipped (exact match required). "
+                f"Check for typos."
+            )
+
     experts_to_use = _select_items(input_data.experts, config.workflow_settings.num_experts, "expert")
     if not experts_to_use: return {"error": "No experts selected to run."}
 
-    run_info = initialize_run(config)
-    if not run_info:
-        return {"error": "Failed to initialize run"}
-
+    # Per-model result block. The outer `run_metadata` lives at the top of
+    # `combined_state` and is owned by main.py; this block holds everything
+    # specific to the currently active (model, repeat_index).
     overall_results: Dict[str, Any] = {
+        "model": config.llm_settings.model,
+        "provider": config.inferred_api_provider,
+        "repeat_index": repeat_index,
         "run_metadata": {
             "timestamp_start": datetime.datetime.now().isoformat(),
+            "repeat_index": repeat_index,
             "config_used": {
                  "llm_settings": asdict(config.llm_settings),
                  "workflow_settings": asdict(config.workflow_settings),
@@ -654,12 +766,15 @@ async def run_delphi_estimation(
                  "benchmark_file": str(config.default_benchmark_file.relative_to(project_root).as_posix()),
                  "scenario_file": str(config.scenario_file.relative_to(project_root).as_posix()),
                  "num_experts_run": len(experts_to_use),
-                 "num_steps_run": 0, 
+                 "num_steps_run": 0,
                  "num_tasks_run": config.workflow_settings.num_tasks
             },
         },
-        "results_per_step": [] 
+        "results_per_step": []
     }
+    # Register this model's block in the combined state up front so that any
+    # intermediate JSON snapshot includes its partial progress.
+    combined_state.setdefault("results_per_model", []).append(overall_results)
 
     # PHASE 1: Step-Specific Probability Estimation
     logger.info("\n\n--- Starting Phase 1: Step-Specific Probability Estimations ---")
@@ -690,7 +805,11 @@ async def run_delphi_estimation(
         benchmark_key = scenario_step.benchmark_file or overall_results["run_metadata"]["config_used"]["benchmark_file"]
         benchmark = input_data.loaded_benchmarks.get(benchmark_key)
         if benchmark:
-            tasks = _select_items(benchmark.tasks, config.workflow_settings.num_tasks, f"task from {benchmark_key}")
+            tasks = _select_tasks_for_benchmark(
+                benchmark.tasks,
+                config.workflow_settings.num_tasks,
+                benchmark_label=benchmark_key,
+            )
             approx_total_tasks_phase1 += len(tasks)
     
     processed_tasks_phase1 = 0
@@ -710,7 +829,11 @@ async def run_delphi_estimation(
         logger.info(f"\nPhase 1: Processing Step '{scenario_step.name}' using Benchmark '{benchmark_key}'")
         step_results_p1["benchmark_used"] = benchmark_key
 
-        tasks_to_run_for_step = _select_items(current_benchmark_p1.tasks, config.workflow_settings.num_tasks, f"task from '{benchmark_key}'")
+        tasks_to_run_for_step = _select_tasks_for_benchmark(
+            current_benchmark_p1.tasks,
+            config.workflow_settings.num_tasks,
+            benchmark_label=f"{benchmark_key} (step={scenario_step.name})",
+        )
 
         for task_p1 in tasks_to_run_for_step:
             processed_tasks_phase1 += 1
@@ -752,7 +875,8 @@ async def run_delphi_estimation(
                     task_metrics=task_p1.metrics, round_num=current_round_p1, responses=processed_responses,
                     run_id=run_info["run_id"], model=overall_results["run_metadata"]["config_used"]["llm_settings"]["model"],
                     temperature=overall_results["run_metadata"]["config_used"]["llm_settings"]["temperature"],
-                    timestamp_start=overall_results["run_metadata"]["timestamp_start"]
+                    timestamp_start=overall_results["run_metadata"]["timestamp_start"],
+                    repeat_index=repeat_index,
                 )
 
                 valid_estimates = [r["estimate"] for r in processed_responses if "error" not in r and isinstance(r.get("estimate"), float)]
@@ -776,8 +900,8 @@ async def run_delphi_estimation(
                     logger.warning("    No valid final probability estimates found.")
 
             step_results_p1["results_per_task"].append(task_step_result_p1)
-            save_intermediate_json(run_info["json_path"], overall_results)
-            
+            save_intermediate_json(run_info["json_path"], combined_state)
+
         overall_results["results_per_step"].append(step_results_p1)
     
     logger.info("--- Phase 1: Step-Specific Probability Estimations Completed ---")
@@ -790,19 +914,28 @@ async def run_delphi_estimation(
 
     for pseudo_step_name, tasks_list in phase2_results.items():
         overall_results["results_per_step"].append({
-            "step_name": pseudo_step_name, 
+            "step_name": pseudo_step_name,
             "step_description": f"Estimation for {pseudo_step_name.replace('ScenarioLevelMetric_', '')}",
-            "step_type": "ScenarioLevelMetricEstimation", 
-            "results_per_task": tasks_list 
+            "step_type": "ScenarioLevelMetricEstimation",
+            "results_per_task": tasks_list
         })
-        save_intermediate_json(run_info["json_path"], overall_results)
+        save_intermediate_json(run_info["json_path"], combined_state)
 
     # Finalization
     run_duration = time.time() - run_start_time
     overall_results["run_metadata"]["timestamp_end"] = datetime.datetime.now().isoformat()
     overall_results["run_metadata"]["duration_seconds"] = round(run_duration, 2)
-    
-    finalize_run(config, run_info["run_id"], run_info["run_dir"], overall_results)
-    
-    logger.info(f"--- Full Delphi Estimation Workflow Completed in {run_duration:.2f} seconds ---")
+    save_intermediate_json(run_info["json_path"], combined_state)
+
+    # Repeat the unknown-task-name warning here so it shows up next to the
+    # summary table; easy to miss when buried in the per-round log spam.
+    if unknown_task_names:
+        logger.warning(
+            f"Reminder: {len(unknown_task_names)} task name(s) in num_tasks did not match any "
+            f"loaded benchmark and were skipped: {unknown_task_names}."
+        )
+
+    logger.info(
+        f"--- Delphi Workflow for model '{config.llm_settings.model}' completed in {run_duration:.2f}s ---"
+    )
     return overall_results

@@ -92,8 +92,9 @@ def add_run_to_registry(
     registry_file: Path,
     registry: Dict[str, Any],
     run_id: str,
-    run_metadata: Dict[str, Any], # Extracted from workflow results['run_metadata']
-    output_path: Path
+    run_metadata: Dict[str, Any],
+    output_path: Path,
+    results_per_model: Optional[List[Dict[str, Any]]] = None,
 ):
     """
     Adds a new run entry to the registry and saves it.
@@ -105,18 +106,30 @@ def add_run_to_registry(
         run_metadata: Metadata dictionary from the workflow results.
         output_path: Path object for the run's output directory.
     """
-    # Extract key metadata for the registry entry
-    config_used = run_metadata.get("config_used", {})
+    # The combined-state JSON (one run, possibly many models) carries the
+    # shared workflow + scenario + benchmark info on `run_metadata`, with the
+    # per-model `llm_settings` (and any per-model `num_*_run` counts) tucked
+    # inside each entry of `results_per_model`. Extract a flat summary suitable
+    # for the registry.
+    workflow_settings = run_metadata.get("workflow_settings", {})
+    shared_llm = run_metadata.get("shared_llm_settings", {})
+    models_run = list(run_metadata.get("models_run", []))
+
+    providers = sorted({
+        entry.get("provider")
+        for entry in (results_per_model or [])
+        if entry.get("provider")
+    })
     entry_metadata = {
-        "provider": config_used.get("provider", "Unknown"),
-        "model": config_used.get("llm_settings", {}).get("model", "Unknown"),
-        "temperature": config_used.get("llm_settings", {}).get("temperature"),
-        "delphi_rounds": config_used.get("workflow_settings", {}).get("delphi_rounds"),
-        "num_experts": config_used.get("num_experts_run"),
-        "num_tasks": config_used.get("num_tasks_run"),
-        "num_steps": config_used.get("num_steps_run"),
-        "benchmark_file": config_used.get("benchmark_file"),
-        "scenario_file": config_used.get("scenario_file"),
+        "models": models_run,
+        "providers": providers if providers else None,
+        "temperature": shared_llm.get("temperature"),
+        "delphi_rounds": workflow_settings.get("delphi_rounds"),
+        "num_experts": workflow_settings.get("num_experts"),
+        "num_tasks": workflow_settings.get("num_tasks"),
+        "scenario_steps": workflow_settings.get("scenario_steps"),
+        "benchmark_file": run_metadata.get("default_benchmark_file"),
+        "scenario_file": run_metadata.get("scenario_file"),
         "duration_seconds": run_metadata.get("duration_seconds"),
     }
 
@@ -251,7 +264,7 @@ def initialize_run(config: AppConfig) -> Optional[Dict[str, Any]]:
         # Note: We cannot know all task metrics in advance, so we'll let pandas handle it
         # when appending rows with additional columns
         csv_headers = [
-            "run_id", "timestamp_start", "model", "temperature",
+            "run_id", "timestamp_start", "model", "repeat_index", "temperature",
             "step_name", "task_name", "round", "expert_name",
             "estimate", "percentile_25th", "percentile_50th", "percentile_75th",
             "rationale", "has_error", "error_message", "task_metric"
@@ -289,11 +302,16 @@ def append_round_to_csv(
     run_id: str,
     model: str,
     temperature: float,
-    timestamp_start: str
+    timestamp_start: str,
+    repeat_index: int = 1,
 ) -> bool:
     """
     Appends results from a single round to the CSV file in a robust way that
     handles dynamically added columns.
+
+    `repeat_index` (1-based) identifies which independent repeat of the
+    Delphi pipeline this row comes from when `workflow_settings.num_repeats > 1`.
+    For single-shot runs (`num_repeats == 1`) it is always 1.
     """
     try:
         new_rows = []
@@ -302,6 +320,7 @@ def append_round_to_csv(
                 "run_id": run_id,
                 "timestamp_start": timestamp_start,
                 "model": model,
+                "repeat_index": repeat_index,
                 "temperature": temperature,
                 "step_name": step_name,
                 "task_name": task_name,
@@ -395,7 +414,11 @@ def finalize_run(
         registry_file = config.registry_file
         registry = init_registry(registry_file)
         run_metadata = final_results.get("run_metadata", {})
-        add_run_to_registry(registry_file, registry, run_id, run_metadata, run_dir)
+        results_per_model = final_results.get("results_per_model")
+        add_run_to_registry(
+            registry_file, registry, run_id, run_metadata, run_dir,
+            results_per_model=results_per_model,
+        )
         
         logger.info(f"Finalized run {run_id}")
         return True
