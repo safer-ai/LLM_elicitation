@@ -1,10 +1,3 @@
-# --- API Keys ---
-# Provide the API key for the provider specified in llm_settings.
-# Leave the other key blank or remove the line if not used.
-# IMPORTANT: Do NOT commit this file with keys filled in if using version control.
-anthropic_api_key: "ANTHROPIC_API_KEY_HERE"   # Your Anthropic API key. Required if the model is from Anthropic
-openai_api_key: "YOUR_OPENAI_API_KEY_HERE"     # Your OpenAI API key. Required if the model is from OpenAI.
-
 # --- Input Data Paths ---
 # Paths should be relative to the project root directory (where the main script is run)
 # or absolute paths.
