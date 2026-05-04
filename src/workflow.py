@@ -12,7 +12,8 @@ from pathlib import Path
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
-from shared.llm_client import _ANTHROPIC_BUDGET_BY_EFFORT
+from shared.llm_client import _ANTHROPIC_BUDGET_BY_EFFORT, make_api_call
+
 # Conditional imports for type hinting client
 try:
     from anthropic import AsyncAnthropic
@@ -55,7 +56,7 @@ async def _get_cached_analysis(
     if cache_key not in _analysis_cache:
         logger.debug(f"Analysis cache MISS for key {cache_key}. Scheduling API call.")
         _analysis_cache[cache_key] = asyncio.ensure_future(
-            make_api_call(client, semaphore, config, system_prompt, user_prompt, max_tokens)
+            make_api_call(client, semaphore, config.llm_settings, system_prompt, user_prompt, max_tokens)
         )
     else:
         logger.debug(f"Analysis cache HIT for key {cache_key}.")
@@ -233,7 +234,7 @@ async def _run_expert_round(
             expert_result["estimation_system_prompt"] = system_prompt_base
             expert_result["estimation_user_prompt"] = estimation_user_prompt
 
-            estimation_text = await make_api_call(client, semaphore, config, system_prompt_base, estimation_user_prompt, max_tokens_estimation)
+            estimation_text = await make_api_call(client, semaphore, config.llm_settings, system_prompt_base, estimation_user_prompt, max_tokens_estimation)
             expert_result["raw_estimation"] = estimation_text
 
             if estimation_text.startswith("Error:"):
@@ -302,7 +303,7 @@ async def _run_expert_round(
             expert_result["estimation_system_prompt"] = system_prompt_base
             expert_result["estimation_user_prompt"] = subsequent_user_prompt
 
-            estimation_text = await make_api_call(client, semaphore, config, system_prompt_base, subsequent_user_prompt, max_tokens_estimation)
+            estimation_text = await make_api_call(client, semaphore, config.llm_settings, system_prompt_base, subsequent_user_prompt, max_tokens_estimation)
             expert_result["raw_estimation"] = estimation_text
 
             if estimation_text.startswith("Error:"):
@@ -426,7 +427,7 @@ async def _run_expert_round_for_scenario_metric(
             expert_result["estimation_system_prompt"] = system_prompt_base
             expert_result["estimation_user_prompt"] = initial_user_prompt
 
-            estimation_text = await make_api_call(client, semaphore, config, system_prompt_base, initial_user_prompt, max_tokens_estimation)
+            estimation_text = await make_api_call(client, semaphore, config.llm_settings, system_prompt_base, initial_user_prompt, max_tokens_estimation)
             expert_result["raw_estimation"] = estimation_text
 
             if estimation_text.startswith("Error:"):
@@ -492,7 +493,7 @@ async def _run_expert_round_for_scenario_metric(
             expert_result["estimation_system_prompt"] = system_prompt_base
             expert_result["estimation_user_prompt"] = subsequent_user_prompt
 
-            estimation_text = await make_api_call(client, semaphore, config, system_prompt_base, subsequent_user_prompt, max_tokens_estimation)
+            estimation_text = await make_api_call(client, semaphore, config.llm_settings, system_prompt_base, subsequent_user_prompt, max_tokens_estimation)
             expert_result["raw_estimation"] = estimation_text
 
             if estimation_text.startswith("Error:"):
