@@ -58,6 +58,47 @@ def _extract_percentile_estimates(text: str) -> Dict[str, Optional[str]]:
     }
 
 
+def _extract_rationale(text: str) -> Optional[str]:
+    """Extracts the rationale summary from a structured LLM response.
+
+    Tries, in order:
+      1. A properly-closed `<rationale>...</rationale>` block.
+      2. An unclosed `<rationale>...` block running to end-of-text. This case
+         is the signature of a response truncated by max_tokens /
+         max_completion_tokens — we keep the partial content and log a warning.
+      3. A legacy `Rationale:` header. This pattern requires the header to
+         sit at the start of a line (or right after `**`) so it doesn't latch
+         onto inline phrases like `- Highest reasonable: 0.95. Rationale: ...`
+         that the model may emit inside its reasoning prose.
+    """
+    closed = re.search(
+        r'<rationale>\s*(.*?)\s*</rationale>',
+        text, re.IGNORECASE | re.DOTALL,
+    )
+    if closed:
+        return closed.group(1).strip()
+
+    open_only = re.search(
+        r'<rationale>\s*(.*)\Z',
+        text, re.IGNORECASE | re.DOTALL,
+    )
+    if open_only:
+        logger.warning(
+            "Found <rationale> with no closing tag — the response was likely truncated "
+            "by max_tokens / max_completion_tokens. Capturing the partial content."
+        )
+        return open_only.group(1).strip()
+
+    legacy = re.search(
+        r'(?:^|\n)[ \t]*\**\s*Rationale\s*\**\s*:\s*\**\s*(.*)\Z',
+        text, re.IGNORECASE | re.DOTALL,
+    )
+    if legacy:
+        return legacy.group(1).strip()
+
+    return None
+
+
 def parse_probability_response(response_text: str) -> Dict[str, Any]:
     """
     Parses a probability estimation response with percentiles for Beta distribution fitting.
@@ -115,16 +156,11 @@ def parse_probability_response(response_text: str) -> Dict[str, Any]:
     else:
         logger.warning("Could not parse '50th percentile (median)'. The primary 'estimate' will be null.")
 
-    # Extract Rationale - try XML first, then legacy
-    rationale = _extract_xml_tag('rationale', response_text)
+    rationale = _extract_rationale(response_text)
     if rationale:
         result["rationale"] = rationale
     else:
-        rationale_match = re.search(r'\**\s*Rationale\s*\**\s*:(.*?)(?:\Z)', response_text, re.IGNORECASE | re.DOTALL)
-        if rationale_match:
-            result["rationale"] = rationale_match.group(1).strip()
-        else:
-            logger.warning("Could not find rationale in response.")
+        logger.warning("Could not find rationale in response.")
 
     return result
 
@@ -181,14 +217,10 @@ def parse_quantity_response(response_text: str) -> Dict[str, Any]:
     else:
         logger.warning("Could not parse '50th percentile (median)'. The primary 'estimate' will be null.")
 
-    rationale = _extract_xml_tag('rationale', response_text)
+    rationale = _extract_rationale(response_text)
     if rationale:
         result["rationale"] = rationale
     else:
-        rationale_match = re.search(r'\**\s*Rationale\s*\**\s*:(.*?)(?:\Z)', response_text, re.IGNORECASE | re.DOTALL)
-        if rationale_match:
-            result["rationale"] = rationale_match.group(1).strip()
-        else:
-            logger.warning("Could not find rationale in response.")
+        logger.warning("Could not find rationale in response.")
 
     return result
