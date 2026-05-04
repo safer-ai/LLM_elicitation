@@ -26,9 +26,8 @@ except ImportError:
 # Import necessary components from other modules
 from config import AppConfig
 from data_models import ExpertProfile, BenchmarkTask, Benchmark, Scenario, ScenarioStep, InputData, ScenarioLevelMetric
-from llm_api import make_api_call
-from parsing import parse_analysis_response, parse_probability_response, parse_quantity_response
-from results_handler import initialize_run, append_round_to_csv, save_intermediate_json, finalize_run
+from shared.parsing import parse_analysis_response, parse_probability_response, parse_quantity_response
+from results_handler import append_round_to_csv, save_intermediate_json
 from prompt_helpers import format_example_tasks_context
 
 
