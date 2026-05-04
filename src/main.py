@@ -19,7 +19,7 @@ logger = logging.getLogger("PipelineRunner")
 try:
     from config import load_config, AppConfig
     from data_loader import load_all_inputs, InputData
-    from llm_api import initialize_client
+    from shared.llm_client import initialize_client
     from workflow import run_delphi_estimation
     from results_handler import initialize_run, finalize_run, save_intermediate_json
 except ImportError as e:
@@ -411,7 +411,7 @@ if __name__ == "__main__":
     logging.getLogger("httpx").setLevel(logging.WARNING)
     
     # Set specific logger levels if needed, otherwise they inherit from root.
-    project_loggers = ["PipelineRunner", "config", "data_loader", "llm_api", "parsing", "results_handler", "workflow"]
+    project_loggers = ["PipelineRunner", "config", "data_loader", "shared.llm_client", "shared.parsing", "results_handler", "workflow"]
     for proj_logger_name in project_loggers:
         logging.getLogger(proj_logger_name).setLevel(log_level)
     
