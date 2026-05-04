@@ -224,3 +224,219 @@ def parse_quantity_response(response_text: str) -> Dict[str, Any]:
         logger.warning("Could not find rationale in response.")
 
     return result
+
+
+# --- Test Execution Block ---
+if __name__ == "__main__":
+    print("--- Running Parser Tests ---")
+    logging.basicConfig(level=logging.INFO)
+
+    test_analysis_1 = """
+    **Task Decomposition**
+    To solve this, one must:
+    1. Identify the encoding.
+    2. Write a script to decode it.
+
+    **Capability Boundaries**
+    An LLM that solves this can handle basic data manipulation and scripting.
+    It would likely fail at complex algorithmic challenges.
+    """
+    print("\nTesting Analysis Parser:")
+    parsed_analysis = parse_analysis_response(test_analysis_1)
+    print(f"Parsed Analysis: {parsed_analysis}")
+    assert parsed_analysis["full_analysis"].startswith("**Task Decomposition**")
+    assert parsed_analysis["technical_capabilities"] == parsed_analysis["full_analysis"]
+
+    test_prob_xml = """
+    **Phase 1 - Range Establishment:**
+    Given the baseline of 60% and the LLM's capabilities...
+
+    **Phase 2 - Confidence Check:**
+    I may be slightly overconfident...
+
+    **Phase 3 - Reality Check:**
+    A ratio of 1.2x seems reasonable...
+
+    <percentile_estimates>
+    <p25>0.62</p25>
+    <p50>0.72</p50>
+    <p75>0.80</p75>
+    </percentile_estimates>
+
+    <rationale>
+    The LLM provides moderate uplift to the baseline 60% success rate by automating technical bottlenecks.
+    </rationale>
+    """
+    print("\nTesting XML Probability Parser:")
+    parsed_prob_xml = parse_probability_response(test_prob_xml)
+    print(f"Parsed Probability (XML): {parsed_prob_xml}")
+    assert parsed_prob_xml["percentile_25th"] == 0.62
+    assert parsed_prob_xml["percentile_50th"] == 0.72
+    assert parsed_prob_xml["percentile_75th"] == 0.80
+    assert parsed_prob_xml["estimate"] == 0.72
+    assert "moderate uplift" in parsed_prob_xml["rationale"]
+
+    test_quant_xml = """
+    Analysis of actor motivation...
+
+    <percentile_estimates>
+    <p25>3</p25>
+    <p50>5</p50>
+    <p75>8</p75>
+    </percentile_estimates>
+
+    <rationale>
+    The operation requires stealth and coordination, which is more typical of a small group.
+    </rationale>
+    """
+    print("\nTesting XML Quantity Parser:")
+    parsed_quant_xml = parse_quantity_response(test_quant_xml)
+    print(f"Parsed Quantity (XML): {parsed_quant_xml}")
+    assert parsed_quant_xml["percentile_25th"] == 3
+    assert parsed_quant_xml["percentile_50th"] == 5
+    assert parsed_quant_xml["percentile_75th"] == 8
+    assert parsed_quant_xml["estimate"] == 5
+    assert "stealth" in parsed_quant_xml["rationale"]
+
+    test_damage_xml = """
+    <percentile_estimates>
+    <p25>620000</p25>
+    <p50>800000</p50>
+    <p75>1050000</p75>
+    </percentile_estimates>
+
+    <rationale>
+    LLM-assisted execution increases mean economic damage by approximately 45%.
+    </rationale>
+    """
+    print("\nTesting XML Damage Parser:")
+    parsed_damage_xml = parse_quantity_response(test_damage_xml)
+    print(f"Parsed Damage (XML): {parsed_damage_xml}")
+    assert parsed_damage_xml["percentile_25th"] == 620000
+    assert parsed_damage_xml["percentile_50th"] == 800000
+    assert parsed_damage_xml["percentile_75th"] == 1050000
+    assert parsed_damage_xml["estimate"] == 800000
+
+    test_prob_legacy = """
+    **Percentile Estimates:**
+    - 25th percentile: [0.62]
+    - 50th percentile (median): [0.72]
+    - 75th percentile: [0.80]
+
+    **Rationale:**
+    The LLM provides moderate uplift to the baseline 60% success rate.
+    """
+    print("\nTesting Legacy Probability Parser:")
+    parsed_prob_legacy = parse_probability_response(test_prob_legacy)
+    print(f"Parsed Probability (Legacy): {parsed_prob_legacy}")
+    assert parsed_prob_legacy["percentile_25th"] == 0.62
+    assert parsed_prob_legacy["percentile_50th"] == 0.72
+    assert parsed_prob_legacy["percentile_75th"] == 0.80
+    assert parsed_prob_legacy["estimate"] == 0.72
+
+    test_quant_legacy = """
+    **Percentile Estimates:**
+    - 25th percentile: **50,000**
+    - 50th percentile (median): **250,000**
+    - 75th percentile: **1,500,000**
+
+    **Rationale:**
+    This is a test case with commas and markdown.
+    """
+    print("\nTesting Legacy Quantity Parser with commas:")
+    parsed_quant_legacy = parse_quantity_response(test_quant_legacy)
+    print(f"Parsed Quantity (Legacy): {parsed_quant_legacy}")
+    assert parsed_quant_legacy["percentile_25th"] == 50000
+    assert parsed_quant_legacy["percentile_50th"] == 250000
+    assert parsed_quant_legacy["percentile_75th"] == 1500000
+    assert parsed_quant_legacy["estimate"] == 250000
+
+    test_prob_no_brackets = """
+    **Percentile Estimates:**
+    - 25th percentile: 0.45
+    - 50th percentile (median): 0.55
+    - 75th percentile: 0.68
+
+    **Rationale:**
+    Simple test without brackets.
+    """
+    print("\nTesting Legacy Probability Parser (no brackets):")
+    parsed_prob_no_brackets = parse_probability_response(test_prob_no_brackets)
+    print(f"Parsed Probability (no brackets): {parsed_prob_no_brackets}")
+    assert parsed_prob_no_brackets["percentile_25th"] == 0.45
+    assert parsed_prob_no_brackets["percentile_50th"] == 0.55
+    assert parsed_prob_no_brackets["percentile_75th"] == 0.68
+    assert parsed_prob_no_brackets["estimate"] == 0.55
+
+    test_prob_bold = """
+    **Percentile Estimates:**
+    - 25th percentile: **0.30**
+    - 50th percentile (median): **0.42**
+    - 75th percentile: **0.58**
+
+    **Rationale:**
+    Test with markdown bold formatting.
+    """
+    print("\nTesting Legacy Probability Parser (bold):")
+    parsed_prob_bold = parse_probability_response(test_prob_bold)
+    print(f"Parsed Probability (bold): {parsed_prob_bold}")
+    assert parsed_prob_bold["percentile_25th"] == 0.30
+    assert parsed_prob_bold["percentile_50th"] == 0.42
+    assert parsed_prob_bold["percentile_75th"] == 0.58
+    assert parsed_prob_bold["estimate"] == 0.42
+
+    # Regression for the truncated/unclosed <rationale> tag (gpt-5-mini bug):
+    # an LLM hits max_completion_tokens mid-rationale, so we must capture the
+    # partial content rather than fall back to an inline 'Rationale:' from
+    # earlier prose.
+    test_truncated_unclosed_rationale = """
+    **Phase 1 - Range Establishment:**
+    - Lowest reasonable probability: 0.70. Rationale: an LLM limited to the benchmark could mislead.
+    - Highest reasonable probability: 0.95. Rationale: with reliable LLM assistance the actor speeds up.
+
+    **Phase 2 - Confidence Check:**
+    Some text.
+
+    <percentile_estimates>
+    <p25>0.77</p25>
+    <p50>0.86</p50>
+    <p75>0.92</p75>
+    </percentile_estimates>
+
+    <rationale>
+    The benchmark LLM can generate scanning scripts. Given the actor's high baseline skill, the LLM provides modest but meaningful uplift."""
+    print("\nTesting truncated/unclosed <rationale> tag (regression for gpt-5-mini bug):")
+    parsed_trunc = parse_probability_response(test_truncated_unclosed_rationale)
+    print(f"Parsed (truncated): rationale={parsed_trunc['rationale']!r}")
+    assert parsed_trunc["percentile_50th"] == 0.86
+    rat = parsed_trunc["rationale"]
+    assert rat.startswith("The benchmark LLM"), (
+        f"Expected fallback to capture content of unclosed <rationale> tag, "
+        f"not an inline 'Rationale:' from earlier prose. Got: {rat!r}"
+    )
+    assert "Phase 2" not in rat, "Should not include earlier Phase content"
+    assert "Lowest reasonable probability" not in rat, "Should not include earlier Phase content"
+
+    # Tightened legacy fallback: an inline 'X. Rationale:' inside reasoning
+    # prose must NOT be captured; only a start-of-line 'Rationale:' header.
+    test_inline_rationale_no_xml = """
+    **Phase 1 - Range Establishment:**
+    - Lowest reasonable: 0.70. Rationale: this should NOT be captured.
+    - Highest reasonable: 0.95. Rationale: nor this.
+
+    25th percentile: 0.77
+    50th percentile (median): 0.86
+    75th percentile: 0.92
+
+    **Rationale:**
+    This is the real top-level rationale and should be captured.
+    """
+    print("\nTesting tightened legacy fallback (inline 'X. Rationale:' must not match):")
+    parsed_inline = parse_probability_response(test_inline_rationale_no_xml)
+    print(f"Parsed (inline guard): rationale={parsed_inline['rationale']!r}")
+    rat2 = parsed_inline["rationale"]
+    assert rat2.startswith("This is the real top-level rationale"), (
+        f"Legacy fallback should anchor to start-of-line 'Rationale:' header. Got: {rat2!r}"
+    )
+
+    print("\n--- Parser Tests Complete ---")
