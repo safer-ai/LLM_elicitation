@@ -84,7 +84,7 @@ class LLMSettings:
 
 # --- Provider detection ---
 
-def _provider_for_model(model: str) -> str:
+def provider_for_model(model: str) -> str:
     """Infer API provider from model name.
 
     Returns one of {'anthropic', 'openai', 'google'}. Raises ValueError if the
@@ -264,7 +264,7 @@ def initialize_client(
         ImportError: If the required API library is not installed.
         ValueError: If the API provider cannot be inferred or API key is missing.
     """
-    provider = _provider_for_model(model)
+    provider = provider_for_model(model)
 
     if provider == 'anthropic':
         if not anthropic:
@@ -409,7 +409,7 @@ async def make_api_call(
     await _rate_limit_wait(semaphore, settings)
 
     model = settings.model
-    provider = _provider_for_model(model)
+    provider = provider_for_model(model)
     effort = _effective_reasoning_effort(settings)
 
     logger.debug(
