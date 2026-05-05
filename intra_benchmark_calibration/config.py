@@ -16,7 +16,6 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Union
 
-import sys
 import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -136,6 +135,32 @@ class IntraBenchmarkConfig:
     def registry_file(self) -> Path:
         return self.output_dir / "run_registry.json"
 
+    @property
+    def inferred_api_provider(self) -> str:
+        """Provider for the currently active model in `llm_settings`."""
+        return provider_for_model(self.llm_settings.model)
+
+    @property
+    def required_providers(self) -> Set[str]:
+        """Set of providers needed across `models_to_run`."""
+        return {provider_for_model(m) for m in self.models_to_run}
+
+def _normalise_models(raw_model) -> List[str]:
+    """Accept a string or list-of-strings; return a list of stripped model names."""
+    if raw_model is None:
+        raise ValueError("'llm_settings.model' is required (string or list of strings).")
+    if isinstance(raw_model, str):
+        return [raw_model.strip()]
+    if isinstance(raw_model, list):
+        if not raw_model:
+            raise ValueError("'llm_settings.model' is an empty list; provide at least one model.")
+        if not all(isinstance(m, str) and m.strip() for m in raw_model):
+            raise TypeError("'llm_settings.model' list must contain non-empty strings only.")
+        return [m.strip() for m in raw_model]
+    raise TypeError(
+        f"'llm_settings.model' must be a string or a list of strings (got {type(raw_model).__name__})."
+    )
+
 
 def load_intra_benchmark_config(config_path: str | Path, base_dir: Optional[Path] = None) -> IntraBenchmarkConfig:
     """Load an intra-benchmark YAML config into an IntraBenchmarkConfig dataclass."""
@@ -171,7 +196,7 @@ def load_intra_benchmark_config(config_path: str | Path, base_dir: Optional[Path
     models_to_run = _normalise_models(llm_data.get("model"))
     reasoning_effort = parse_reasoning_effort(llm_data, logger_=logger)
     llm_settings = LLMSettings(
-        model=str(llm_data.get("model", "claude-sonnet-4-6")),
+        model=models_to_run[0],
         temperature=float(llm_data.get("temperature", 0.8)),
         max_concurrent_calls=int(llm_data.get("max_concurrent_calls", 5)),
         rate_limit_calls=int(llm_data.get("rate_limit_calls", 45)),
@@ -188,6 +213,7 @@ def load_intra_benchmark_config(config_path: str | Path, base_dir: Optional[Path
         num_experts=int(wf_data.get("num_experts", 2)),
         delphi_rounds=int(wf_data.get("delphi_rounds", 1)),
         convergence_threshold=float(wf_data.get("convergence_threshold", 0.05)),
+        num_repeats=parse_num_repeats(wf_data.get("num_repeats", WorkflowSettings.num_repeats)),
     )
 
     # Intra-benchmark settings
