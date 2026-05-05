@@ -1,131 +1,118 @@
-# Configuration for Intra-Benchmark Calibration Experiment
-# This enables LLMs to predict conditional probabilities P(j|i) = "probability
-# a model can solve tasks in bin j, given it can solve all tasks in bin i"
+# =============================================================================
+# Production / "full" intra-benchmark calibration config.
+#
+# Mirrors the spec §6 defaults:
+#   - n_bins=5, equal_count
+#   - all forecasted models (default 12, after dropping GPT-2/3/3.5)
+#   - K=1 target task per cell
+#   - 1 source bin shown per cell (= source_bin_i only)  [single_bin mode]
+#   - 2 anchor + easier tasks per shown bin (1 anchor + 2 easier = 3 tasks)
+#   - num_experts=2, delphi_rounds=1
+#
+# Cell budget with these defaults (single_bin mode):
+#   5 source bins x 4 target bins (i != j) x 12 models x 1 target = 240 cells
+#   240 cells x 2 experts x (round 1 has 2 API calls/expert) = 960 API calls
+#
+# To get the "all_except_target" comparison condition (60 cells):
+#   set source_profile.source_bins_to_show: "all_except_target"
+# =============================================================================
 
-# ============================================================================
-# INTRA-BENCHMARK SPECIFIC SETTINGS
-# ============================================================================
 intra_benchmark_settings:
-  # Name of the benchmark to analyze (must match ground truth file naming)
-  benchmark_name: "cybench"
+  # Path to the Lyptus cyber-task-horizons-data checkout.
+  lyptus_repo_dir: "/home/jkrys/gitrepos/cyber-task-horizons-data"
 
-  # Number of bins used in ground truth computation
-  # Must match the ground truth file: cybench_ground_truth_n{n_bins}.json
-  n_bins: 4
+  # GPT-2/GPT-3/GPT-3.5 only have outcomes on the easier sub-benchmarks
+  # (172/172/142 of the 269 headline tasks respectively), which would cause
+  # most cells involving them to be inadmissible.
+  drop_models: ["GPT-2", "GPT-3", "GPT-3.5"]
 
-  # Description of the benchmark (will be included in prompts to LLMs)
-  # This provides context about what the benchmark measures and what metrics mean
-  benchmark_description: |
-    CyBench is a cybersecurity benchmark containing capture-the-flag (CTF) style challenges.
-    Tasks cover various cybersecurity domains including reverse engineering, cryptography,
-    web exploitation, binary exploitation, and forensics.
+  # Models to forecast for. Either:
+  #   null (or omitted) -> all models in outcomes matrix (post-drop, so 12)
+  #   ["Sonnet 4.6", "Opus 4.6", ...] -> explicit subset
+  # Available aliases in the panel (post-drop): Claude 3 Opus, DeepSeek V3.1, GLM-5, GPT-4o, GPT-5.1 Codex Max, GPT-5.2 Codex, GPT-5.3 Codex, Gemini 2.5 Pro, Opus 4, Opus 4.6, Sonnet 4.6, o3
+  forecasted_models: null
 
-    FST (First Solve Time) measures how quickly the fastest human team could solve a task,
-    measured in minutes. Lower FST indicates easier tasks that require less time and expertise.
-    Higher FST indicates harder tasks requiring more advanced techniques or longer analysis.
+  binning:
+    # Number of difficulty bins over best_available_minutes (must be >= 2).
+    n_bins: 5
+    # Strategy options:
+    #   "equal_count"     - equal number of headline tasks per bin (default;
+    #                       robust to the heavy log-tail FST distribution).
+    #   "equal_log_fst"   - equal log10(minutes) width per bin (cleaner edges
+    #                       on a log axis, but very uneven counts: cybashbench
+    #                       dominates the easy bins).
+    #   "explicit_edges"  - user-supplied edges (then set `explicit_edges:` below).
+    strategy: "equal_count"
+    # Required only if strategy == "explicit_edges". Length must be n_bins+1.
+    # Example: explicit_edges: [0.5, 5, 60, 300, 600, 2200]
+    # explicit_edges: null
 
-    The benchmark tests practical cybersecurity problem-solving abilities across a range
-    of difficulty levels.
+  target_selection:
+    # How target tasks are picked from each target bin j:
+    #   "auto_sample"            - stratified-by-log-FST sample, K per cell,
+    #                              deterministic by `sampling_seed`.
+    #   "explicit_target_tasks"  - user-supplied list per bin (paper-friendly,
+    #                              fully reproducible). Then set
+    #                              `explicit_target_tasks:` below as a dict
+    #                              {bin_j: [task_id, ...]}.
+    selection_mode: "auto_sample"
+    sampling_seed: 42
+    n_target_tasks_per_cell: 1  # K target tasks per cell
+    # explicit_target_tasks:
+    #   0: ["cybashbench_misc/contextual_001"]
+    #   4: ["arvo:18882", "emaze"]
 
-  # Optional: Path to sorted benchmark file
-  # If specified, this overrides benchmark_file below
-  sorted_benchmark_file: "input_data/benchmarks/cybench_ascending_fst.yaml"
+  source_profile:
+    # Which bins to show in the per-cell capability profile of M.
+    # Three modes:
+    #   []                      -> "single_bin" mode (DEFAULT; spec §6).
+    #                              Per cell shows only the source bin i.
+    #                              Cells iterate over (i, j) for i != j;
+    #                              bidirectional pairs.
+    #   "all_except_target"     -> "all_except_target" mode.
+    #                              Per cell shows all bins except j; the i
+    #                              index is collapsed (no longer meaningful).
+    #                              Cells iterate over j only:
+    #                              n_bins x n_models x K (4x cheaper).
+    #   [list of bin indices]   -> "custom_subset" mode. Shows the supplied
+    #                              list regardless of i. NB: per-i prompts are
+    #                              identical for fixed j -- mostly redundant
+    #                              with the (i, j) iteration, useful only as
+    #                              a temperature-stability sanity check.
+    source_bins_to_show: []
+    # Each shown bin contributes 1 anchor + this many easier tasks = (1 + N) tasks.
+    n_examples_per_source_bin: 2
 
-# ============================================================================
-# API KEYS
-# ============================================================================
-# Provide the API key for the provider you're using
-# ⚠️  WARNING: Do NOT commit this file with keys filled in!
-anthropic_api_key: "YOUR_ANTHROPIC_API_KEY_HERE"
-openai_api_key: "YOUR_OPENAI_API_KEY_HERE"
+  # Optional: include the task's `solution_walkthrough` in the target-task
+  # block of the prompt. Default false (= cleanly hidden from the forecaster).
+  # There is NO equivalent for hints because Lyptus tasks have no separate
+  # hints field.
+  include_target_solution: false
 
-# ============================================================================
-# INPUT DATA PATHS
-# ============================================================================
-# Paths are relative to intra_benchmark_calibration/ directory
-prompts_dir: prompts  # Intra-benchmark specific prompts
-expert_profiles_file: input_data/expert_profiles/expert_profiles.yaml  # Expert persona definitions
-benchmark_file: input_data/benchmarks/cybench_ascending_fst.yaml  # Sorted benchmark
-ground_truth_dir: input_data/ground_truth  # Directory containing ground truth files
+# =============================================================================
+# API keys: by default loaded from intra_benchmark_calibration/.env
+# (project-local) or LLM_elicitation/.env (repo-root). To override here, add
+# `anthropic_api_key: "sk-ant-..."` etc. -- but DO NOT commit a real key to git.
+# config.py logs the key source + first 14 chars so you can verify which key
+# is being used.
+# =============================================================================
 
-# ============================================================================
-# LLM & API INTERACTION SETTINGS
-# ============================================================================
+prompts_dir: "prompts"
+expert_profiles_file: "../inter_benchmark_calibration/input_data/expert_profiles/expert_profiles.yaml"
+output_dir: "results"
+
 llm_settings:
-  # Model to use for expert simulation
-  model: "claude-sonnet-4-5-20250929"
-
-  # Temperature controls randomness (0.0 = deterministic, 2.0 = very random)
-  temperature: 0.8
-
-  # Maximum number of API calls to run in parallel
+  model: "claude-sonnet-4-6"
+  temperature: 1.0
   max_concurrent_calls: 5
+  rate_limit_calls: 45
+  rate_limit_period: 60   # seconds
 
-  # Rate limiting to avoid 429 errors
-  rate_limit_calls: 45       # Max calls per rate_limit_period
-  rate_limit_period: 60      # Time window in seconds (typically 60 for RPM limits)
+  thinking:
+    enabled: true
+    budget_tokens: 10000
 
-# ============================================================================
-# DELPHI WORKFLOW SETTINGS
-# ============================================================================
 workflow_settings:
-  # Number of experts to simulate (null = use all experts from expert_profiles_file)
-  # For calibration experiments, recommend 5-10 experts for diverse perspectives
-  num_experts: 1
-
-  # Maximum number of Delphi deliberation rounds
-  # Round 1: Initial independent estimates
-  # Round 2+: Refinement after seeing other experts' reasoning
+  num_experts: 2
   delphi_rounds: 1
-
-  # If expert estimates have std dev < threshold, stop before max rounds
   convergence_threshold: 0.05
-
-
-# ============================================================================
-# OUTPUT DIRECTORY
-# ============================================================================
-# Output directory for results (relative to intra_benchmark_calibration/)
-output_dir: results  # Results will be saved to results/{benchmark}/{run_id}/
-
-# ============================================================================
-# NOTES ON USAGE
-# ============================================================================
-#
-# 1. BEFORE RUNNING:
-#    - Ensure ground truth file exists: input_data/ground_truth/{benchmark}_ground_truth_n{nbins}.json
-#    - Run preprocessing: python prepare_benchmark.py <input_file> [--metric METRIC]
-#    - This creates: input_data/benchmarks/{benchmark}_{sort_order}_{metric}.yaml
-#
-# 2. TO RUN:
-#    python run_calibration.py -c config_example.yaml
-#    # Or with your own config:
-#    python run_calibration.py -c config.yaml
-#    # Enable debug logging:
-#    python run_calibration.py -c config.yaml -d
-#
-# 3. OUTPUT LOCATION:
-#    results/{benchmark}/{run_id}/
-#    - detailed_estimates.csv: Row per expert per round
-#    - full_results.json: Complete Delphi deliberation history
-#    - run_registry.json: Index of all runs (in results/ directory)
-#
-# 4. EXPECTED BEHAVIOR:
-#    - For n_bins=4, there are 6 total (i,j) pairs: (0,1), (0,2), (0,3), (1,2), (1,3), (2,3)
-#    - Ground truth filtering: only pairs with sufficient_sample==true are processed
-#    - For cybench n_bins=4: 5 pairs have sufficient samples (2,3) is excluded
-#    - Each pair runs complete Delphi study: 5 experts × 3 rounds (or until convergence)
-#    - Each (i,j) pair is independent - no memory between predictions
-#
-# 5. COST ESTIMATION (for n_bins=4, 5 experts, 3 rounds):
-#    - API calls per pair: ~15-20 calls (5 experts × 2 stages × rounds)
-#    - Total for 5 pairs: ~75-100 API calls
-#    - Estimated cost with Claude Sonnet: ~$2-5
-#    - With GPT-4o: ~$3-8
-#
-# 6. EXPERT PROFILES:
-#    - Use existing expert_profiles.yaml (security-focused experts)
-#    - Or create custom expert profiles for ML/AI capability assessment
-#    - Experts should have diverse perspectives to capture uncertainty
-#
-# ============================================================================
