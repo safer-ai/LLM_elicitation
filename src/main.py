@@ -2,23 +2,26 @@
 # -*- coding: utf-8 -*-
 
 import asyncio
+import datetime
 import logging
 import argparse
+import statistics
 import sys
+import time
+from collections import OrderedDict
+from dataclasses import asdict, replace
 from pathlib import Path
 from typing import List, Dict, Optional, Union, Any, Tuple
-import yaml # Added for type hinting in main for config error
+import yaml
 
-# --- Logger Setup (Get logger instance, level set later) ---
 logger = logging.getLogger("PipelineRunner")
 
-# --- Import Project Modules ---
 try:
     from config import load_config, AppConfig
     from data_loader import load_all_inputs, InputData
-    from llm_api import initialize_client
+    from shared.llm_client import initialize_client
     from workflow import run_delphi_estimation
-    # No longer need save_run_results since it's done progressively
+    from results_handler import initialize_run, finalize_run, save_intermediate_json
 except ImportError as e:
     logger.error(f"Failed to import necessary project modules: {e}")
     logger.error("Ensure you have run 'pip install -r requirements.txt' (if applicable) and that the script is run from the project root directory.")
@@ -121,21 +124,109 @@ def _print_summary_table(results: Dict[str, Any]):
     print(border_line)
     print()
 
+def _print_aggregated_summary_table(entries_for_model: List[Dict[str, Any]]):
+    """Aggregates per-(step, task) final values across repeats of one model.
+
+    Skips entries that carry an 'error'. Probability values are formatted to
+    4 d.p., quantity (scenario-level metric) values to 2 d.p. Std is sample
+    std (ddof=1); rows with a single repeat show '-' for std.
+    """
+    agg: "OrderedDict[Tuple[str, str, str], List[float]]" = OrderedDict()
+    for entry in entries_for_model:
+        if "error" in entry:
+            continue
+        for step_res in entry.get("results_per_step", []):
+            step_name = step_res.get("step_name", "Unknown Step")
+            step_type = step_res.get("step_type", "ProbabilityEstimation")
+            for task_res in step_res.get("results_per_task", []):
+                task_name = task_res.get("task_name", "Unknown Task")
+                if step_type == "ScenarioLevelMetricEstimation":
+                    val = task_res.get("final_aggregated_estimate")
+                else:
+                    val = task_res.get("final_aggregated_probability")
+                if val is None:
+                    continue
+                try:
+                    val_f = float(val)
+                except (TypeError, ValueError):
+                    continue
+                agg.setdefault((step_name, task_name, step_type), []).append(val_f)
+
+    if not agg:
+        logger.warning("No data to aggregate; skipping aggregated summary table.")
+        return
+
+    rows: List[Tuple[str, str, str, str, str]] = []
+    for (step_name, task_name, step_type), values in agg.items():
+        n = len(values)
+        mean = statistics.fmean(values)
+        std = statistics.stdev(values) if n > 1 else None
+        if step_type == "ScenarioLevelMetricEstimation":
+            mean_str = f"{mean:.2f}"
+            std_str = f"{std:.2f}" if std is not None else "-"
+        else:
+            mean_str = f"{mean:.4f}"
+            std_str = f"{std:.4f}" if std is not None else "-"
+        rows.append((step_name, task_name, mean_str, std_str, str(n)))
+
+    headers = ("Step Name", "Task Name", "Mean", "Std", "N")
+    widths = [
+        max(len(h), max((len(r[i]) for r in rows), default=0))
+        for i, h in enumerate(headers)
+    ]
+    row_fmt = (
+        f"| {{:<{widths[0]}}} | {{:<{widths[1]}}} "
+        f"| {{:>{widths[2]}}} | {{:>{widths[3]}}} | {{:>{widths[4]}}} |"
+    )
+    sep = (
+        f"+-{'-'*widths[0]}-+-{'-'*widths[1]}-+-"
+        f"{'-'*widths[2]}-+-{'-'*widths[3]}-+-{'-'*widths[4]}-+"
+    )
+    border = "=" * len(sep)
+    title = "Aggregated Summary (mean / std across repeats)"
+
+    print(border)
+    print(f"{' ' * max(0, (len(sep) - len(title)) // 2)}{title}")
+    print(border)
+    print(sep)
+    print(row_fmt.format(*headers))
+    print(sep)
+    for r in rows:
+        print(row_fmt.format(*r))
+    print(sep)
+    print(border)
+    print()
+
+
 # --- Main Orchestration Function ---
 
-async def main(config_path: str):
-    """
-    Orchestrates the LLM Delphi estimation pipeline.
+def _config_for_model(base_config: AppConfig, model: str) -> AppConfig:
+    """Returns a shallow copy of `base_config` with `llm_settings.model` rebound to `model`.
 
-    Args:
-        config_path: Path to the configuration YAML file.
+    All other settings (rate limits, reasoning_effort, paths, API keys) are preserved
+    so that one call to `load_config` is enough for a multi-model run.
+    """
+    new_llm_settings = replace(base_config.llm_settings, model=model)
+    return replace(base_config, llm_settings=new_llm_settings)
+
+
+async def main(config_path: str):
+    """Orchestrates the LLM Delphi estimation pipeline.
+
+    A single `run_id` is created for the whole process. All models loop into
+    the same CSV (one row per expert/round/task, with a `model` column) and
+    the same JSON (a top-level `results_per_model` list). Intermediate JSON
+    snapshots are written after each task so a partial run is recoverable.
     """
     logger.info(f"--- Starting LLM Estimator Pipeline using config: {config_path} ---")
 
     # 1. Load Configuration
     try:
         config = load_config(config_path)
-        logger.info(f"Configuration loaded successfully. API Provider: {config.inferred_api_provider}, Model: {config.llm_settings.model}")
+        logger.info(
+            f"Configuration loaded. Models to run: {config.models_to_run}. "
+            f"Required providers: {sorted(config.required_providers)}."
+        )
     except (FileNotFoundError, ValueError, TypeError, yaml.YAMLError) as e:
         logger.error(f"Failed to load or validate configuration: {e}", exc_info=True)
         return
@@ -151,50 +242,141 @@ async def main(config_path: str):
         logger.error(f"An unexpected error occurred during input data loading: {e}", exc_info=True)
         return
 
-    # 3. Initialize API Client
-    try:
-        client = initialize_client(config)
-        logger.info(f"API client initialized successfully for {config.inferred_api_provider}.")
-    except (ImportError, ValueError) as e:
-        logger.error(f"Failed to initialize API client: {e}", exc_info=True)
-        logger.error("Please ensure the correct API library is installed and the API key is set in the configuration file.")
+    # 3. Initialize Run Output
+    # One run for the whole process: one timestamp / run_id / directory / CSV / JSON.
+    run_info = initialize_run(config)
+    if not run_info:
+        logger.error("Failed to initialise run output directory; aborting.")
         return
+    project_root = Path.cwd()
 
-    # 4. Create Semaphore
-    semaphore = asyncio.Semaphore(config.llm_settings.max_concurrent_calls)
-    logger.debug(f"Semaphore created with limit: {config.llm_settings.max_concurrent_calls}")
+    # 4. Run Core Workflow
+    process_start = time.time()
+    combined_state: Dict[str, Any] = {
+        "run_metadata": {
+            "run_id": run_info["run_id"],
+            "timestamp_start": datetime.datetime.now().isoformat(),
+            "models_run": list(config.models_to_run),
+            "scenario_file": str(config.scenario_file.relative_to(project_root).as_posix()),
+            "default_benchmark_file": str(config.default_benchmark_file.relative_to(project_root).as_posix()),
+            "workflow_settings": asdict(config.workflow_settings),
+            "shared_llm_settings": {
+                # Settings that are constant across all model runs (everything
+                # except `model` itself). Captured here so per-model entries
+                # don't have to repeat them.
+                "temperature": config.llm_settings.temperature,
+                "max_concurrent_calls": config.llm_settings.max_concurrent_calls,
+                "rate_limit_calls": config.llm_settings.rate_limit_calls,
+                "rate_limit_period": config.llm_settings.rate_limit_period,
+                "reasoning_effort": config.llm_settings.reasoning_effort,
+            },
+            "num_repeats": config.workflow_settings.num_repeats,
+        },
+        "results_per_model": [],
+    }
+    save_intermediate_json(run_info["json_path"], combined_state)
 
-    # 5. Run Core Workflow
-    results = {}
-    run_id = None
-    try:
-        logger.info("Starting Delphi estimation workflow...")
-        logger.info("Results will be saved progressively during execution.")
-        results = await run_delphi_estimation(client, semaphore, config, input_data)
-        if "error" in results:
-            logger.error(f"Workflow completed with an error: {results['error']}")
-        else:
-            logger.info("Delphi estimation workflow completed successfully.")
-            
-            # Extract run_id from the timestamp (same format as _generate_run_id)
-            timestamp_start = results.get("run_metadata", {}).get("timestamp_start", "")
-            if timestamp_start:
-                # Convert ISO format to run_id format
-                from datetime import datetime
-                dt = datetime.fromisoformat(timestamp_start)
-                run_id = dt.strftime("%Y%m%d_%H%M%S")
-                logger.info(f"Results saved to: {config.runs_dir / run_id}")
-                logger.info(f"  - CSV: detailed_estimates.csv")
-                logger.info(f"  - JSON: full_results.json")
-            
-    except Exception as e:
-        logger.error(f"An unexpected critical error occurred during the Delphi workflow: {e}", exc_info=True)
-        results = {"error": f"Unexpected workflow crash: {e}"}
+    num_repeats = max(1, config.workflow_settings.num_repeats)
+
+    # Sequential per-model runs. The semaphore and rate-limit state are
+    # per-provider in practice (different providers don't share state), but
+    # running sequentially keeps log output and CSV ordering predictable.
+    # When num_repeats > 1 the inner loop runs the entire pipeline `num_repeats`
+    # times for each model, producing independent samples (the analysis cache
+    # is reset on every call) tagged with `repeat_index` in CSV/JSON.
+    for model in config.models_to_run:
+        per_model_config = _config_for_model(config, model)
+        provider = per_model_config.inferred_api_provider
+        logger.info(
+            f"\n=== Running model: {model} (provider: {provider}, "
+            f"repeats: {num_repeats}) ==="
+        )
+
+        try:
+            client = initialize_client(
+                api_key_anthropic=per_model_config.api_key_anthropic,
+                api_key_openai=per_model_config.api_key_openai,
+                model=per_model_config.llm_settings.model,
+                api_key_gemini=per_model_config.api_key_gemini,
+            )
+            logger.info(f"API client initialised for {provider}.")
+        except (ImportError, ValueError) as e:
+            logger.error(f"Failed to initialize API client for model '{model}': {e}", exc_info=True)
+            for repeat_index in range(1, num_repeats + 1):
+                combined_state["results_per_model"].append({
+                    "model": model, "provider": provider,
+                    "repeat_index": repeat_index,
+                    "error": f"Client init failed: {e}",
+                })
+            save_intermediate_json(run_info["json_path"], combined_state)
+            continue
+
+        semaphore = asyncio.Semaphore(per_model_config.llm_settings.max_concurrent_calls)
+
+        for repeat_index in range(1, num_repeats + 1):
+            if num_repeats > 1:
+                logger.info(f"\n--- {model}: starting repeat {repeat_index}/{num_repeats} ---")
+            try:
+                await run_delphi_estimation(
+                    client, semaphore, per_model_config, input_data,
+                    run_info=run_info, combined_state=combined_state,
+                    repeat_index=repeat_index,
+                )
+            except Exception as e:
+                logger.error(
+                    f"Critical error during Delphi workflow for model '{model}' "
+                    f"(repeat {repeat_index}/{num_repeats}): {e}",
+                    exc_info=True,
+                )
+                # The workflow may already have appended a partial entry to
+                # `results_per_model`; record the crash on the entry whose
+                # (model, repeat_index) matches and that doesn't already
+                # carry an error.
+                for entry in combined_state["results_per_model"]:
+                    if (entry.get("model") == model
+                            and entry.get("repeat_index") == repeat_index
+                            and "error" not in entry):
+                        entry["error"] = f"Unexpected workflow crash: {e}"
+                        break
+                else:
+                    combined_state["results_per_model"].append({
+                        "model": model, "provider": provider,
+                        "repeat_index": repeat_index,
+                        "error": f"Unexpected workflow crash: {e}",
+                    })
+                save_intermediate_json(run_info["json_path"], combined_state)
+
+    # Finalise once: stamp end times, write the canonical JSON, register the run.
+    process_duration = time.time() - process_start
+    combined_state["run_metadata"]["timestamp_end"] = datetime.datetime.now().isoformat()
+    combined_state["run_metadata"]["duration_seconds"] = round(process_duration, 2)
+    finalize_run(config, run_info["run_id"], run_info["run_dir"], combined_state)
 
     logger.info("--- LLM Estimator Pipeline Finished ---")
+    logger.info(f"Results saved to: {run_info['run_dir']}")
+    logger.info(f"  - CSV : {run_info['csv_path'].name}")
+    logger.info(f"  - JSON: {run_info['json_path'].name}")
 
-    # 6. Print Summary Table
-    _print_summary_table(results)
+    for entry in combined_state["results_per_model"]:
+        model_name = entry.get("model", "<unknown>")
+        rep = entry.get("repeat_index", 1)
+        rep_label = f" (repeat {rep}/{num_repeats})" if num_repeats > 1 else ""
+        if "error" in entry:
+            print(f"\n>>> Summary for model: {model_name}{rep_label} -- ERROR: {entry['error']}")
+            continue
+        print(f"\n>>> Summary for model: {model_name}{rep_label}")
+        _print_summary_table(entry)
+
+    # When num_repeats > 1, also print one aggregated table per model that
+    # combines all repeats: per (step_name, task_name) we report mean, std and
+    # n. Models are kept in their original config order.
+    if num_repeats > 1:
+        entries_by_model: "OrderedDict[str, List[Dict[str, Any]]]" = OrderedDict()
+        for entry in combined_state["results_per_model"]:
+            entries_by_model.setdefault(entry.get("model", "<unknown>"), []).append(entry)
+        for model_name, entries in entries_by_model.items():
+            print(f"\n>>> Aggregated summary across {num_repeats} repeats for model: {model_name}")
+            _print_aggregated_summary_table(entries)
 
 
 # --- Script Entry Point ---
@@ -229,7 +411,7 @@ if __name__ == "__main__":
     logging.getLogger("httpx").setLevel(logging.WARNING)
     
     # Set specific logger levels if needed, otherwise they inherit from root.
-    project_loggers = ["PipelineRunner", "config", "data_loader", "llm_api", "parsing", "results_handler", "workflow"]
+    project_loggers = ["PipelineRunner", "config", "data_loader", "shared.llm_client", "shared.parsing", "results_handler", "workflow"]
     for proj_logger_name in project_loggers:
         logging.getLogger(proj_logger_name).setLevel(log_level)
     
