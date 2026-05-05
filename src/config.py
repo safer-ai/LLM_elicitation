@@ -1,6 +1,6 @@
 # src/config.py
 
-import os
+import sys
 import yaml
 import logging
 from pathlib import Path
@@ -12,21 +12,18 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 from shared.api_keys import parse_num_repeats as _parse_num_repeats  # noqa: E402,F401
 from shared.api_keys import resolve_api_key as _resolve_api_key  # noqa: E402
+from shared.llm_client import (  # noqa: E402
+    REASONING_EFFORT_VALUES,
+    parse_reasoning_effort,
+    provider_for_model as get_provider_for_model,
+)
+
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(name)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 
 # --- Data Structure Definitions ---
-
-# Allowed values for the unified, provider-agnostic reasoning dial. Each
-# value is mapped per-provider in shared/llm_client.py:
-#   - Anthropic: maps to a `thinking={"type":"enabled","budget_tokens":N}` block,
-#     or omitted entirely for "off".
-#   - OpenAI (gpt-5*, o-series): maps to the `reasoning_effort` request param;
-#     "off" -> "minimal" since reasoning models always reason internally.
-#   - Google Gemini (via OpenAI-compat): same `reasoning_effort` param.
-REASONING_EFFORT_VALUES = ("off", "minimal", "low", "medium", "high")
 
 
 @dataclass
@@ -205,48 +202,7 @@ def load_config(config_path: str = "config.yaml") -> AppConfig:
         if not isinstance(workflow_settings_raw, dict):
             raise ValueError("'workflow_settings' must be a dictionary.")
         
-        # Reasoning effort: prefer the new unified `reasoning_effort` field.
-        # If the legacy `thinking: {enabled, budget_tokens}` block is present
-        # (and `reasoning_effort` is not), translate it with a deprecation
-        # warning so existing configs keep working.
-        reasoning_effort_raw = llm_settings_raw.get("reasoning_effort")
-        legacy_thinking_raw = llm_settings_raw.get("thinking")
-
-        if reasoning_effort_raw is not None:
-            if not isinstance(reasoning_effort_raw, str):
-                raise TypeError(
-                    "'llm_settings.reasoning_effort' must be a string, one of "
-                    f"{list(REASONING_EFFORT_VALUES)}."
-                )
-            reasoning_effort = reasoning_effort_raw.strip().lower()
-            if legacy_thinking_raw is not None:
-                logger.warning(
-                    "Both 'reasoning_effort' and the legacy 'thinking' block are set in "
-                    "llm_settings; using 'reasoning_effort' and ignoring 'thinking'."
-                )
-        elif isinstance(legacy_thinking_raw, dict):
-            enabled = bool(legacy_thinking_raw.get("enabled", False))
-            budget_tokens = int(legacy_thinking_raw.get("budget_tokens", 4000))
-            if not enabled:
-                reasoning_effort = "off"
-            elif budget_tokens < 3000:
-                reasoning_effort = "low"
-            elif budget_tokens < 10000:
-                reasoning_effort = "medium"
-            else:
-                reasoning_effort = "high"
-            logger.warning(
-                "Config uses the legacy 'thinking: {enabled, budget_tokens}' block. "
-                "This is deprecated in favour of the unified 'reasoning_effort' field. "
-                f"Translated to reasoning_effort='{reasoning_effort}'. "
-                "Please replace `thinking: ...` with `reasoning_effort: \"%s\"` "
-                "in your config.",
-                reasoning_effort,
-            )
-        elif legacy_thinking_raw is not None:
-            raise ValueError("'llm_settings.thinking' must be a dictionary.")
-        else:
-            reasoning_effort = LLMSettings.reasoning_effort
+        reasoning_effort = parse_reasoning_effort(llm_settings_raw, logger_=logger)
 
         # `model` may be a single string or a list of strings. Normalise to a list
         # internally; LLMSettings.model holds the active model for the current run
