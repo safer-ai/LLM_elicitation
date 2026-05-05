@@ -11,10 +11,10 @@ runner rotates through. API keys are resolved from `<intra>/.env` -> `<repo_root
 from __future__ import annotations
 
 import logging
-import os
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Set, Union
 
 import yaml
 
@@ -40,6 +40,10 @@ class WorkflowSettings:
     num_experts: int = 2
     delphi_rounds: int = 1
     convergence_threshold: float = 0.05
+    # Number of independent repeats of the full elicitation workflow per
+    # forecaster model. Each repeat re-runs every cell plan; rows are tagged
+    # with `repeat_index` (1-based). Default 1 = run once.
+    num_repeats: int = 1
 
     def __post_init__(self):
         if self.num_experts <= 0:
@@ -48,9 +52,12 @@ class WorkflowSettings:
             raise ValueError("delphi_rounds must be positive")
         if self.convergence_threshold < 0:
             raise ValueError("convergence_threshold cannot be negative")
+        if isinstance(self.num_repeats, bool) or not isinstance(self.num_repeats, int):
+            raise TypeError("WorkflowSettings: 'num_repeats' must be a positive integer.")
+        if self.num_repeats < 1:
+            raise ValueError("WorkflowSettings: 'num_repeats' must be >= 1 (1 = run once).")
 
 
-@dataclass
 class BinningSettings:
     n_bins: int = 5
     strategy: str = "equal_count"  # equal_count | equal_log_fst | explicit_edges
@@ -126,6 +133,10 @@ class IntraBenchmarkConfig:
     prompts_dir: Path
     expert_profiles_file: Path
     output_dir: Path
+
+    # Multi-model: list of LLM forecasters to run; the active model lives in
+    # `llm_settings.model` and the runner rotates it through `models_to_run`.
+    models_to_run: List[str] = field(default_factory=list)
 
     @property
     def runs_dir(self) -> Path:
@@ -292,14 +303,41 @@ def load_intra_benchmark_config(config_path: str | Path, base_dir: Optional[Path
         prompts_dir=prompts_dir,
         expert_profiles_file=expert_profiles_file,
         output_dir=output_dir,
+        models_to_run=models_to_run,
     )
+
+    # Validate that we have an API key for every required provider.
+    required = cfg.required_providers
+    if "anthropic" in required and not cfg.api_key_anthropic:
+        raise ValueError(
+            "At least one configured forecaster model is from Anthropic, but no Anthropic API key found "
+            f"(checked {base_dir / '.env'}, {repo_root / '.env'}, ANTHROPIC_API_KEY env var)."
+        )
+    if "openai" in required and not cfg.api_key_openai:
+        raise ValueError(
+            "At least one configured forecaster model is from OpenAI, but no OpenAI API key found "
+            f"(checked {base_dir / '.env'}, {repo_root / '.env'}, OPENAI_API_KEY env var)."
+        )
+    if "google" in required and not cfg.api_key_gemini:
+        raise ValueError(
+            "At least one configured forecaster model is from Google (Gemini), but no Gemini API key found "
+            f"(checked {base_dir / '.env'}, {repo_root / '.env'}, GEMINI_API_KEY/GOOGLE_API_KEY env vars)."
+        )
 
     logger.info("Intra-benchmark config loaded:")
     logger.info(f"  Lyptus repo: {cfg.lyptus_repo_dir}")
     logger.info(f"  n_bins: {cfg.binning.n_bins}, strategy: {cfg.binning.strategy}")
-    logger.info(f"  forecasted_models: {cfg.forecasted_models or '(all in outcomes matrix)'}")
+    logger.info(f"  forecasted_models (object of study): {cfg.forecasted_models or '(all in outcomes matrix)'}")
     logger.info(f"  drop_models: {cfg.drop_models}")
     logger.info(f"  K target tasks/cell: {cfg.target_selection.n_target_tasks_per_cell}")
-    logger.info(f"  num_experts: {cfg.workflow_settings.num_experts}, "
-                f"delphi_rounds: {cfg.workflow_settings.delphi_rounds}")
+    logger.info(
+        f"  forecaster models_to_run ({len(models_to_run)}): {models_to_run}; "
+        f"providers required: {sorted(required)}"
+    )
+    logger.info(
+        f"  num_experts: {cfg.workflow_settings.num_experts}, "
+        f"delphi_rounds: {cfg.workflow_settings.delphi_rounds}, "
+        f"num_repeats: {cfg.workflow_settings.num_repeats}, "
+        f"reasoning_effort: {cfg.llm_settings.reasoning_effort}"
+    )
     return cfg

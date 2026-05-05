@@ -96,11 +96,48 @@ def valid_rows(df: pd.DataFrame, *, last_round_only: bool = True) -> pd.DataFram
     """
     Keep only rows where p50 was successfully parsed. Optionally restrict to
     each cell's final Delphi round (default — matches headline reporting).
+
+    With multi-forecaster / multi-repeat runs, "each cell" means each
+    (condition_id, forecaster_model, repeat_index, expert_id) group: the same
+    cell can appear under several forecasters and repeats, and each must keep
+    its own last-round row. Falls back to grouping by `condition_id` only if
+    those columns are absent (legacy CSVs).
     """
     out = df.dropna(subset=["p50"]).copy()
     if last_round_only:
-        idx = out.groupby("condition_id")["delphi_round"].idxmax()
+        group_keys = ["condition_id"]
+        for k in ("forecaster_model", "repeat_index", "expert_id"):
+            if k in out.columns:
+                group_keys.append(k)
+        idx = out.groupby(group_keys, dropna=False)["delphi_round"].idxmax()
         out = out.loc[idx].reset_index(drop=True)
+    return out
+
+
+def filter_rows(
+    df: pd.DataFrame,
+    *,
+    forecaster_model: Optional[str] = None,
+    repeat_index: Optional[int] = None,
+) -> pd.DataFrame:
+    """Apply optional `--forecaster-model` / `--repeat-index` CLI filters.
+
+    Returns the unfiltered frame when both filters are None or when the
+    relevant columns are missing (legacy CSVs).
+    """
+    out = df
+    if forecaster_model is not None and "forecaster_model" in out.columns:
+        before = len(out)
+        out = out[out["forecaster_model"] == forecaster_model]
+        logger.info(
+            f"--forecaster-model filter: {forecaster_model!r} kept {len(out)}/{before} rows"
+        )
+    if repeat_index is not None and "repeat_index" in out.columns:
+        before = len(out)
+        out = out[out["repeat_index"].astype("Int64") == int(repeat_index)]
+        logger.info(
+            f"--repeat-index filter: {repeat_index} kept {len(out)}/{before} rows"
+        )
     return out
 
 
@@ -355,6 +392,42 @@ def plot_per_model_brier(df: pd.DataFrame, out: Optional[Path], show: bool) -> N
     _save(fig, out, show)
 
 
+def plot_per_forecaster_model_brier(df: pd.DataFrame, out: Optional[Path], show: bool) -> None:
+    """Bar chart of Brier per `forecaster_model` (the LLM doing the forecasting).
+
+    No-op when the column is absent (legacy CSV) or there is only one
+    forecaster — the headline `per_model_brier.png` already covers that case.
+    """
+    if "forecaster_model" not in df.columns:
+        return
+    forecasters = sorted(df["forecaster_model"].dropna().unique().tolist())
+    if len(forecasters) < 2:
+        logger.info(
+            f"Skipping per-forecaster-model Brier plot: only "
+            f"{len(forecasters)} forecaster(s) present."
+        )
+        return
+
+    df = df.assign(se=(df["p50"].astype(float) - df["outcome"].astype(int)) ** 2)
+    grouped = df.groupby("forecaster_model").agg(brier=("se", "mean"), n=("se", "size"))
+    grouped = grouped.sort_values("brier")
+
+    fig, ax = plt.subplots(figsize=(max(7, len(grouped) * 0.9), 5))
+    bars = ax.bar(grouped.index, grouped["brier"], color="darkorange", edgecolor="black")
+    for bar, n in zip(bars, grouped["n"]):
+        ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.005,
+                f"n={n}", ha="center", fontsize=9)
+    ax.axhline(0.25, color="grey", linestyle="--", alpha=0.6, label="chance Brier (0.25)")
+    ax.set_ylim(0, max(0.5, grouped["brier"].max() * 1.15))
+    ax.set_ylabel("Brier on p50 (lower = better)")
+    ax.set_xlabel("Forecaster model (LLM running the elicitation)")
+    ax.set_title("Per-forecaster calibration (Brier-on-p50)")
+    ax.legend()
+    ax.tick_params(axis="x", rotation=30)
+    plt.setp(ax.get_xticklabels(), ha="right")
+    _save(fig, out, show)
+
+
 def plot_reliability_diagram(df: pd.DataFrame, out: Optional[Path], show: bool,
                               n_bins: int = 10) -> None:
     """Reliability: bin by p50, plot empirical pass fraction per bin."""
@@ -527,13 +600,30 @@ def write_stats_text(stats: Dict, ece: Dict, crps_summary: Optional[Dict], out: 
     logger.info(f"Saved {out.name}")
 
 
-def main(run_dir: Path, output_subdir: str = "plots", show: bool = False) -> int:
+def main(
+    run_dir: Path,
+    output_subdir: str = "plots",
+    show: bool = False,
+    forecaster_model: Optional[str] = None,
+    repeat_index: Optional[int] = None,
+) -> int:
     df_full, json_data = load_run(run_dir)
+    df_full = filter_rows(df_full, forecaster_model=forecaster_model, repeat_index=repeat_index)
     df = valid_rows(df_full, last_round_only=True)
     if df.empty:
-        logger.error("No valid (parsed-p50) rows to analyse.")
+        logger.error("No valid (parsed-p50) rows to analyse after filtering.")
         return 1
 
+    # If filters were applied, name the output subdir accordingly so a
+    # multi-model run can produce side-by-side per-forecaster outputs without
+    # clobbering.
+    suffix_parts = []
+    if forecaster_model is not None:
+        suffix_parts.append(f"fm-{forecaster_model.replace('/', '_')}")
+    if repeat_index is not None:
+        suffix_parts.append(f"rep{repeat_index}")
+    if suffix_parts:
+        output_subdir = f"{output_subdir}_{'_'.join(suffix_parts)}"
     output_dir = run_dir / output_subdir
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -559,6 +649,7 @@ def main(run_dir: Path, output_subdir: str = "plots", show: bool = False) -> int
     plot_calibration_scatter(df, output_dir / "calibration_scatter.png", show)
     plot_brier_heatmap(df, output_dir / "brier_heatmap.png", show)
     plot_per_model_brier(df, output_dir / "per_model_brier.png", show)
+    plot_per_forecaster_model_brier(df, output_dir / "per_forecaster_model_brier.png", show)
     plot_reliability_diagram(df, output_dir / "reliability_diagram.png", show)
     plot_metr_style_logfst(df, output_dir / "metr_style_logfst.png", show)
     plot_per_cell_distributions(df, output_dir / "per_cell_distributions.png", show)
@@ -576,6 +667,24 @@ def cli() -> int:
     g.add_argument("--latest", action="store_true",
                    help="Auto-pick the most recent run dir under intra_benchmark_calibration/results/")
     p.add_argument("-s", "--show", action="store_true", help="Show plots interactively")
+    p.add_argument(
+        "--forecaster-model",
+        type=str,
+        default=None,
+        help=(
+            "Restrict analysis to rows where forecaster_model equals this "
+            "value. Useful for slicing a multi-LLM-forecaster run."
+        ),
+    )
+    p.add_argument(
+        "--repeat-index",
+        type=int,
+        default=None,
+        help=(
+            "Restrict analysis to one repeat (1-based). Default: include "
+            "every repeat in the same plot."
+        ),
+    )
     args = p.parse_args()
 
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
@@ -591,7 +700,12 @@ def cli() -> int:
     if not run_dir.is_dir():
         logger.error(f"Run dir does not exist: {run_dir}")
         return 1
-    return main(run_dir, show=args.show)
+    return main(
+        run_dir,
+        show=args.show,
+        forecaster_model=args.forecaster_model,
+        repeat_index=args.repeat_index,
+    )
 
 
 if __name__ == "__main__":

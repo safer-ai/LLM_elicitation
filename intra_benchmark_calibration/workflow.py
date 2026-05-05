@@ -80,6 +80,8 @@ async def _one_elicitation(
     benchmark_description: Optional[str],
     handles: RunHandles,
     dataset: LyptusDataset,
+    forecaster_model: str,
+    repeat_index: int,
     progress: Optional["tqdm"] = None,
 ) -> Dict[str, Any]:
     """
@@ -122,6 +124,7 @@ async def _one_elicitation(
             error = f"Analysis API call failed: {analysis_text}"
             return await _persist_failure(
                 handles=handles, plan=plan, expert=expert, round_num=round_num,
+                forecaster_model=forecaster_model, repeat_index=repeat_index,
                 system_prompt=persona_system_prompt,
                 analysis_user_prompt=analysis_user_prompt,
                 estimation_user_prompt="(skipped — analysis failed)",
@@ -166,6 +169,7 @@ async def _one_elicitation(
         error = f"Estimation API call failed: {estimation_text}"
         return await _persist_failure(
             handles=handles, plan=plan, expert=expert, round_num=round_num,
+            forecaster_model=forecaster_model, repeat_index=repeat_index,
             system_prompt=persona_system_prompt,
             analysis_user_prompt=analysis_user_prompt,
             estimation_user_prompt=estimation_user_prompt,
@@ -180,6 +184,7 @@ async def _one_elicitation(
 
     return await _persist_success(
         handles=handles, plan=plan, expert=expert, round_num=round_num,
+        forecaster_model=forecaster_model, repeat_index=repeat_index,
         system_prompt=persona_system_prompt,
         analysis_user_prompt=analysis_user_prompt,
         estimation_user_prompt=estimation_user_prompt,
@@ -194,6 +199,8 @@ async def _persist_success(
     plan: CellPlan,
     expert: ExpertProfile,
     round_num: int,
+    forecaster_model: str,
+    repeat_index: int,
     system_prompt: str,
     analysis_user_prompt: Optional[str],
     estimation_user_prompt: str,
@@ -212,6 +219,8 @@ async def _persist_success(
     csv_row = build_csv_row(
         handles=handles,
         plan=plan,
+        forecaster_model=forecaster_model,
+        repeat_index=repeat_index,
         expert_id=expert.name,
         delphi_round=round_num,
         parsed=parsed,
@@ -221,6 +230,8 @@ async def _persist_success(
     json_record = build_json_record(
         csv_row=csv_row,
         plan=plan,
+        forecaster_model=forecaster_model,
+        repeat_index=repeat_index,
         expert_id=expert.name,
         delphi_round=round_num,
         system_prompt=system_prompt,
@@ -252,6 +263,8 @@ async def _persist_failure(
     plan: CellPlan,
     expert: ExpertProfile,
     round_num: int,
+    forecaster_model: str,
+    repeat_index: int,
     system_prompt: str,
     analysis_user_prompt: Optional[str],
     estimation_user_prompt: str,
@@ -270,6 +283,8 @@ async def _persist_failure(
     csv_row = build_csv_row(
         handles=handles,
         plan=plan,
+        forecaster_model=forecaster_model,
+        repeat_index=repeat_index,
         expert_id=expert.name,
         delphi_round=round_num,
         parsed=parsed,
@@ -279,6 +294,8 @@ async def _persist_failure(
     json_record = build_json_record(
         csv_row=csv_row,
         plan=plan,
+        forecaster_model=forecaster_model,
+        repeat_index=repeat_index,
         expert_id=expert.name,
         delphi_round=round_num,
         system_prompt=system_prompt,
@@ -319,15 +336,36 @@ async def run_intra_benchmark_workflow(
     client: Union["AsyncAnthropic", "AsyncOpenAI"],
     semaphore: Semaphore,
     handles: RunHandles,
+    forecaster_model: str,
+    repeat_index: int = 1,
+    progress: Optional["tqdm"] = None,
 ) -> Dict[str, Any]:
-    """Iterate cells × Delphi rounds × experts, persisting each elicitation as it lands."""
+    """Iterate cells × Delphi rounds × experts, persisting each elicitation as it lands.
+
+    `forecaster_model` is the LLM acting as the forecaster (rotated by the
+    runner from `cfg.models_to_run`). `repeat_index` (1-based) identifies
+    which independent repeat of the full pipeline this is when
+    `workflow_settings.num_repeats > 1`.
+
+    `progress`: optional shared tqdm bar owned by the runner. When None, this
+    function creates its own bar sized for a single (model, repeat) chunk;
+    when supplied, the runner is responsible for sizing and closing it.
+    """
     run_start = time.time()
     n_cells = len(cell_plans)
     n_rounds = cfg.workflow_settings.delphi_rounds
     n_experts = len(experts)
     expected_total = n_cells * n_experts * n_rounds
-    logger.info(f"Workflow starting: {n_cells} cells × {n_experts} experts × "
-                f"{n_rounds} rounds = up to {expected_total} elicitations")
+    num_repeats_total = max(1, cfg.workflow_settings.num_repeats)
+    rep_label = (
+        f" (repeat {repeat_index}/{num_repeats_total})"
+        if num_repeats_total > 1 else ""
+    )
+    logger.info(
+        f"Workflow starting for forecaster '{forecaster_model}'{rep_label}: "
+        f"{n_cells} cells × {n_experts} experts × {n_rounds} rounds = up to "
+        f"{expected_total} elicitations"
+    )
 
     benchmark_description = cfg.benchmark_description
     ground_truth_summary = dataset.outcomes.ground_truth_summary()
@@ -335,35 +373,52 @@ async def run_intra_benchmark_workflow(
     n_elicitations_attempted = 0
     n_elicitations_completed = 0
 
+    owns_progress = progress is None
     # `logging_redirect_tqdm` makes existing `logger.info` calls play nicely
     # with the bar (no shredding). The bar advances by 1 inside each
     # _persist_success / _persist_failure, so it ticks per-elicitation
     # regardless of success or API failure (with early-stop in convergence:
     # the bar may finish before reaching `expected_total`).
-    with logging_redirect_tqdm():
-        progress = tqdm(
-            total=expected_total,
-            desc="Elicitations",
-            unit="call",
-            smoothing=0.05,
-            dynamic_ncols=True,
-        )
-        try:
-            n_elicitations_attempted, n_elicitations_completed = await _run_cells(
-                cfg=cfg, cell_plans=cell_plans, experts=experts,
-                prompt_templates=prompt_templates, dataset=dataset,
-                client=client, semaphore=semaphore, handles=handles,
-                ground_truth_summary=ground_truth_summary,
-                benchmark_description=benchmark_description,
-                progress=progress,
+    if owns_progress:
+        with logging_redirect_tqdm():
+            progress = tqdm(
+                total=expected_total,
+                desc="Elicitations",
+                unit="call",
+                smoothing=0.05,
+                dynamic_ncols=True,
             )
-        finally:
-            progress.close()
+            try:
+                n_elicitations_attempted, n_elicitations_completed = await _run_cells(
+                    cfg=cfg, cell_plans=cell_plans, experts=experts,
+                    prompt_templates=prompt_templates, dataset=dataset,
+                    client=client, semaphore=semaphore, handles=handles,
+                    ground_truth_summary=ground_truth_summary,
+                    benchmark_description=benchmark_description,
+                    forecaster_model=forecaster_model,
+                    repeat_index=repeat_index,
+                    progress=progress,
+                )
+            finally:
+                progress.close()
+    else:
+        n_elicitations_attempted, n_elicitations_completed = await _run_cells(
+            cfg=cfg, cell_plans=cell_plans, experts=experts,
+            prompt_templates=prompt_templates, dataset=dataset,
+            client=client, semaphore=semaphore, handles=handles,
+            ground_truth_summary=ground_truth_summary,
+            benchmark_description=benchmark_description,
+            forecaster_model=forecaster_model,
+            repeat_index=repeat_index,
+            progress=progress,
+        )
 
     duration = time.time() - run_start
-    logger.info(f"\nWorkflow done in {duration:.1f}s | "
-                f"completed {n_elicitations_completed}/{n_elicitations_attempted} elicitations "
-                f"(of up to {expected_total} possible)")
+    logger.info(
+        f"Workflow done for '{forecaster_model}'{rep_label} in {duration:.1f}s | "
+        f"completed {n_elicitations_completed}/{n_elicitations_attempted} elicitations "
+        f"(of up to {expected_total} possible)"
+    )
     return {
         "n_elicitations_attempted": n_elicitations_attempted,
         "n_elicitations_completed": n_elicitations_completed,
@@ -383,6 +438,8 @@ async def _run_cells(
     handles: RunHandles,
     ground_truth_summary: Dict[str, float],
     benchmark_description: Optional[str],
+    forecaster_model: str,
+    repeat_index: int,
     progress: "tqdm",
 ) -> tuple:
     """The cell × round × expert nested loop. Updates `progress` per elicitation
@@ -394,7 +451,8 @@ async def _run_cells(
     for idx, plan in enumerate(cell_plans, 1):
         i_str = "ALL" if plan.source_bin_i is None else f"i{plan.source_bin_i}"
         progress.set_postfix_str(
-            f"cell {idx}/{n_cells}: {plan.forecasted_model[:14]} {i_str}->j{plan.target_bin_j}"
+            f"{forecaster_model[:14]} r{repeat_index} cell {idx}/{n_cells}: "
+            f"M={plan.forecasted_model[:14]} {i_str}->j{plan.target_bin_j}"
         )
         logger.info(f"\n--- Cell {idx}/{n_cells}: {plan.cell_id} (true outcome={int(plan.target_outcome)}) ---")
         round_responses_history: List[List[Dict[str, Any]]] = []
@@ -412,6 +470,8 @@ async def _run_cells(
                     ground_truth_summary=ground_truth_summary,
                     benchmark_description=benchmark_description,
                     handles=handles, dataset=dataset,
+                    forecaster_model=forecaster_model,
+                    repeat_index=repeat_index,
                     progress=progress,
                 ) for ex in experts
             ]
@@ -450,6 +510,8 @@ async def _run_cells(
 
         cell_summary = {
             "cell_id": plan.cell_id,
+            "forecaster_model": forecaster_model,
+            "repeat_index": repeat_index,
             "source_profile_type": plan.source_profile_type,
             "source_bin_i": plan.source_bin_i,
             "source_bins_shown": plan.source_bins_to_show,
