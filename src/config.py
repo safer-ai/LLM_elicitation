@@ -5,122 +5,17 @@ import yaml
 import logging
 from pathlib import Path
 from dataclasses import dataclass, field
-from typing import Dict, Any, Optional, List, Set, Union
+from typing import Any, Optional, List, Set, Union
+
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+from shared.api_keys import parse_num_repeats as _parse_num_repeats  # noqa: E402,F401
+from shared.api_keys import resolve_api_key as _resolve_api_key  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(name)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-
-# --- API key resolution helpers (.env support) ---
-
-
-def _redact(key: Optional[str]) -> str:
-    """Return a short, safe-to-log prefix of an API key."""
-    if not key:
-        return "(empty)"
-    return f"{key[:14]}…[len={len(key)}]"
-
-
-def _parse_num_repeats(raw: Any) -> int:
-    """Coerce the raw `workflow_settings.num_repeats` YAML value to a positive int.
-
-    Rejects bools explicitly (otherwise YAML `true` would silently become 1 via
-    `int(True)`), and emits a clearer error than the bare `int()` traceback for
-    non-integer strings.
-    """
-    if isinstance(raw, bool):
-        raise TypeError(
-            "WorkflowSettings: 'num_repeats' must be a positive integer (got bool). "
-            "Did you mean `num_repeats: 1` or `num_repeats: 20`?"
-        )
-    if isinstance(raw, int):
-        return raw
-    if isinstance(raw, float):
-        if raw.is_integer():
-            return int(raw)
-        raise TypeError(
-            f"WorkflowSettings: 'num_repeats' must be a positive integer; got float {raw!r}."
-        )
-    try:
-        coerced_str = str(raw).strip()
-        return int(coerced_str)
-    except (TypeError, ValueError) as exc:
-        raise TypeError(
-            f"WorkflowSettings: 'num_repeats' must be a positive integer; got {raw!r}."
-        ) from exc
-
-
-def _parse_dotenv(path: Path) -> Dict[str, str]:
-    """Minimal stdlib parser for KEY=VALUE lines in a .env file.
-
-    Ignores blanks and lines starting with '#'. Strips wrapping quotes.
-    Last assignment wins. No shell-style variable expansion.
-    """
-    out: Dict[str, str] = {}
-    if not path.is_file():
-        return out
-    try:
-        for line in path.read_text(encoding="utf-8").splitlines():
-            line = line.strip()
-            if not line or line.startswith("#") or "=" not in line:
-                continue
-            k, _, v = line.partition("=")
-            k = k.strip()
-            v = v.strip()
-            if (v.startswith("'") and v.endswith("'")) or (v.startswith('"') and v.endswith('"')):
-                v = v[1:-1]
-            if k:
-                out[k] = v
-    except Exception as e:
-        logger.warning(f"Failed to parse {path}: {e}")
-    return out
-
-
-def _resolve_api_key(env_var: str, project_root: Path) -> Optional[str]:
-    """Resolve an API key with explicit precedence:
-
-      1. KEY=VALUE in <project_root>/.env (project-local wins over shell env so
-         a stale shell-exported key cannot silently override a per-experiment key).
-      2. Process environment variable `env_var`.
-
-    Returns None if no source has a value.
-    """
-    parsed = _parse_dotenv(project_root / ".env")
-    if env_var in parsed and parsed[env_var]:
-        v = parsed[env_var]
-        logger.info(f"{env_var}: source = {project_root / '.env'}, key = {_redact(v)}")
-        return v
-
-    env_val = os.environ.get(env_var)
-    if env_val:
-        logger.info(f"{env_var}: source = process env, key = {_redact(env_val)}")
-        return env_val
-
-    logger.debug(f"{env_var}: no value found in .env or process env")
-    return None
-
-
-# --- Provider inference ---
-def get_provider_for_model(model: str) -> str:
-    """Infers the API provider based on a single model name.
-
-    Recognises:
-      - Anthropic: 'claude' in name (e.g. 'claude-sonnet-4-6').
-      - Google:   'gemini' in name (e.g. 'gemini-3-flash-preview').
-      - OpenAI:   'gpt-' in name, or starts with 'o1'/'o2'/'o3'/'o4'/'o5'
-                  (e.g. 'gpt-5-mini', 'o3-mini').
-    """
-    m = model.lower().strip()
-    if 'claude' in m:
-        return 'anthropic'
-    if 'gemini' in m:
-        return 'google'
-    if 'gpt-' in m or any(m.startswith(prefix) for prefix in ('o1', 'o2', 'o3', 'o4', 'o5')):
-        return 'openai'
-    raise ValueError(
-        f"Could not infer API provider from model name: '{model}'. "
-        f"Expected name containing 'claude', 'gemini', 'gpt-', or starting with 'o1'..'o5'."
-    )
 
 # --- Data Structure Definitions ---
 

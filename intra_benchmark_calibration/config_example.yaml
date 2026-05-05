@@ -90,12 +90,6 @@ intra_benchmark_settings:
   include_target_solution: false
 
 # =============================================================================
-# API keys: by default loaded from intra_benchmark_calibration/.env
-# (project-local) or LLM_elicitation/.env (repo-root). To override here, add
-# `anthropic_api_key: "sk-ant-..."` etc. -- but DO NOT commit a real key to git.
-# config.py logs the key source + first 14 chars so you can verify which key
-# is being used.
-# =============================================================================
 
 prompts_dir: "prompts"
 expert_profiles_file: "../inter_benchmark_calibration/input_data/expert_profiles/expert_profiles.yaml"
