@@ -1,558 +1,468 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-Workflow orchestration for intra-benchmark calibration experiments.
+Async Delphi orchestration for intra-benchmark calibration.
 
-This module implements the Delphi estimation process for predicting
-conditional probabilities P(j|i) between benchmark task bins.
+For each (i, j, M, t) cell admitted by `task_selector.build_cell_plans`, we run
+the Delphi process:
+
+  - Round 1: each expert does (a) capability analysis, then (b) initial
+    percentile estimation, two API calls. The stage-2 prompt sees the stage-1
+    output of THE SAME expert.
+  - Rounds 2+: each expert refines, one API call, given the previous-round
+    responses of the OTHER experts.
+
+Critical persistence guarantee: each (cell × expert × round) elicitation is
+written to disk IMMEDIATELY after the API call returns, under an `asyncio.Lock`
+in `results_handler.append_elicitation_row`. A mid-run crash loses at most one
+in-flight call. We use `asyncio.gather` for parallel dispatch but each per-expert
+coroutine writes its own row before returning, so the gather is just for
+concurrency (no batched flush).
 """
 
+from __future__ import annotations
+
 import asyncio
-import datetime
 import logging
 import time
-from pathlib import Path
-import numpy as np
-from typing import List, Dict, Any, Optional, Union
 from asyncio import Semaphore
+from typing import Any, Dict, List, Optional, Sequence, Union
 
-# Conditional imports for type hinting
+import numpy as np
+from tqdm.auto import tqdm
+from tqdm.contrib.logging import logging_redirect_tqdm
+
 try:
     from anthropic import AsyncAnthropic
 except ImportError:
-    AsyncAnthropic = None
+    AsyncAnthropic = None  # type: ignore[assignment]
 try:
     from openai import AsyncOpenAI
 except ImportError:
-    AsyncOpenAI = None
-
-import sys
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+    AsyncOpenAI = None  # type: ignore[assignment]
 
 from shared.data_models import ExpertProfile
 from shared.llm_client import make_api_call
 from shared.parsing import parse_probability_response
-from config import IntraBenchmarkConfig
-from data_loader import load_ground_truth, validate_ground_truth_data
-from task_selector import (
-    get_representative_tasks_for_bin,
-    get_target_task_for_bin,
-    format_tasks_list_for_prompt
+
+from intra_benchmark_calibration.config import IntraBenchmarkConfig
+from intra_benchmark_calibration.lyptus_data import LyptusDataset
+from intra_benchmark_calibration.prompt_builder import (
+    assemble_prompts,
+    format_target_task,
 )
-from results_handler import (
-    initialize_intra_benchmark_run,
-    append_prediction_to_csv,
-    save_prediction_to_json,
-    finalize_intra_benchmark_run,
-    add_intra_benchmark_run_to_registry
+from intra_benchmark_calibration.results_handler import (
+    RunHandles,
+    append_cell_summary,
+    append_elicitation_row,
+    build_csv_row,
+    build_json_record,
 )
+from intra_benchmark_calibration.task_selector import CellPlan
 
 logger = logging.getLogger(__name__)
 
 
-async def _run_expert_round_intra_benchmark(
+_MAX_TOKENS = 20000
+
+
+async def _one_elicitation(
+    *,
+    plan: CellPlan,
     expert: ExpertProfile,
-    tasks_solved: List[Dict[str, Any]],
-    target_task: Dict[str, Any],
-    benchmark_description: str,
     round_num: int,
     prev_round_responses: Optional[List[Dict[str, Any]]],
-    client: Union[AsyncAnthropic, AsyncOpenAI],
+    client: Union["AsyncAnthropic", "AsyncOpenAI"],
     semaphore: Semaphore,
-    config: IntraBenchmarkConfig,
-    prompts: Dict[str, str],
-    metrics_to_use: Optional[List[str]] = None
+    cfg: IntraBenchmarkConfig,
+    prompt_templates: Dict[str, str],
+    ground_truth_summary: Dict[str, float],
+    benchmark_description: Optional[str],
+    handles: RunHandles,
+    dataset: LyptusDataset,
+    progress: Optional["tqdm"] = None,
 ) -> Dict[str, Any]:
     """
-    Run a single expert's estimation for one (i,j) bin pair in one round.
+    Run ONE expert × ONE round elicitation, parse the response, and persist
+    the row before returning.
 
-    Args:
-        expert: ExpertProfile object
-        tasks_solved: List of tasks that models in bin_i have solved
-        target_task: The target task at bin_j's midpoint
-        benchmark_description: Description of the benchmark for context
-        round_num: Current Delphi round number (1-indexed)
-        prev_round_responses: Previous round's responses from all experts (None for round 1)
-        client: LLM API client
-        semaphore: Concurrency semaphore
-        config: IntraBenchmarkConfig object
-        prompts: Dict of prompt templates
+    Returns the in-memory record (dict) so the round-aggregation logic can
+    still compute means/stds across experts for the cell summary and so the
+    next Delphi round can see this expert's previous response.
 
-    Returns:
-        Dict with expert's response: expert, estimate, percentile_25th, percentile_50th, percentile_75th, rationale, error
+    `progress`: optional tqdm bar; advanced by 1 once persistence completes,
+    regardless of success / failure. Tick happens in the `finally` of the
+    inner _do() so it cannot be skipped on early returns.
     """
-    ename = expert.name
-    epersona = expert.get_persona_description()
+    persona_system_prompt = expert.get_persona_description()
 
-    system_prompt_base = epersona
+    # Stage-1 analysis text is only generated in round 1, then carried into stage 2.
+    raw_analysis: Optional[str] = None
+    analysis_user_prompt: Optional[str] = None
 
-    expert_result: Dict[str, Any] = {
-        "expert": ename,
-        "estimate": None,
-        "percentile_25th": None,
-        "percentile_50th": None,
-        "percentile_75th": None,
-        "rationale": ""
-    }
+    if round_num == 1:
+        prep = assemble_prompts(
+            plan=plan,
+            persona_system_prompt=persona_system_prompt,
+            prompt_templates=prompt_templates,
+            round_num=1,
+            prev_round_responses=None,
+            technical_analysis=None,
+            benchmark_description=benchmark_description,
+            ground_truth_summary=ground_truth_summary,
+            include_target_solution=cfg.include_target_solution,
+        )
+        analysis_user_prompt = prep.analysis_user_prompt
 
-    # Prepare prompt data
-    # Format metrics for target task (only if metrics are specified)
-    target_task_metrics_str = ""
-    if metrics_to_use:
-        metric_parts = []
-        for metric_name in metrics_to_use:
-            if metric_name in target_task.metrics:
-                metric_value = target_task.metrics[metric_name]
-                metric_parts.append(f"{metric_name}={metric_value}")
-        if metric_parts:
-            target_task_metrics_str = ", ".join(metric_parts)
-    
-    prompt_data = {
-        "benchmark_description": benchmark_description,
-        "solved_tasks_list": format_tasks_list_for_prompt(tasks_solved, metrics_to_use),
-        "target_task_name": target_task.name,
-        "target_task_description": target_task.description,
-        "target_task_metrics": target_task_metrics_str if target_task_metrics_str else "N/A"
-    }
-
-    max_tokens = 8000
-
-    try:
-        if round_num == 1:
-            # --- Round 1: Analysis + Initial Estimation ---
-            logger.debug(f"R1 Intra-Bench - Running analysis for expert '{ename}'")
-
-            # Stage 1: Task relationship analysis
-            analysis_prompt_template = prompts.get('task_relationship_analysis')
-            if not analysis_prompt_template:
-                raise ValueError("Missing 'task_relationship_analysis' prompt template")
-
-            analysis_user_prompt = analysis_prompt_template.format(**prompt_data)
-            expert_result["analysis_system_prompt"] = system_prompt_base
-            expert_result["analysis_user_prompt"] = analysis_user_prompt
-
-            analysis_text = await make_api_call(
-                client, semaphore, config.llm_settings, system_prompt_base,
-                analysis_user_prompt, max_tokens
+        analysis_text = await make_api_call(
+            client, semaphore, cfg.llm_settings,
+            persona_system_prompt, analysis_user_prompt or "", _MAX_TOKENS,
+        )
+        if analysis_text.startswith("Error:"):
+            error = f"Analysis API call failed: {analysis_text}"
+            return await _persist_failure(
+                handles=handles, plan=plan, expert=expert, round_num=round_num,
+                system_prompt=persona_system_prompt,
+                analysis_user_prompt=analysis_user_prompt,
+                estimation_user_prompt="(skipped — analysis failed)",
+                raw_analysis=analysis_text, raw_estimation="",
+                error=error, progress=progress,
             )
-            expert_result["raw_analysis"] = analysis_text
+        raw_analysis = analysis_text
 
-            if analysis_text.startswith("Error:"):
-                expert_result["error"] = f"Analysis API Call Failed: {analysis_text}"
-                return expert_result
+        # Now build stage-2 prompt with the just-produced analysis embedded.
+        prep = assemble_prompts(
+            plan=plan,
+            persona_system_prompt=persona_system_prompt,
+            prompt_templates=prompt_templates,
+            round_num=1,
+            prev_round_responses=None,
+            technical_analysis=raw_analysis,
+            benchmark_description=benchmark_description,
+            ground_truth_summary=ground_truth_summary,
+            include_target_solution=cfg.include_target_solution,
+        )
+        estimation_user_prompt = prep.estimation_user_prompt
+    else:
+        prep = assemble_prompts(
+            plan=plan,
+            persona_system_prompt=persona_system_prompt,
+            prompt_templates=prompt_templates,
+            round_num=round_num,
+            prev_round_responses=prev_round_responses,
+            technical_analysis=None,
+            benchmark_description=benchmark_description,
+            ground_truth_summary=ground_truth_summary,
+            include_target_solution=cfg.include_target_solution,
+        )
+        estimation_user_prompt = prep.estimation_user_prompt
 
-            prompt_data["technical_analysis"] = analysis_text
+    estimation_text = await make_api_call(
+        client, semaphore, cfg.llm_settings,
+        persona_system_prompt, estimation_user_prompt, _MAX_TOKENS,
+    )
 
-            logger.debug(f"R1 Intra-Bench - Running initial estimation for expert '{ename}'")
+    if estimation_text.startswith("Error:"):
+        error = f"Estimation API call failed: {estimation_text}"
+        return await _persist_failure(
+            handles=handles, plan=plan, expert=expert, round_num=round_num,
+            system_prompt=persona_system_prompt,
+            analysis_user_prompt=analysis_user_prompt,
+            estimation_user_prompt=estimation_user_prompt,
+            raw_analysis=raw_analysis, raw_estimation=estimation_text,
+            error=error, progress=progress,
+        )
 
-            # Stage 2: Initial probability estimation
-            estimation_prompt_template = prompts.get('initial_conditional_probability_estimation')
-            if not estimation_prompt_template:
-                raise ValueError("Missing 'initial_conditional_probability_estimation' prompt template")
+    parsed = parse_probability_response(estimation_text)
+    error: Optional[str] = None
+    if parsed.get("percentile_50th") is None:
+        error = "Probability parsing failed (no p50 extracted)"
 
-            estimation_user_prompt = estimation_prompt_template.format(**prompt_data)
-            expert_result["estimation_system_prompt"] = system_prompt_base
-            expert_result["estimation_user_prompt"] = estimation_user_prompt
-
-            estimation_text = await make_api_call(
-                client, semaphore, config.llm_settings, system_prompt_base,
-                estimation_user_prompt, max_tokens
-            )
-            expert_result["raw_estimation"] = estimation_text
-
-            if estimation_text.startswith("Error:"):
-                expert_result["error"] = f"Initial Estimation API Call Failed: {estimation_text}"
-            else:
-                parsed_estimation = parse_probability_response(estimation_text)
-                expert_result["estimate"] = parsed_estimation.get("estimate")
-                expert_result["percentile_25th"] = parsed_estimation.get("percentile_25th")
-                expert_result["percentile_50th"] = parsed_estimation.get("percentile_50th")
-                expert_result["percentile_75th"] = parsed_estimation.get("percentile_75th")
-                expert_result["rationale"] = parsed_estimation.get("rationale", "")
-
-                # Check if any field failed to parse (exclude 'error' which is only set on failure)
-                if any(v is None for k, v in expert_result.items() if k != "error"):
-                    logger.warning(f"R1 - Expert '{ename}' probability parsing failed")
-                    expert_result["error"] = "Probability Parsing Failed"
-
-        else:
-            # --- Round 2+: Refinement with group feedback ---
-            logger.debug(f"R{round_num} Intra-Bench - Refinement for expert '{ename}'")
-
-            # Prepare context with other experts' previous round responses
-            context_lines = [
-                "\n---\nOther experts' estimates and reasoning from the previous round:\n---\n"
-            ]
-
-            if prev_round_responses:
-                others_prev = [r for r in prev_round_responses if r.get("expert") != ename]
-                if others_prev:
-                    for r in others_prev:
-                        p25_str = f"{r.get('percentile_25th', 'N/A'):.3f}" if isinstance(r.get('percentile_25th'), float) else "N/A"
-                        p50_str = f"{r.get('percentile_50th', 'N/A'):.3f}" if isinstance(r.get('percentile_50th'), float) else "N/A"
-                        p75_str = f"{r.get('percentile_75th', 'N/A'):.3f}" if isinstance(r.get('percentile_75th'), float) else "N/A"
-
-                        rationale = r.get('rationale', 'N/A')
-                        if len(rationale) > 300:
-                            rationale = rationale[:300] + "..."
-
-                        context_lines.append(
-                            f"Expert: {r['expert']}\n"
-                            f"Percentiles: 25th={p25_str}, 50th (median)={p50_str}, 75th={p75_str}\n"
-                            f"Rationale: {rationale}\n"
-                        )
-                else:
-                    context_lines.append("(No other valid responses received in the previous round)")
-            else:
-                context_lines.append("(No previous round responses available)")
-
-            context_lines.append("\n---\n")
-            prompt_data["context"] = "\n".join(context_lines)
-
-            subsequent_prompt_template = prompts.get('subsequent_conditional_probability_estimation')
-            if not subsequent_prompt_template:
-                raise ValueError("Missing 'subsequent_conditional_probability_estimation' prompt template")
-
-            subsequent_user_prompt = subsequent_prompt_template.format(**prompt_data)
-            expert_result["estimation_system_prompt"] = system_prompt_base
-            expert_result["estimation_user_prompt"] = subsequent_user_prompt
-
-            estimation_text = await make_api_call(
-                client, semaphore, config.llm_settings, system_prompt_base,
-                subsequent_user_prompt, max_tokens
-            )
-            expert_result["raw_estimation"] = estimation_text
-
-            if estimation_text.startswith("Error:"):
-                expert_result["error"] = f"Subsequent Estimation API Call Failed: {estimation_text}"
-            else:
-                parsed_estimation = parse_probability_response(estimation_text)
-                expert_result["estimate"] = parsed_estimation.get("estimate")
-                expert_result["percentile_25th"] = parsed_estimation.get("percentile_25th")
-                expert_result["percentile_50th"] = parsed_estimation.get("percentile_50th")
-                expert_result["percentile_75th"] = parsed_estimation.get("percentile_75th")
-                expert_result["rationale"] = parsed_estimation.get("rationale", "")
-
-                # Check if any field failed to parse (exclude 'error' which is only set on failure)
-                if any(v is None for k, v in expert_result.items() if k != "error"):
-                    logger.warning(f"R{round_num} - Expert '{ename}' probability parsing failed")
-                    expert_result["error"] = "Probability Parsing Failed"
-
-    except ValueError as ve:
-        logger.error(f"ValueError during expert round for {ename}: {ve}")
-        expert_result["error"] = f"Configuration/Prompt Error: {ve}"
-    except Exception as e:
-        logger.error(f"Unexpected error during expert round for {ename}: {e}", exc_info=True)
-        expert_result["error"] = f"Unexpected Workflow Error: {e}"
-
-    return expert_result
+    return await _persist_success(
+        handles=handles, plan=plan, expert=expert, round_num=round_num,
+        system_prompt=persona_system_prompt,
+        analysis_user_prompt=analysis_user_prompt,
+        estimation_user_prompt=estimation_user_prompt,
+        raw_analysis=raw_analysis, raw_estimation=estimation_text,
+        parsed=parsed, error=error, progress=progress,
+    )
 
 
-async def run_intra_benchmark_estimation(
-    client: Union[AsyncAnthropic, AsyncOpenAI],
-    semaphore: Semaphore,
-    config: IntraBenchmarkConfig,
-    input_data: Dict[str, Any]
+async def _persist_success(
+    *,
+    handles: RunHandles,
+    plan: CellPlan,
+    expert: ExpertProfile,
+    round_num: int,
+    system_prompt: str,
+    analysis_user_prompt: Optional[str],
+    estimation_user_prompt: str,
+    raw_analysis: Optional[str],
+    raw_estimation: str,
+    parsed: Dict[str, Any],
+    error: Optional[str],
+    progress: Optional["tqdm"] = None,
 ) -> Dict[str, Any]:
-    """
-    Main orchestration function for intra-benchmark calibration experiments.
+    target_text = format_target_task(plan, include_solution=False)
 
-    Args:
-        client: LLM API client
-        semaphore: Concurrency semaphore
-        config: IntraBenchmarkConfig object
-        input_data: Dict with 'prompts', 'experts', 'benchmark_tasks' keys
+    prompts_for_hash = [system_prompt, estimation_user_prompt]
+    if analysis_user_prompt:
+        prompts_for_hash.insert(1, analysis_user_prompt)
 
-    Returns:
-        Dict with run results and metadata
-    """
-    run_start_time = time.time()
-    logger.info("\n\n--- Starting Intra-Benchmark Calibration Workflow ---")
-
-    # Validate input data
-    prompts = input_data.get('prompts', {})
-    experts = input_data.get('experts', [])
-    benchmark_tasks = input_data.get('benchmark_tasks', [])
-    benchmark_description = input_data.get('benchmark_description', config.intra_benchmark_settings.benchmark_description)
-    metrics_to_use = input_data.get('metrics_to_use', [])
-    
-    # Log which metrics will be used for difficulty estimation
-    if metrics_to_use:
-        logger.info(f"Using difficulty metrics: {', '.join(metrics_to_use)}")
-    else:
-        logger.info("No difficulty metrics specified in benchmark file - will not display metrics in prompts")
-
-    if not prompts or not experts or not benchmark_tasks:
-        return {"error": "Missing required input data (prompts, experts, or benchmark_tasks)"}
-
-    # Select experts to use
-    num_experts = config.workflow_settings.num_experts
-    if num_experts is not None and num_experts > 0:
-        experts_to_use = experts[:num_experts]
-        logger.info(f"Using first {num_experts} experts")
-    else:
-        experts_to_use = experts
-        logger.info(f"Using all {len(experts)} experts")
-
-    if not experts_to_use:
-        return {"error": "No experts selected to run"}
-
-    # Load ground truth data
-    ground_truth_data = load_ground_truth(
-        config.intra_benchmark_settings.benchmark_name,
-        config.intra_benchmark_settings.n_bins,
-        config.ground_truth_dir
+    csv_row = build_csv_row(
+        handles=handles,
+        plan=plan,
+        expert_id=expert.name,
+        delphi_round=round_num,
+        parsed=parsed,
+        prompts_for_hash=prompts_for_hash,
+        target_prompt_chars=len(target_text),
     )
-
-    if not ground_truth_data:
-        return {"error": "Failed to load ground truth data"}
-
-    if not validate_ground_truth_data(ground_truth_data):
-        return {"error": "Ground truth data validation failed"}
-
-    # Confirm n_bins consistency (validation already passed in load_ground_truth)
-    loaded_n_bins = ground_truth_data['metadata'].get('n_bins')
-    config_n_bins = config.intra_benchmark_settings.n_bins
-    logger.info(f"✓ Confirmed: Config n_bins={config_n_bins} matches ground truth file n_bins={loaded_n_bins}")
-
-    ground_truth_pairs = ground_truth_data['ground_truth']
-    logger.info(f"Loaded {len(ground_truth_pairs)} (i,j) pairs with sufficient sample")
-
-    # Initialize run
-    run_info = initialize_intra_benchmark_run(
-        benchmark_name=config.intra_benchmark_settings.benchmark_name,
-        n_bins=config.intra_benchmark_settings.n_bins,
-        model=config.llm_settings.model,
-        num_experts=len(experts_to_use),
-        delphi_rounds=config.workflow_settings.delphi_rounds,
-        temperature=config.llm_settings.temperature,
-        output_base_dir=config.output_dir
+    json_record = build_json_record(
+        csv_row=csv_row,
+        plan=plan,
+        expert_id=expert.name,
+        delphi_round=round_num,
+        system_prompt=system_prompt,
+        analysis_user_prompt=analysis_user_prompt,
+        estimation_user_prompt=estimation_user_prompt,
+        raw_analysis=raw_analysis,
+        raw_estimation=raw_estimation,
+        error=error,
     )
-
-    if not run_info:
-        return {"error": "Failed to initialize run"}
-
-    logger.info(f"Run ID: {run_info['run_id']}")
-    logger.info(f"Output directory: {run_info['run_dir']}")
-
-    # Track overall results
-    predictions_completed = 0
-    predictions_attempted = len(ground_truth_pairs)
-
-    # Process each (i,j) pair
-    for pair_idx, gt_pair in enumerate(ground_truth_pairs, 1):
-        bin_i = gt_pair['bin_i']
-        bin_j = gt_pair['bin_j']
-        bin_i_range = gt_pair['bin_i_range']
-        bin_j_range = gt_pair['bin_j_range']
-        ground_truth_p = gt_pair['p_j_given_i']
-
-        logger.info(f"\n{'='*70}")
-        logger.info(f"Processing prediction {pair_idx}/{predictions_attempted}: "
-                    f"Bin {bin_i} → {bin_j}")
-        logger.info(f"  Bin ranges: {bin_i_range} → {bin_j_range}")
-        logger.info(f"  Ground truth P(j|i): {ground_truth_p:.3f}")
-        logger.info(f"{'='*70}")
-
-        # Select tasks for this bin pair
-        try:
-            # Use the new function to get representative tasks (default: 3 hardest tasks from bin i)
-            tasks_solved = get_representative_tasks_for_bin(bin_i_range, benchmark_tasks, len(benchmark_tasks), n_tasks=3)
-            target_task = get_target_task_for_bin(bin_j_range, benchmark_tasks, len(benchmark_tasks))
-        except Exception as e:
-            logger.error(f"Failed to select tasks for pair ({bin_i}, {bin_j}): {e}")
-            continue
-
-        if not target_task:
-            logger.error(f"No target task found for bin {bin_j}")
-            continue
-
-        logger.info(f"  Representative solved tasks: {len(tasks_solved)} tasks (hardest bin is {bin_i})")
-        logger.info(f"  Target task: {target_task.name}")
-
-        # Run Delphi process for this (i,j) pair
-        delphi_rounds_data = []
-        round_responses_history = []
-
-        for current_round in range(1, config.workflow_settings.delphi_rounds + 1):
-            round_start_time = time.time()
-            logger.info(f"\n  Round {current_round}/{config.workflow_settings.delphi_rounds} "
-                        f"for pair ({bin_i}, {bin_j}) starting...")
-
-            # Run all experts in parallel for this round
-            coroutines = [
-                _run_expert_round_intra_benchmark(
-                    expert=expert,
-                    tasks_solved=tasks_solved,
-                    target_task=target_task,
-                    benchmark_description=benchmark_description,
-                    round_num=current_round,
-                    prev_round_responses=round_responses_history[-1] if round_responses_history else None,
-                    client=client,
-                    semaphore=semaphore,
-                    config=config,
-                    prompts=prompts,
-                    metrics_to_use=metrics_to_use
-                ) for expert in experts_to_use
-            ]
-
-            round_api_results = await asyncio.gather(*coroutines, return_exceptions=True)
-            logger.info(f"  Round {current_round} completed in {time.time() - round_start_time:.2f}s")
-
-            # Process responses
-            processed_responses = []
-            for i, res in enumerate(round_api_results):
-                expert_name = experts_to_use[i].name
-                if isinstance(res, Exception):
-                    logger.error(f"    Expert '{expert_name}' failed: {res}", exc_info=res)
-                    processed_responses.append({"expert": expert_name, "error": f"Unhandled Exception: {res}"})
-                else:
-                    processed_responses.append(res)
-
-            round_responses_history.append(processed_responses)
-
-            # Calculate round statistics
-            valid_estimates = [r["estimate"] for r in processed_responses
-                               if "error" not in r and isinstance(r.get("estimate"), float)]
-
-            if len(valid_estimates) >= 2:
-                std_dev = np.std(valid_estimates)
-                mean_est = np.mean(valid_estimates)
-                median_est = np.median(valid_estimates)
-                logger.info(f"    Round {current_round} Stats: Valid Estimates={len(valid_estimates)}, "
-                            f"Mean={mean_est:.4f}, Median={median_est:.4f}, StdDev={std_dev:.4f}")
-
-                # Save round to CSV
-                append_prediction_to_csv(
-                    csv_path=run_info['csv_path'],
-                    bin_i=bin_i,
-                    bin_j=bin_j,
-                    bin_i_range=bin_i_range,
-                    bin_j_range=bin_j_range,
-                    round_num=current_round,
-                    expert_responses=processed_responses,
-                    ground_truth_p_j_given_i=ground_truth_p,
-                    sufficient_sample=True
-                )
-
-                # Store round data for JSON
-                delphi_rounds_data.append({
-                    "round": current_round,
-                    "expert_estimates": processed_responses,
-                    "round_mean": mean_est,
-                    "round_median": median_est,
-                    "round_std": std_dev
-                })
-
-                # Check convergence
-                if std_dev < config.workflow_settings.convergence_threshold:
-                    logger.info(f"    Convergence reached at R{current_round} "
-                                f"(StdDev {std_dev:.4f} < {config.workflow_settings.convergence_threshold:.4f})")
-                    break
-            else:
-                logger.info(f"    Round {current_round} Stats: Not enough valid estimates ({len(valid_estimates)}) "
-                            f"to check convergence")
-
-                # Still save to CSV and JSON even with insufficient estimates
-                append_prediction_to_csv(
-                    csv_path=run_info['csv_path'],
-                    bin_i=bin_i,
-                    bin_j=bin_j,
-                    bin_i_range=bin_i_range,
-                    bin_j_range=bin_j_range,
-                    round_num=current_round,
-                    expert_responses=processed_responses,
-                    ground_truth_p_j_given_i=ground_truth_p,
-                    sufficient_sample=True
-                )
-
-                delphi_rounds_data.append({
-                    "round": current_round,
-                    "expert_estimates": processed_responses,
-                    "round_mean": None,
-                    "round_median": None,
-                    "round_std": None
-                })
-
-        # Calculate final aggregated estimate
-        if delphi_rounds_data:
-            final_round = delphi_rounds_data[-1]
-            final_responses = final_round["expert_estimates"]
-            final_valid_estimates = [r["estimate"] for r in final_responses
-                                      if "error" not in r and isinstance(r.get("estimate"), float)]
-
-            if final_valid_estimates:
-                final_mean = np.mean(final_valid_estimates)
-                final_median = np.median(final_valid_estimates)
-                final_std = np.std(final_valid_estimates)
-                logger.info(f"  Final Agg. Probability: {final_mean:.4f} (Ground Truth: {ground_truth_p:.3f})")
-            else:
-                final_mean = None
-                final_median = None
-                final_std = None
-                logger.warning("  No valid final estimates found")
-        else:
-            final_mean = None
-            final_median = None
-            final_std = None
-
-        # Construct prediction result for JSON
-        prediction_result = {
-            "bin_i": bin_i,
-            "bin_j": bin_j,
-            "bin_i_range": bin_i_range,
-            "bin_j_range": bin_j_range,
-            "tasks_in_bin_i": [task.name for task in tasks_solved],
-            "target_task": target_task.name,
-            "delphi_rounds": delphi_rounds_data,
-            "final_aggregated_probability": final_mean,
-            "final_median": final_median,
-            "final_std_dev": final_std,
-            "ground_truth_p_j_given_i": ground_truth_p,
-            "ground_truth_n_reaching_i": gt_pair.get('n_reaching_i'),
-            "ground_truth_n_reaching_j": gt_pair.get('n_reaching_j'),
-            "converged": final_std < config.workflow_settings.convergence_threshold if final_std is not None else False,
-            "convergence_round": len(delphi_rounds_data) if final_std is not None and final_std < config.workflow_settings.convergence_threshold else None,
-            "total_rounds_executed": len(delphi_rounds_data)
-        }
-
-        # Save prediction to JSON
-        save_prediction_to_json(run_info['json_path'], prediction_result)
-        predictions_completed += 1
-
-    # Finalize run
-    finalize_intra_benchmark_run(run_info['json_path'], predictions_attempted)
-
-    # Add to registry
-    timestamp_start = datetime.datetime.now().isoformat()  # Approximate - could extract from JSON
-    add_intra_benchmark_run_to_registry(
-        registry_file=config.registry_file,
-        run_id=run_info['run_id'],
-        benchmark_name=config.intra_benchmark_settings.benchmark_name,
-        n_bins=config.intra_benchmark_settings.n_bins,
-        model=config.llm_settings.model,
-        num_experts=len(experts_to_use),
-        delphi_rounds=config.workflow_settings.delphi_rounds,
-        num_predictions_attempted=predictions_attempted,
-        num_predictions_completed=predictions_completed,
-        output_path=run_info['run_dir'],
-        config_file="config_intra_benchmark.yaml",  # Could be passed as parameter
-        timestamp_start=timestamp_start
-    )
-
-    run_duration = time.time() - run_start_time
-    logger.info(f"\n{'='*70}")
-    logger.info("Intra-Benchmark Calibration Workflow Completed")
-    logger.info(f"  Run ID: {run_info['run_id']}")
-    logger.info(f"  Predictions attempted: {predictions_attempted}")
-    logger.info(f"  Predictions completed: {predictions_completed}")
-    logger.info(f"  Duration: {run_duration:.2f}s")
-    logger.info(f"  Output directory: {run_info['run_dir']}")
-    logger.info(f"{'='*70}\n")
+    await append_elicitation_row(handles, csv_row=csv_row, json_elicitation_record=json_record)
+    if progress is not None:
+        progress.update(1)
 
     return {
-        "run_id": run_info['run_id'],
-        "predictions_completed": predictions_completed,
-        "predictions_attempted": predictions_attempted,
-        "output_path": str(run_info['run_dir'])
+        "expert": expert.name,
+        "round": round_num,
+        "percentile_25th": parsed.get("percentile_25th"),
+        "percentile_50th": parsed.get("percentile_50th"),
+        "percentile_75th": parsed.get("percentile_75th"),
+        "estimate": parsed.get("estimate"),
+        "rationale": (parsed.get("rationale") or "").strip(),
+        "error": error,
     }
+
+
+async def _persist_failure(
+    *,
+    handles: RunHandles,
+    plan: CellPlan,
+    expert: ExpertProfile,
+    round_num: int,
+    system_prompt: str,
+    analysis_user_prompt: Optional[str],
+    estimation_user_prompt: str,
+    raw_analysis: Optional[str],
+    raw_estimation: str,
+    error: str,
+    progress: Optional["tqdm"] = None,
+) -> Dict[str, Any]:
+    target_text = format_target_task(plan, include_solution=False)
+    prompts_for_hash = [system_prompt, estimation_user_prompt]
+    if analysis_user_prompt:
+        prompts_for_hash.insert(1, analysis_user_prompt)
+
+    parsed = {"percentile_25th": None, "percentile_50th": None, "percentile_75th": None,
+              "estimate": None, "rationale": ""}
+    csv_row = build_csv_row(
+        handles=handles,
+        plan=plan,
+        expert_id=expert.name,
+        delphi_round=round_num,
+        parsed=parsed,
+        prompts_for_hash=prompts_for_hash,
+        target_prompt_chars=len(target_text),
+    )
+    json_record = build_json_record(
+        csv_row=csv_row,
+        plan=plan,
+        expert_id=expert.name,
+        delphi_round=round_num,
+        system_prompt=system_prompt,
+        analysis_user_prompt=analysis_user_prompt,
+        estimation_user_prompt=estimation_user_prompt,
+        raw_analysis=raw_analysis,
+        raw_estimation=raw_estimation,
+        error=error,
+    )
+    await append_elicitation_row(handles, csv_row=csv_row, json_elicitation_record=json_record)
+    if progress is not None:
+        progress.update(1)
+    return {"expert": expert.name, "round": round_num, "error": error,
+            "percentile_25th": None, "percentile_50th": None,
+            "percentile_75th": None, "estimate": None, "rationale": ""}
+
+
+def _round_stats(responses: List[Dict[str, Any]]) -> Dict[str, Optional[float]]:
+    valid = [r["percentile_50th"] for r in responses
+             if r.get("error") is None and isinstance(r.get("percentile_50th"), (int, float))]
+    if len(valid) < 2:
+        return {"n_valid": len(valid), "mean": None, "median": None, "std": None}
+    return {
+        "n_valid": len(valid),
+        "mean": float(np.mean(valid)),
+        "median": float(np.median(valid)),
+        "std": float(np.std(valid)),
+    }
+
+
+async def run_intra_benchmark_workflow(
+    *,
+    cfg: IntraBenchmarkConfig,
+    cell_plans: List[CellPlan],
+    experts: Sequence[ExpertProfile],
+    prompt_templates: Dict[str, str],
+    dataset: LyptusDataset,
+    client: Union["AsyncAnthropic", "AsyncOpenAI"],
+    semaphore: Semaphore,
+    handles: RunHandles,
+) -> Dict[str, Any]:
+    """Iterate cells × Delphi rounds × experts, persisting each elicitation as it lands."""
+    run_start = time.time()
+    n_cells = len(cell_plans)
+    n_rounds = cfg.workflow_settings.delphi_rounds
+    n_experts = len(experts)
+    expected_total = n_cells * n_experts * n_rounds
+    logger.info(f"Workflow starting: {n_cells} cells × {n_experts} experts × "
+                f"{n_rounds} rounds = up to {expected_total} elicitations")
+
+    benchmark_description = cfg.benchmark_description
+    ground_truth_summary = dataset.outcomes.ground_truth_summary()
+
+    n_elicitations_attempted = 0
+    n_elicitations_completed = 0
+
+    # `logging_redirect_tqdm` makes existing `logger.info` calls play nicely
+    # with the bar (no shredding). The bar advances by 1 inside each
+    # _persist_success / _persist_failure, so it ticks per-elicitation
+    # regardless of success or API failure (with early-stop in convergence:
+    # the bar may finish before reaching `expected_total`).
+    with logging_redirect_tqdm():
+        progress = tqdm(
+            total=expected_total,
+            desc="Elicitations",
+            unit="call",
+            smoothing=0.05,
+            dynamic_ncols=True,
+        )
+        try:
+            n_elicitations_attempted, n_elicitations_completed = await _run_cells(
+                cfg=cfg, cell_plans=cell_plans, experts=experts,
+                prompt_templates=prompt_templates, dataset=dataset,
+                client=client, semaphore=semaphore, handles=handles,
+                ground_truth_summary=ground_truth_summary,
+                benchmark_description=benchmark_description,
+                progress=progress,
+            )
+        finally:
+            progress.close()
+
+    duration = time.time() - run_start
+    logger.info(f"\nWorkflow done in {duration:.1f}s | "
+                f"completed {n_elicitations_completed}/{n_elicitations_attempted} elicitations "
+                f"(of up to {expected_total} possible)")
+    return {
+        "n_elicitations_attempted": n_elicitations_attempted,
+        "n_elicitations_completed": n_elicitations_completed,
+        "duration_seconds": duration,
+    }
+
+
+async def _run_cells(
+    *,
+    cfg: IntraBenchmarkConfig,
+    cell_plans: List[CellPlan],
+    experts: Sequence[ExpertProfile],
+    prompt_templates: Dict[str, str],
+    dataset: LyptusDataset,
+    client: Union["AsyncAnthropic", "AsyncOpenAI"],
+    semaphore: Semaphore,
+    handles: RunHandles,
+    ground_truth_summary: Dict[str, float],
+    benchmark_description: Optional[str],
+    progress: "tqdm",
+) -> tuple:
+    """The cell × round × expert nested loop. Updates `progress` per elicitation
+    via the _persist_* call sites."""
+    n_cells = len(cell_plans)
+    n_elicitations_attempted = 0
+    n_elicitations_completed = 0
+
+    for idx, plan in enumerate(cell_plans, 1):
+        i_str = "ALL" if plan.source_bin_i is None else f"i{plan.source_bin_i}"
+        progress.set_postfix_str(
+            f"cell {idx}/{n_cells}: {plan.forecasted_model[:14]} {i_str}->j{plan.target_bin_j}"
+        )
+        logger.info(f"\n--- Cell {idx}/{n_cells}: {plan.cell_id} (true outcome={int(plan.target_outcome)}) ---")
+        round_responses_history: List[List[Dict[str, Any]]] = []
+        cell_round_stats: List[Dict[str, Any]] = []
+
+        for round_num in range(1, cfg.workflow_settings.delphi_rounds + 1):
+            round_start = time.time()
+            prev = round_responses_history[-1] if round_responses_history else None
+            coros = [
+                _one_elicitation(
+                    plan=plan, expert=ex, round_num=round_num,
+                    prev_round_responses=prev,
+                    client=client, semaphore=semaphore, cfg=cfg,
+                    prompt_templates=prompt_templates,
+                    ground_truth_summary=ground_truth_summary,
+                    benchmark_description=benchmark_description,
+                    handles=handles, dataset=dataset,
+                    progress=progress,
+                ) for ex in experts
+            ]
+            n_elicitations_attempted += len(coros)
+            results = await asyncio.gather(*coros, return_exceptions=True)
+
+            processed: List[Dict[str, Any]] = []
+            for ex, res in zip(experts, results):
+                if isinstance(res, Exception):
+                    logger.error(f"Expert {ex.name} round {round_num} raised: {res}", exc_info=res)
+                    processed.append({"expert": ex.name, "round": round_num,
+                                      "error": f"Unhandled exception: {res}",
+                                      "percentile_25th": None, "percentile_50th": None,
+                                      "percentile_75th": None, "estimate": None, "rationale": ""})
+                else:
+                    processed.append(res)
+                    if res.get("error") is None and res.get("percentile_50th") is not None:
+                        n_elicitations_completed += 1
+
+            round_responses_history.append(processed)
+            stats = _round_stats(processed)
+            cell_round_stats.append({"round": round_num, **stats,
+                                     "duration_s": round(time.time() - round_start, 2)})
+
+            mean_str = f"{stats['mean']:.3f}" if stats["mean"] is not None else "N/A"
+            std_str = f"{stats['std']:.3f}" if stats["std"] is not None else "N/A"
+            logger.info(f"  Round {round_num}: n_valid={stats['n_valid']}/{len(experts)}, "
+                        f"mean p50={mean_str}, std={std_str}")
+
+            if (cfg.workflow_settings.delphi_rounds > 1
+                    and stats["std"] is not None
+                    and stats["std"] < cfg.workflow_settings.convergence_threshold):
+                logger.info(f"  Converged at round {round_num} (std {stats['std']:.4f} < "
+                            f"{cfg.workflow_settings.convergence_threshold})")
+                break
+
+        cell_summary = {
+            "cell_id": plan.cell_id,
+            "source_profile_type": plan.source_profile_type,
+            "source_bin_i": plan.source_bin_i,
+            "source_bins_shown": plan.source_bins_to_show,
+            "target_bin_j": plan.target_bin_j,
+            "forecasted_model": plan.forecasted_model,
+            "target_task_id": plan.target_task.task_id,
+            "target_task_family": plan.target_task.task_family,
+            "target_fst_minutes": plan.target_task.fst_minutes,
+            "outcome": int(plan.target_outcome),
+            "per_bin_anchor_task_ids": [p.anchor.task_id for p in plan.profiles],
+            "per_bin_M_pass_rates": [p.pass_rate for p in plan.profiles],
+            "rounds": cell_round_stats,
+        }
+        await append_cell_summary(handles, cell_summary)
+
+    return n_elicitations_attempted, n_elicitations_completed

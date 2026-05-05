@@ -1,410 +1,341 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-Task selection logic for intra-benchmark calibration experiments.
+Anchor + easier-task selection and target-task sampling.
 
-This module provides functions to select tasks corresponding to bins based on
-their position in the sorted benchmark. It maps continuous score percentiles
-(bin ranges) to discrete tasks using midpoint approximation.
+The forecaster's source-side prompt shows a per-bin capability profile for the
+forecasted model M:
+
+  - The model's empirical pass rate on bin i (over evaluated subset).
+  - One anchor task (representative of bin i's mid-range pass rate, evaluated
+    by M, never trivially {0%, 100%} unless the whole bin is).
+  - `n_examples_per_source_bin` easier tasks from bin i, evaluated by M.
+
+The target side picks K target tasks from bin j either deterministically (when
+`explicit_target_tasks` is provided) or via stratified-by-log-FST sampling.
+
+Cell admissibility (q3 caveat):
+    For cell (i, j, M, t), require M to have a non-NaN outcome on:
+      - the target task t, AND
+      - every task that will be SHOWN in the source profile (anchor + easier
+        tasks for every bin in source_bins_to_show).
+    If anchor/easier selection cannot find any evaluated tasks for M in a shown
+    bin, the cell is dropped.
 """
 
-import re
+from __future__ import annotations
+
 import logging
-from typing import List, Dict, Any, Optional, Tuple
-import math
+from dataclasses import dataclass
+from typing import Dict, List, Optional, Sequence, Union
+
+import numpy as np
+
+from intra_benchmark_calibration.binning import BinAssignment
+from intra_benchmark_calibration.lyptus_data import LyptusDataset, LyptusTask, LyptusOutcomes
 
 logger = logging.getLogger(__name__)
 
 
-def parse_bin_range(bin_range: str) -> Tuple[float, float]:
+@dataclass(frozen=True)
+class SourceBinProfile:
+    """One bin's slice of a model's capability profile, ready for the prompt."""
+
+    bin_index: int
+    pass_rate: float
+    n_evaluated: int
+    n_in_bin: int
+    n_solved: int
+    anchor: LyptusTask
+    easier_tasks: List[LyptusTask]
+    # Per-task binary outcome of M on the shown tasks (1.0 = solved, 0.0 = failed,
+    # None = M not evaluated). By construction these are non-None whenever the
+    # profile was admissible, but we keep Optional in case the heuristic is
+    # called outside the cell-admissibility check.
+    anchor_outcome: Optional[float] = None
+    easier_outcomes: List[Optional[float]] = None  # type: ignore[assignment]
+
+
+@dataclass(frozen=True)
+class CellPlan:
+    """Everything needed to assemble the prompt for one elicitation.
+
+    `source_bin_i` is None when `source_profile_type == 'all_except_target'`
+    (the i index is collapsed in that mode).
     """
-    Parse a bin range string to extract lower and upper bounds.
 
-    Args:
-        bin_range: String like "[9.4, 13.8)" or "[5.0, 9.4)"
+    source_bin_i: Optional[int]
+    target_bin_j: int
+    forecasted_model: str
+    target_task: LyptusTask
+    target_outcome: float  # 0.0 or 1.0
+    source_bins_to_show: List[int]
+    profiles: List[SourceBinProfile]  # parallel to source_bins_to_show
+    source_profile_type: str = "single_bin"  # single_bin | all_except_target | custom_subset
 
-    Returns:
-        Tuple of (lower_bound, upper_bound)
+    @property
+    def cell_id(self) -> str:
+        if self.source_profile_type == "all_except_target":
+            i_part = "ALL"
+        elif self.source_profile_type == "custom_subset":
+            i_part = f"i{self.source_bin_i}_cs[{','.join(map(str, self.source_bins_to_show))}]"
+        else:
+            i_part = f"i{self.source_bin_i}"
+        return f"{i_part}_j{self.target_bin_j}_M={self.forecasted_model}_t={self.target_task.task_id}"
 
-    Raises:
-        ValueError: If bin_range format is invalid
+
+def _bin_task_ids_evaluated_by(
+    bin_idx: int,
+    bins: BinAssignment,
+    task_ids: Sequence[str],
+    model: str,
+    outcomes: LyptusOutcomes,
+) -> List[str]:
+    in_bin = [tid for tid, b in zip(task_ids, bins.bin_index_per_task) if b == bin_idx]
+    mask = outcomes.evaluated_mask(model, in_bin)
+    return [tid for tid, ok in zip(in_bin, mask) if ok]
+
+
+def _representativeness_score(task_pass_rate: float, bin_mean_pass_rate: float) -> float:
+    """Higher is more representative. Closer to bin mean → higher."""
+    return -abs(task_pass_rate - bin_mean_pass_rate)
+
+
+def select_anchor_and_easier(
+    bin_idx: int,
+    bins: BinAssignment,
+    dataset: LyptusDataset,
+    model: str,
+    n_easier: int,
+) -> Optional[SourceBinProfile]:
     """
-    # Pattern to match: "[number, number)" or "(number, number]"
-    pattern = r'[\[\(]\s*([0-9.]+)\s*,\s*([0-9.]+)\s*[\]\)]'
-    match = re.match(pattern, bin_range.strip())
+    Pick anchor + n_easier tasks from `bin_idx` that are evaluated by `model`.
 
-    if not match:
-        raise ValueError(f"Invalid bin range format: {bin_range}. Expected format like '[9.4, 13.8)'")
+    Heuristic:
+      - Anchor: the task in the bin (evaluated by M, with pass rate not in {0, 1}
+        across the FULL model panel — Jeff's caveat) whose pass rate across the
+        FULL panel is closest to the bin's mean pass rate. Falls back to allowing
+        {0, 1} pass-rate tasks if the bin has none in (0, 1).
+      - Easier tasks: from the easier half of the bin by FST, the n_easier tasks
+        with the highest representativeness score (ties broken by ascending FST).
 
-    lower = float(match.group(1))
-    upper = float(match.group(2))
-
-    if lower >= upper:
-        raise ValueError(f"Invalid bin range: lower bound ({lower}) must be < upper bound ({upper})")
-
-    return lower, upper
-
-
-def get_bin_midpoint(bin_range: str) -> float:
+    Returns None if M has no evaluated tasks in this bin.
     """
-    Calculate the midpoint of a bin range.
+    all_ids = dataset.task_ids
+    by_id = dataset.task_by_id
+    outcomes = dataset.outcomes
 
-    Args:
-        bin_range: String like "[9.4, 13.8)"
+    evaluated_in_bin = _bin_task_ids_evaluated_by(bin_idx, bins, all_ids, model, outcomes)
+    n_in_bin = sum(1 for b in bins.bin_index_per_task if b == bin_idx)
+    if not evaluated_in_bin:
+        return None
 
-    Returns:
-        Midpoint value (e.g., 11.6 for "[9.4, 13.8)")
+    # Per-task pass rate across the FULL model panel (not just M) — for selection only
+    full_pass = outcomes.frame[evaluated_in_bin].mean(axis=0, skipna=True)  # series indexed by task_id
+    bin_mean = float(full_pass.mean())
+
+    informative = [tid for tid in evaluated_in_bin if 0.0 < float(full_pass[tid]) < 1.0]
+    candidates = informative if informative else list(evaluated_in_bin)
+
+    # Anchor: most representative of bin mean
+    anchor_id = max(candidates, key=lambda t: _representativeness_score(float(full_pass[t]), bin_mean))
+    anchor = by_id[anchor_id]
+
+    # Easier tasks: from the easier half of the bin (excluding the anchor)
+    others = [tid for tid in evaluated_in_bin if tid != anchor_id]
+    others.sort(key=lambda t: by_id[t].fst_minutes)  # ascending FST
+    easier_pool = others[: max(1, len(others) // 2)] if len(others) > 1 else others
+    easier_pool.sort(
+        key=lambda t: (
+            -_representativeness_score(float(full_pass[t]), bin_mean),
+            by_id[t].fst_minutes,
+        )
+    )
+    easier_ids = easier_pool[:n_easier]
+    easier_tasks = [by_id[tid] for tid in easier_ids]
+
+    # Pass rate for M on the evaluated subset of this bin
+    pr = outcomes.pass_rate(model, evaluated_in_bin)
+    assert pr is not None  # by construction
+
+    anchor_outcome = outcomes.outcome(model, anchor.task_id)
+    easier_outcomes = [outcomes.outcome(model, t.task_id) for t in easier_tasks]
+
+    return SourceBinProfile(
+        bin_index=bin_idx,
+        pass_rate=pr["rate"],
+        n_evaluated=pr["n_evaluated"],
+        n_in_bin=n_in_bin,
+        n_solved=pr["n_solved"],
+        anchor=anchor,
+        easier_tasks=easier_tasks,
+        anchor_outcome=anchor_outcome,
+        easier_outcomes=easier_outcomes,
+    )
+
+
+def sample_target_tasks(
+    bin_idx_j: int,
+    bins: BinAssignment,
+    dataset: LyptusDataset,
+    *,
+    k: int,
+    seed: int,
+) -> List[LyptusTask]:
     """
-    lower, upper = parse_bin_range(bin_range)
-    midpoint = (lower + upper) / 2.0
-    return midpoint
+    Stratified-by-log-FST sample of K target tasks from bin j.
 
-
-def get_task_cutoff_index(bin_range: str, total_tasks: int, use_upper_bound: bool = True) -> int:
+    Strategy:
+      - Sort bin's tasks by log10(FST), divide into K equal-count strata,
+        pick one per stratum at random (seeded).
+      - If K == 1, pick the median-FST task deterministically.
     """
-    Calculate the task index cutoff for a given bin range.
+    by_id = dataset.task_by_id
+    in_bin = [tid for tid, b in zip(dataset.task_ids, bins.bin_index_per_task) if b == bin_idx_j]
+    if not in_bin:
+        return []
 
-    The cutoff is calculated as: floor(total_tasks * percentile / 100)
-    where percentile is either the midpoint or upper bound of the bin.
+    in_bin.sort(key=lambda t: np.log10(by_id[t].fst_minutes))
 
-    Args:
-        bin_range: String like "[9.4, 13.8)"
-        total_tasks: Total number of tasks in the sorted benchmark
-        use_upper_bound: If True, uses upper bound instead of midpoint (default: True)
+    if k <= 1:
+        return [by_id[in_bin[len(in_bin) // 2]]]
 
-    Returns:
-        Cutoff index k (0-indexed). 
-        - If use_upper_bound=False: Tasks 0 to k-1 are "solved", task k is at the midpoint
-        - If use_upper_bound=True: Tasks 0 to k are all within the bin
+    rng = np.random.default_rng(seed)
+    chunks = np.array_split(np.array(in_bin), k)
+    return [by_id[str(rng.choice(c))] for c in chunks]
 
-    Example:
-        bin_range = "[9.4, 13.8)" (midpoint = 11.6%, upper = 13.8%)
-        total_tasks = 40
-        use_upper_bound=False: Returns floor(40 * 0.116) = 4
-        use_upper_bound=True: Returns floor(40 * 0.138) = 5
+
+def build_cell_plans(
+    *,
+    bins: BinAssignment,
+    dataset: LyptusDataset,
+    forecasted_models: Sequence[str],
+    source_bins_to_show: Union[List[int], str],
+    n_examples_per_source_bin: int,
+    n_target_tasks_per_cell: int,
+    target_sampling_seed: int,
+    explicit_target_tasks: Optional[Dict[int, List[str]]] = None,
+) -> List[CellPlan]:
     """
-    if use_upper_bound:
-        lower, upper = parse_bin_range(bin_range)
-        percentile = upper
+    Enumerate all admissible cells, with three source-profile modes:
+
+      `source_bins_to_show = []`          -> "single_bin" mode (default).
+            Cells iterate over (i, j) for i != j; source profile shows only
+            bin i. Cells = n_bins x (n_bins - 1) x n_models x K.
+
+      `source_bins_to_show = "all_except_target"`  -> "all_except_target".
+            Cells iterate over j only; source profile shows every bin except j.
+            i is collapsed (CellPlan.source_bin_i = None).
+            Cells = n_bins x n_models x K.
+
+      `source_bins_to_show = [list of ints]`  -> "custom_subset".
+            Cells iterate over (i, j) for i != j; source profile shows the
+            supplied list regardless of i. Per-i prompts are identical for
+            fixed j (only useful as temperature-stability sanity check).
+            Cells = n_bins x (n_bins - 1) x n_models x K.
+
+    Drops a cell when:
+      - M has no evaluated tasks in any of the shown bins, OR
+      - M has no outcome on the chosen target task t, OR
+      - the target task happens to coincide with one of the shown anchor /
+        easier tasks (avoids leaking the answer).
+    """
+    n_bins = bins.n_bins
+    by_id = dataset.task_by_id
+    plans: List[CellPlan] = []
+
+    # Resolve mode + per-cell shown-bins selector
+    if isinstance(source_bins_to_show, str):
+        if source_bins_to_show != "all_except_target":
+            raise ValueError(f"Unknown source_bins_to_show keyword: {source_bins_to_show!r}")
+        mode = "all_except_target"
+    elif isinstance(source_bins_to_show, list) and len(source_bins_to_show) == 0:
+        mode = "single_bin"
+    elif isinstance(source_bins_to_show, list):
+        mode = "custom_subset"
+        for b in source_bins_to_show:
+            if not (0 <= int(b) < n_bins):
+                raise ValueError(f"source_bins_to_show contains out-of-range bin {b} for n_bins={n_bins}")
     else:
-        percentile = get_bin_midpoint(bin_range)
-
-    # Convert percentage to proportion
-    proportion = percentile / 100.0
-
-    # Calculate cutoff index
-    k = math.floor(total_tasks * proportion)
-
-    # Ensure k is within valid range [0, total_tasks-1]
-    k = max(0, min(k, total_tasks - 1))
-
-    logger.debug(f"Bin range {bin_range}: percentile={percentile:.2f}% (upper_bound={use_upper_bound}), "
-                 f"proportion={proportion:.4f}, total_tasks={total_tasks}, cutoff_index={k}")
-
-    return k
-
-
-def get_tasks_for_bin(
-    bin_range: str,
-    ascending_tasks: List[Dict[str, Any]],
-    total_tasks: Optional[int] = None
-) -> List[Dict[str, Any]]:
-    """
-    LEGACY FUNCTION!
-    
-    Get all tasks that a model "solved" for a given bin.
-
-    A model in bin i has solved all tasks up to the bin's midpoint.
-    This function returns tasks 0 to k-1, where k is the cutoff index.
-
-    Args:
-        bin_range: String like "[9.4, 13.8)"
-        ascending_tasks: List of all tasks sorted by difficulty metric in ascending order.
-        total_tasks: Total number of tasks. If None, uses len(ascending_tasks).
-
-    Returns:
-        List of task dicts representing "solved tasks" for this bin.
-        Returns empty list if cutoff is 0.
-    """
-    if total_tasks is None:
-        total_tasks = len(ascending_tasks)
-
-    if not ascending_tasks:
-        logger.warning("Empty task list provided to get_tasks_for_bin")
-        return []
-
-    k = get_task_cutoff_index(bin_range, total_tasks)
-
-    # Return tasks 0 to k-1 (all tasks "solved" by models in this bin)
-    solved_tasks = ascending_tasks[:k]
-
-    logger.debug(f"Bin {bin_range}: {len(solved_tasks)} solved tasks (indices 0 to {k-1})")
-
-    return solved_tasks
-
-
-def get_representative_tasks_for_bin(
-    bin_range: str,
-    ascending_tasks: List[Dict[str, Any]],
-    total_tasks: Optional[int] = None,
-    n_tasks: int = 3
-) -> List[Dict[str, Any]]:
-    """
-    Get a fixed number of representative tasks from the hardest part of bin i.
-    
-    Args:
-        bin_range: String like "[9.4, 13.8)"
-        ascending_tasks: List of all tasks sorted by difficulty in ascending order.
-                        NOTE: Selection is based on position in this list, NOT on metric values.
-        total_tasks: Total number of tasks. If None, uses len(ascending_tasks).
-        n_tasks: Number of representative tasks to select (default: 3).
-
-    Returns:
-        List of task dicts representing the hardest "solved tasks" for this bin.
-        If fewer than n_tasks are available, returns all available tasks.
-    """
-    if total_tasks is None:
-        total_tasks = len(ascending_tasks)
-
-    if not ascending_tasks:
-        logger.warning("Empty task list provided to get_representative_tasks_for_bin")
-        return []
-
-    k_upper = get_task_cutoff_index(bin_range, total_tasks, use_upper_bound=True)
-
-    if k_upper == 0:
-        logger.debug(f"Bin {bin_range}: No tasks in this bin (upper bound cutoff index k=0)")
-        return []
-
-    all_tasks_in_bin = ascending_tasks[:k_upper]
-    
-    if not all_tasks_in_bin:
-        logger.debug(f"Bin {bin_range}: No tasks available (cutoff results in empty list)")
-        return []
-    
-    # Select the last n_tasks (hardest) from the bin
-    representative_tasks = all_tasks_in_bin[-n_tasks:]
-    
-    start_idx = max(0, k_upper - n_tasks)
-    logger.debug(f"Bin {bin_range}: Selected {len(representative_tasks)} representative tasks "
-                 f"from {len(all_tasks_in_bin)} total tasks in bin (indices {start_idx} to {k_upper-1})")
-
-    return representative_tasks
-
-
-def get_target_task_for_bin(
-    bin_range: str,
-    ascending_tasks: List[Dict[str, Any]],
-    total_tasks: Optional[int] = None
-) -> Optional[Dict[str, Any]]:
-    """
-    Get the target task at the midpoint of a given bin.
-
-    This represents the task we're trying to predict solvability for.
-
-    Args:
-        bin_range: String like "[9.4, 13.8)"
-        ascending_tasks: List of all tasks sorted by difficulty metric in ascending order.
-        total_tasks: Total number of tasks. If None, uses len(ascending_tasks).
-
-    Returns:
-        Single task dict representing the "target task" at the bin's midpoint.
-        Returns None if cutoff index is out of range.
-    """
-    if total_tasks is None:
-        total_tasks = len(ascending_tasks)
-
-    if not ascending_tasks:
-        logger.error("Empty task list provided to get_target_task_for_bin")
-        return None
-
-    # Use the midpoint for target task selection (not upper bound)
-    # This is a design choice - we want to give the estimator the capability ceiling
-    # of the model, but provide a representative task from the target bin
-    k = get_task_cutoff_index(bin_range, total_tasks, use_upper_bound=False)
-
-    # The target task is at index k
-    if k >= len(ascending_tasks):
-        logger.error(f"Cutoff index {k} exceeds task list length {len(ascending_tasks)}")
-        return None
-
-    target_task = ascending_tasks[k]
-    
-    logger.debug(f"Bin {bin_range}: target task at index {k} (midpoint) is '{target_task.name}'")
-
-    return target_task
-
-
-def format_task_for_prompt(task: Dict[str, Any], metrics_to_use: Optional[List[str]] = None) -> str:
-    """
-    Format a task into a human-readable string for prompts.
-
-    Args:
-        task: BenchmarkTask object
-        metrics_to_use: List of metric names to use (e.g., ['fst', 'difficulty_score']).
-                           If None or empty, no metrics are used.
-
-    Returns:
-        Formatted string like:
-        "- Task Name: XYZ
-         Description: ...
-         Difficulty Metrics: fst=42, difficulty_score=0.8"
-    """
-    name = task.name
-    description = task.description
-    
-    # Build the base format
-    formatted = f"- Task Name: {name}\n  Description: {description}"
-    
-    # Add metrics if specified
-    if metrics_to_use:
-        metric_parts = []
-        for metric_name in metrics_to_use:
-            if metric_name in task.metrics:
-                metric_value = task.metrics[metric_name]
-                metric_parts.append(f"{metric_name}={metric_value}")
-        
-        if metric_parts:
-            metrics_str = ", ".join(metric_parts)
-            formatted += f"\n  Difficulty Metrics: {metrics_str}"
-    
-    return formatted
-
-
-def format_tasks_list_for_prompt(tasks: List[Dict[str, Any]], metrics_to_use: Optional[List[str]] = None) -> str:
-    """
-    Format a list of tasks into a readable string for prompts.
-
-    Args:
-        tasks: List of task dicts
-        metrics_to_use: List of metric names to use (e.g., ['fst', 'difficulty_score']).
-                           If None or empty, no metrics are used.
-
-    Returns:
-        Formatted string with all tasks, one per section
-    """
-    if not tasks:
-        return "(No tasks to display)"
-
-    formatted_tasks = [format_task_for_prompt(task, metrics_to_use) for task in tasks]
-    return "\n\n".join(formatted_tasks)
-
-
-def validate_task_selection(
-    bin_i_range: str,
-    bin_j_range: str,
-    ascending_tasks: List[Dict[str, Any]],
-    total_tasks: Optional[int] = None
-) -> Tuple[bool, str]:
-    """
-    Validate that task selection for a (i,j) pair will work correctly.
-
-    Args:
-        bin_i_range: Source bin range string
-        bin_j_range: Target bin range string
-        ascending_tasks: List of all tasks sorted by difficulty metric in ascending order.
-        total_tasks: Total number of tasks
-
-    Returns:
-        Tuple of (is_valid, error_message)
-        is_valid is True if selection will work, False otherwise.
-        error_message describes the problem if not valid.
-    """
-    if total_tasks is None:
-        total_tasks = len(ascending_tasks)
-
-    try:
-        # Parse bin ranges
-        lower_i, upper_i = parse_bin_range(bin_i_range)
-        lower_j, upper_j = parse_bin_range(bin_j_range)
-
-        # Check that j > i (target bin is harder)
-        if lower_j <= lower_i:
-            return False, f"Target bin {bin_j_range} must be higher than source bin {bin_i_range}"
-
-        # Get cutoff indices
-        k_i = get_task_cutoff_index(bin_i_range, total_tasks)
-        k_j = get_task_cutoff_index(bin_j_range, total_tasks)
-
-        # Check that we have enough tasks
-        if k_j >= total_tasks:
-            return False, f"Target bin cutoff {k_j} exceeds total tasks {total_tasks}"
-
-        # Check that cutoffs are ordered correctly
-        if k_j <= k_i:
-            return False, (f"Target bin cutoff ({k_j}) must be greater than "
-                          f"source bin cutoff ({k_i})")
-
-        # Check that tasks exist at these indices
-        if k_i >= len(ascending_tasks) or k_j >= len(ascending_tasks):
-            return False, f"Task list length {len(ascending_tasks)} insufficient for cutoffs"
-
-        return True, "Validation passed"
-
-    except ValueError as e:
-        return False, f"Invalid bin range: {str(e)}"
-    except Exception as e:
-        return False, f"Validation error: {str(e)}"
-
-
-if __name__ == "__main__":
-    # Test the task selector
-    logging.basicConfig(level=logging.DEBUG, format='%(levelname)s - %(message)s')
-
-    print("Testing task selector...")
-    print("="*60)
-
-    # Create mock tasks
-    mock_tasks = []
-    fst_values = [4, 7, 11, 42, 65, 78, 120, 123, 132, 159, 244, 330, 368]
-    for i, fst in enumerate(fst_values):
-        mock_tasks.append({
-            'name': f'Task_{i+1}',
-            'description': f'Mock task {i+1} with FST {fst}',
-            'metrics': {'fst': fst}
-        })
-
-    print(f"\nMock benchmark: {len(mock_tasks)} tasks")
-    print(f"FST range: {mock_tasks[0]['metrics']['fst']} to {mock_tasks[-1]['metrics']['fst']}")
-
-    # Test bin range parsing
-    print("\n1. Testing bin range parsing:")
-    test_range = "[9.4, 13.8)"
-    lower, upper = parse_bin_range(test_range)
-    midpoint = get_bin_midpoint(test_range)
-    print(f"   Bin range: {test_range}")
-    print(f"   Parsed: lower={lower}, upper={upper}, midpoint={midpoint}")
-
-    # Test cutoff calculation
-    print("\n2. Testing cutoff calculation:")
-    k = get_task_cutoff_index(test_range, len(mock_tasks))
-    print(f"   Total tasks: {len(mock_tasks)}")
-    print(f"   Bin {test_range} → cutoff index k={k}")
-
-    # Test task selection
-    print("\n3. Testing task selection for bin_i:")
-    bin_i_range = "[5.0, 9.4)"
-    solved_tasks = get_tasks_for_bin(bin_i_range, mock_tasks)
-    print(f"   Bin {bin_i_range}: {len(solved_tasks)} solved tasks")
-    for task in solved_tasks:
-        print(f"     - {task['name']}: FST={task['metrics']['fst']}")
-
-    print("\n4. Testing target task selection for bin_j:")
-    bin_j_range = "[9.4, 13.8)"
-    target_task = get_target_task_for_bin(bin_j_range, mock_tasks)
-    if target_task:
-        print(f"   Bin {bin_j_range}: target task = {target_task['name']} "
-              f"(FST={target_task['metrics']['fst']})")
-
-    # Test formatting
-    print("\n5. Testing task formatting:")
-    if solved_tasks:
-        formatted = format_task_for_prompt(solved_tasks[0])
-        print(f"   Single task format:\n{formatted}")
-
-    # Test validation
-    print("\n6. Testing validation:")
-    is_valid, msg = validate_task_selection(bin_i_range, bin_j_range, mock_tasks)
-    print(f"   Pair ({bin_i_range}, {bin_j_range}): {msg}")
-
-    print("="*60)
+        raise ValueError(f"source_bins_to_show must be a list or 'all_except_target', got {type(source_bins_to_show)}")
+
+    def shown_bins_for(i: Optional[int], j: int) -> List[int]:
+        if mode == "all_except_target":
+            return [b for b in range(n_bins) if b != j]
+        if mode == "single_bin":
+            assert i is not None
+            return [i]
+        return [int(b) for b in source_bins_to_show]  # type: ignore[arg-type]
+
+    explicit_target_tasks = explicit_target_tasks or {}
+
+    def targets_for_bin(j: int) -> List[LyptusTask]:
+        if j in explicit_target_tasks:
+            return [by_id[tid] for tid in explicit_target_tasks[j] if tid in by_id]
+        return sample_target_tasks(
+            j, bins, dataset, k=n_target_tasks_per_cell, seed=target_sampling_seed + j
+        )
+
+    targets_cache: Dict[int, List[LyptusTask]] = {j: targets_for_bin(j) for j in range(n_bins)}
+
+    # Iteration: (i, j) for single_bin / custom_subset; (j only) for all_except_target
+    if mode == "all_except_target":
+        ij_pairs: List[tuple] = [(None, j) for j in range(n_bins)]
+    else:
+        ij_pairs = [(i, j) for i in range(n_bins) for j in range(n_bins) if i != j]
+
+    n_dropped_no_anchor = 0
+    n_dropped_no_target_outcome = 0
+    n_dropped_anchor_is_target = 0
+
+    for (i, j) in ij_pairs:
+        shown = shown_bins_for(i, j)
+        for M in forecasted_models:
+            # Anchor + easier-task selection is currently fully deterministic
+            # given (M, source_bin), so we compute it once per (i, M) and reuse
+            # across all K target tasks for that cell.
+            profiles: List[SourceBinProfile] = []
+            bad = False
+            for b in shown:
+                prof = select_anchor_and_easier(b, bins, dataset, M, n_examples_per_source_bin)
+                if prof is None:
+                    bad = True
+                    break
+                profiles.append(prof)
+            if bad:
+                n_dropped_no_anchor += 1
+                continue
+
+            for t in targets_cache[j]:
+                out_t = dataset.outcomes.outcome(M, t.task_id)
+                if out_t is None:
+                    n_dropped_no_target_outcome += 1
+                    continue
+
+                shown_task_ids = {p.anchor.task_id for p in profiles}
+                for p in profiles:
+                    shown_task_ids.update(et.task_id for et in p.easier_tasks)
+                if t.task_id in shown_task_ids:
+                    n_dropped_anchor_is_target += 1
+                    continue
+
+                plans.append(
+                    CellPlan(
+                        source_bin_i=i,
+                        target_bin_j=j,
+                        forecasted_model=M,
+                        target_task=t,
+                        target_outcome=out_t,
+                        source_bins_to_show=list(shown),
+                        profiles=profiles,
+                        source_profile_type=mode,
+                    )
+                )
+
+    logger.info(
+        f"Built {len(plans)} cell plans (mode='{mode}'; "
+        f"dropped: no_anchor={n_dropped_no_anchor}, "
+        f"no_target_outcome={n_dropped_no_target_outcome}, "
+        f"anchor_is_target={n_dropped_anchor_is_target})"
+    )
+    return plans

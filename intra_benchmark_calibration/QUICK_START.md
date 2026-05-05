@@ -1,204 +1,83 @@
-# Quick Start Guide: Intra-Benchmark Calibration
+# Quick Start: Intra-Benchmark Calibration
 
 ## Prerequisites
 
-1. **Ground truth data exists**: `input_data/benchmark/scores/{benchmark}_ground_truth_n{nbins}.json`
-2. **Python environment set up**: `pip install -r requirements.txt`
-3. **API keys configured**: Edit `config_intra_benchmark.yaml`
+```bash
+# From repo root
+pip install -r requirements.txt
+```
 
-## 3-Step Setup
+(`scipy` is needed for the analysis script's Beta fit + CRPS — already in
+`requirements.txt`.)
 
-### Step 1: Preprocess Benchmark (One-Time)
+## 1. Get the Lyptus data
+
+Either reuse an existing checkout or fetch a fresh one (sparse, no LFS, SHA-pinned):
 
 ```bash
-python prepare_benchmark.py <input_file> [--metric METRIC]
+# Fresh fetch (recommended for reproducibility):
+python intra_benchmark_calibration/scripts/fetch_lyptus_data.py \
+    --repo-dir ~/lyptus-data
 ```
 
-**Expected Output**:
+This pulls only `analysis/figures/data/*.parquet` (~10 MB) and `data/tasks/*/*.jsonl`
+(~30 MB), skipping the 18 GB of `.eval` files in Git LFS. Pinned to commit
+`a514c63` (2026-04-02 initial release).
 
-```
-============================================================
-SORTING SUMMARY
-============================================================
-Total tasks: 42
-FST range:   0.5 to 1554
-First 5 tasks (easiest):
-  1. Open Sesame (FST: 0.5)
-  2. LootStash (FST: 2)
-  ...
-```
+If you already have a checkout at `/home/you/cyber-task-horizons-data`, point
+the config at it directly (next step).
 
-**Result**: Creates `input_data/benchmark/{benchmark}_ascending_fst.yaml`
-
-### Step 2: Configure API Keys
-
-Edit `config_intra_benchmark.yaml`:
-
-```yaml
-# Add your API key
-anthropic_api_key: "sk-ant-..."  # OR
-openai_api_key: "sk-..."
-
-# Verify settings
-llm_settings:
-  model: "claude-sonnet-4-5-20250929"  # or "gpt-4o"
-  max_concurrent_calls: 5
-  rate_limit_calls: 45
-  rate_limit_period: 60
-
-workflow_settings:
-  num_experts: 5
-  delphi_rounds: 3
-  convergence_threshold: 0.05
-```
-
-### Step 3: Run Experiment
+## 2. Set the API key
 
 ```bash
-python src/main.py -c config_intra_benchmark.yaml
+cp intra_benchmark_calibration/.env.example intra_benchmark_calibration/.env
+# edit .env, paste your ANTHROPIC_API_KEY
 ```
 
-**Expected Output**:
+`.env` is gitignored. Resolution order: YAML config → project `.env` →
+repo-root `.env` → process env. The first non-empty source wins; the source
+and key prefix are logged at run start.
 
-```
---- Starting Intra-Benchmark Calibration Experiment ---
-Detected mode: intra_benchmark
-Loaded 42 benchmark tasks
-Loaded 10 expert profiles
-Processing prediction 1/5: Bin 0 → 1
-  Round 1/3 for pair (0, 1) starting...
-  ...
-Intra-Benchmark Calibration Workflow Completed
-  Run ID: 20250107_143022
-  Predictions completed: 5/5
-  Output path: output_data/intra_benchmark/{benchmark}/20250107_143022/
-```
-
-## Results Location
-
-```
-output_data/intra_benchmark/{benchmark}/{run_id}/
-├── detailed_estimates.csv    # All expert estimates by round
-└── full_results.json          # Complete Delphi deliberation history
-```
-
-## Quick Tests
-
-### Test 1: Verify Mode Detection
+## 3. Production run (~1–3 hours, ~960 API calls, ~$10–20 on Sonnet 4.6)
 
 ```bash
-python -c "from src.main import detect_mode; print(detect_mode('config_intra_benchmark.yaml'))"
+python intra_benchmark_calibration/run_calibration.py \
+    -c intra_benchmark_calibration/config_full.yaml -d
 ```
 
-**Expected**: `intra_benchmark`
+Defaults: `n_bins=5`, all 12 forecasted models, K=1 target task, 2 expert
+personas, 1 Delphi round = `5 × 4 × 12 × 1 = 240` cells × 2 experts × 2 calls
+= 960 API calls.
 
-### Test 2: Verify Sorted Benchmark
+## 4. Analyse
 
 ```bash
-python -c "from src.data_loader import load_benchmark; \
-           from pathlib import Path; \
-           b = load_benchmark(Path('input_data/benchmark/{benchmark}_ascending_fst.yaml')); \
-           print(f'{len(b.tasks)} tasks'); \
-           print(f'FST range: {b.tasks[0].metrics[\"fst\"]} to {b.tasks[-1].metrics[\"fst\"]}')"
+# Auto-pick the most recent run:
+python intra_benchmark_calibration/analyse_results.py --latest
+
+# Or specify:
+python intra_benchmark_calibration/analyse_results.py \
+    -r intra_benchmark_calibration/results/20260502_171824
 ```
 
-**Expected**:
+Writes 6 PNGs + `statistics.txt` + `scored_with_crps.csv` to
+`{run_dir}/plots/`. Open the PNGs in your IDE.
 
-```
-42 tasks
-FST range: 0.5 to 1554
-```
+Headline metric: Brier-on-p50 (chance baseline = 0.25).
 
-### Test 3: Verify Ground Truth
+## Common issues
 
-```bash
-python -c "from src.intra_benchmark.data_loader import load_ground_truth; \
-           gt = load_ground_truth('{benchmark}', 4); \
-           print(f'{len(gt[\"ground_truth\"])} pairs with sufficient sample')"
-```
+**Bin has no admissible anchor for some model** — model has no evaluated
+tasks in that bin (e.g. dropped models). The cell is skipped; row counts
+in the CSV will be lower than `n_bins × (n_bins-1) × n_models × K`.
 
-**Expected**: `5 pairs with sufficient sample`
+**`No admissible cell plans were produced`** — usually means `forecasted_models`
+contains a model not in the outcomes matrix, or all bins are empty. Check
+the warning logs.
 
-### Test 4: Dry Run (Fast Test)
+## Resuming a partial run
 
-Edit `config_intra_benchmark.yaml`:
-
-```yaml
-workflow_settings:
-  num_experts: 1      # Just 1 expert
-  delphi_rounds: 1    # Just 1 round
-```
-
-Run:
-
-```bash
-python src/main.py -c config_intra_benchmark.yaml
-```
-
-## Common Issues
-
-### "Ground truth file not found"
-
-**Fix**: Check that `input_data/benchmark/scores/{benchmark}_ground_truth_n{nbins}.json` exists
-
-### "Failed to load benchmark from ..."
-
-**Fix**: Run preprocessing: `python prepare_benchmark.py <input_file> [--metric METRIC]`
-
-### "Missing prompt template"
-
-**Fix**: Verify all 3 files exist in `input_data/prompts/intra_benchmark/`:
-
-- `task_relationship_analysis.txt`
-- `initial_conditional_probability_estimation.txt`
-- `subsequent_conditional_probability_estimation.txt`
-
-### "API rate limit exceeded (429)"
-
-**Fix**: Lower concurrency in `config_intra_benchmark.yaml`:
-
-```yaml
-llm_settings:
-  max_concurrent_calls: 3
-  rate_limit_calls: 30
-```
-
-### "ImportError: No module named 'intra_benchmark'"
-
-**Fix**: Run from project root:
-
-```bash
-cd /path/to/LLM_elicitation
-python src/main.py -c config_intra_benchmark.yaml
-```
-
-## Verify Original Mode Still Works
-
-```bash
-python src/main.py -c config.yaml
-```
-
-Should run risk scenario workflow without errors.
-
-## API Call Estimation
-
-**Calculation**:
-
-- Round 1: 2 calls/expert (analysis + estimation), subsequent rounds: 1 call/expert (refinement)
-- Total pairs for n bins: n(n-1)/2
-- `delphi_rounds` = total rounds (e.g., `delphi_rounds: 3` means 1 initial + 2 refinements)
-
-**Example** (5 experts, 3 rounds, n=4 bins):
-
-- Per pair: 5×2 + 5×1 + 5×1 = 20 calls
-- Total: 20 × 6 pairs = 120 calls per model assessed
-- Runtime: 15-30 minutes (depends on rate limits)
-
-## Next Steps
-
-1. Run dry run to verify setup
-2. Inspect CSV/JSON outputs
-3. Run full experiment
-4. Analyze calibration performance vs ground truth
-5. (Optional) Plot predictions vs ground truth
-6. (Optional) Tune prompts based on results
+There is no `--resume` flag yet. Re-running with the same config produces a
+new `run_id` directory; merge the partial CSVs by hand if you want to combine
+them. (TODO: add `scripts/resume.py` if/when the elicitation budget gets large
+enough that interrupted runs become a real concern.)
