@@ -83,9 +83,10 @@ The pipeline involves:
     cp config_example.yaml config.yaml
     ```
 
-2. **Edit `config.yaml`:**
-    * **API Keys:** Add your API key(s) under `anthropic_api_key:` and/or `openai_api_key:`. Only the key corresponding to the provider you are using is required.
-        **⚠️ Warning: Do NOT commit `config.yaml` with your API keys to version control!** Note that `config.yaml` is already in the `.gitignore` file.
+2. **Set up API keys:**
+    * API keys are read from `<repo_root>/.env` or your shell environment — **not** from `config.yaml`. Copy `.env.example` to `.env` and fill in the key(s) for the provider(s) you intend to use (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`/`GOOGLE_API_KEY`). The `.env` file is gitignored.
+
+3. **Edit `config.yaml`:**
     * **Input Paths:**
         * `prompts_dir`: Directory for prompt templates.
         * `expert_profiles_file`: Path to the YAML file defining expert personas.
