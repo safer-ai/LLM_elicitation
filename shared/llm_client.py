@@ -103,6 +103,76 @@ def _provider_for_model(model: str) -> str:
     )
 
 
+# Back-compat alias for the previous private name.
+_provider_for_model = provider_for_model
+
+
+def parse_reasoning_effort(
+    llm_settings_raw: Dict[str, Any],
+    *,
+    logger_: Optional[logging.Logger] = None,
+) -> str:
+    """Resolve the unified reasoning_effort value from a raw YAML llm_settings dict.
+
+    Accepts both the new field (`reasoning_effort: "low" | "medium" | "high" |
+    "minimal" | "off"`) and the legacy block (`thinking: {enabled, budget_tokens}`),
+    translating the latter into one of the new tier values with a deprecation
+    warning so old configs keep working.
+
+    When both forms appear, `reasoning_effort` wins and a warning is logged.
+    Returns one of REASONING_EFFORT_VALUES.
+    """
+    log = logger_ if logger_ is not None else logger
+
+    reasoning_effort_raw = llm_settings_raw.get("reasoning_effort")
+    legacy_thinking_raw = llm_settings_raw.get("thinking")
+
+    if reasoning_effort_raw is not None:
+        if not isinstance(reasoning_effort_raw, str):
+            raise TypeError(
+                "'llm_settings.reasoning_effort' must be a string, one of "
+                f"{list(REASONING_EFFORT_VALUES)}."
+            )
+        effort = reasoning_effort_raw.strip().lower()
+        if effort not in REASONING_EFFORT_VALUES:
+            raise ValueError(
+                f"'llm_settings.reasoning_effort' must be one of "
+                f"{list(REASONING_EFFORT_VALUES)}, got {reasoning_effort_raw!r}."
+            )
+        if legacy_thinking_raw is not None:
+            log.warning(
+                "Both 'reasoning_effort' and the legacy 'thinking' block are set in "
+                "llm_settings; using 'reasoning_effort' and ignoring 'thinking'."
+            )
+        return effort
+
+    if isinstance(legacy_thinking_raw, dict):
+        enabled = bool(legacy_thinking_raw.get("enabled", False))
+        budget_tokens = int(legacy_thinking_raw.get("budget_tokens", 4000))
+        if not enabled:
+            effort = "off"
+        elif budget_tokens < 3000:
+            effort = "low"
+        elif budget_tokens < 10000:
+            effort = "medium"
+        else:
+            effort = "high"
+        log.warning(
+            "Config uses the legacy 'thinking: {enabled, budget_tokens}' block. "
+            "This is deprecated in favour of the unified 'reasoning_effort' field. "
+            f"Translated to reasoning_effort='{effort}'. "
+            "Please replace `thinking: ...` with `reasoning_effort: \"%s\"` "
+            "in your config.",
+            effort,
+        )
+        return effort
+
+    if legacy_thinking_raw is not None:
+        raise ValueError("'llm_settings.thinking' must be a dictionary.")
+
+    return "off"
+
+
 # --- Reasoning effort mapping ---
 #
 # Anthropic exposes an explicit token budget; OpenAI / Gemini-via-OpenAI-compat

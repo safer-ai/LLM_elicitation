@@ -102,9 +102,19 @@ llm_settings:
   rate_limit_calls: 45
   rate_limit_period: 60   # seconds
 
-  thinking:
-    enabled: true
-    budget_tokens: 10000
+  # Provider-agnostic reasoning/thinking dial. One of:
+  #   "off"     - no extended reasoning (Anthropic: omit `thinking`;
+  #               OpenAI gpt-5*/o-series: reasoning_effort="minimal", since
+  #               those models always reason internally; Gemini 2.5+/3.x:
+  #               reasoning_effort="minimal").
+  #   "minimal" - smallest non-zero budget per provider.
+  #   "low"     - small budget; fast.
+  #   "medium"  - balanced budget; good default for most multi-model runs.
+  #   "high"    - largest budget; slow and expensive.
+  # Anthropic maps these to a `thinking={budget_tokens=N}` block; OpenAI/Gemini
+  # map to the `reasoning_effort` request parameter. Non-reasoning models
+  # silently ignore this setting.
+  reasoning_effort: "off"
 
 workflow_settings:
   num_experts: 2

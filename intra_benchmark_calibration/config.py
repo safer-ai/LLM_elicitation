@@ -3,13 +3,9 @@
 """
 Configuration loading for intra-benchmark calibration.
 
-Mirrors the dataclass / YAML loader pattern used by `inter_benchmark_calibration/config.py`,
-exposing only the knobs from the spec §6.
-
-Default `forecasted_models` excludes GPT-2, GPT-3, and GPT-3.5 because in
-model_runs.parquet these three models are only evaluated on a subset of the
-headline tasks (172, 172, and 142 of 291 respectively), which causes most
-(i, j, M) cells to be inadmissible.
+Mirrors the structure of `src/config.py` (the main risk-scenario workflow):
+the active LLM forecaster `model` is one entry of `models_to_run`, which the
+runner rotates through. API keys are resolved from `<intra>/.env` -> `<repo_root>/.env` -> process env via the shared resolver.
 """
 
 from __future__ import annotations
@@ -25,7 +21,13 @@ import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from shared.llm_client import LLMSettings, ThinkingSettings  # noqa: E402
+from shared.api_keys import parse_num_repeats, resolve_api_key  # noqa: E402
+from shared.llm_client import (  # noqa: E402
+    LLMSettings,
+    ThinkingSettings,
+    parse_reasoning_effort,
+    provider_for_model,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -164,17 +166,20 @@ def load_intra_benchmark_config(config_path: str | Path, base_dir: Optional[Path
 
     # LLM settings
     llm_data = data.get("llm_settings") or {}
-    thinking_data = llm_data.get("thinking") or {}
+    if not isinstance(llm_data, dict):
+        raise ValueError("'llm_settings' must be a dictionary.")
+    models_to_run = _normalise_models(llm_data.get("model"))
+    reasoning_effort = parse_reasoning_effort(llm_data, logger_=logger)
     llm_settings = LLMSettings(
         model=str(llm_data.get("model", "claude-sonnet-4-6")),
         temperature=float(llm_data.get("temperature", 0.8)),
         max_concurrent_calls=int(llm_data.get("max_concurrent_calls", 5)),
         rate_limit_calls=int(llm_data.get("rate_limit_calls", 45)),
         rate_limit_period=int(llm_data.get("rate_limit_period", 60)),
-        thinking=ThinkingSettings(
-            enabled=bool(thinking_data.get("enabled", False)),
-            budget_tokens=int(thinking_data.get("budget_tokens", 10000)),
-        ),
+        reasoning_effort=reasoning_effort,
+        # Keep the legacy field at its default so nothing else picks it up;
+        # `reasoning_effort` is the source of truth.
+        thinking=ThinkingSettings(),
     )
 
     # Workflow settings
