@@ -1,137 +1,29 @@
 # src/config.py
 
-import os
+import sys
 import yaml
 import logging
 from pathlib import Path
 from dataclasses import dataclass, field
-from typing import Dict, Any, Optional, List, Set, Union
+from typing import Any, Optional, List, Set, Union
+
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+from shared.api_keys import parse_num_repeats as _parse_num_repeats  # noqa: E402,F401
+from shared.api_keys import resolve_api_key as _resolve_api_key  # noqa: E402
+from shared.llm_client import (  # noqa: E402
+    REASONING_EFFORT_VALUES,
+    parse_reasoning_effort,
+    provider_for_model as get_provider_for_model,
+)
+
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(name)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 
-# --- API key resolution helpers (.env support) ---
-
-
-def _redact(key: Optional[str]) -> str:
-    """Return a short, safe-to-log prefix of an API key."""
-    if not key:
-        return "(empty)"
-    return f"{key[:14]}…[len={len(key)}]"
-
-
-def _parse_num_repeats(raw: Any) -> int:
-    """Coerce the raw `workflow_settings.num_repeats` YAML value to a positive int.
-
-    Rejects bools explicitly (otherwise YAML `true` would silently become 1 via
-    `int(True)`), and emits a clearer error than the bare `int()` traceback for
-    non-integer strings.
-    """
-    if isinstance(raw, bool):
-        raise TypeError(
-            "WorkflowSettings: 'num_repeats' must be a positive integer (got bool). "
-            "Did you mean `num_repeats: 1` or `num_repeats: 20`?"
-        )
-    if isinstance(raw, int):
-        return raw
-    if isinstance(raw, float):
-        if raw.is_integer():
-            return int(raw)
-        raise TypeError(
-            f"WorkflowSettings: 'num_repeats' must be a positive integer; got float {raw!r}."
-        )
-    try:
-        coerced_str = str(raw).strip()
-        return int(coerced_str)
-    except (TypeError, ValueError) as exc:
-        raise TypeError(
-            f"WorkflowSettings: 'num_repeats' must be a positive integer; got {raw!r}."
-        ) from exc
-
-
-def _parse_dotenv(path: Path) -> Dict[str, str]:
-    """Minimal stdlib parser for KEY=VALUE lines in a .env file.
-
-    Ignores blanks and lines starting with '#'. Strips wrapping quotes.
-    Last assignment wins. No shell-style variable expansion.
-    """
-    out: Dict[str, str] = {}
-    if not path.is_file():
-        return out
-    try:
-        for line in path.read_text(encoding="utf-8").splitlines():
-            line = line.strip()
-            if not line or line.startswith("#") or "=" not in line:
-                continue
-            k, _, v = line.partition("=")
-            k = k.strip()
-            v = v.strip()
-            if (v.startswith("'") and v.endswith("'")) or (v.startswith('"') and v.endswith('"')):
-                v = v[1:-1]
-            if k:
-                out[k] = v
-    except Exception as e:
-        logger.warning(f"Failed to parse {path}: {e}")
-    return out
-
-
-def _resolve_api_key(env_var: str, project_root: Path) -> Optional[str]:
-    """Resolve an API key with explicit precedence:
-
-      1. KEY=VALUE in <project_root>/.env (project-local wins over shell env so
-         a stale shell-exported key cannot silently override a per-experiment key).
-      2. Process environment variable `env_var`.
-
-    Returns None if no source has a value.
-    """
-    parsed = _parse_dotenv(project_root / ".env")
-    if env_var in parsed and parsed[env_var]:
-        v = parsed[env_var]
-        logger.info(f"{env_var}: source = {project_root / '.env'}, key = {_redact(v)}")
-        return v
-
-    env_val = os.environ.get(env_var)
-    if env_val:
-        logger.info(f"{env_var}: source = process env, key = {_redact(env_val)}")
-        return env_val
-
-    logger.debug(f"{env_var}: no value found in .env or process env")
-    return None
-
-
-# --- Provider inference ---
-def get_provider_for_model(model: str) -> str:
-    """Infers the API provider based on a single model name.
-
-    Recognises:
-      - Anthropic: 'claude' in name (e.g. 'claude-sonnet-4-6').
-      - Google:   'gemini' in name (e.g. 'gemini-3-flash-preview').
-      - OpenAI:   'gpt-' in name, or starts with 'o1'/'o2'/'o3'/'o4'/'o5'
-                  (e.g. 'gpt-5-mini', 'o3-mini').
-    """
-    m = model.lower().strip()
-    if 'claude' in m:
-        return 'anthropic'
-    if 'gemini' in m:
-        return 'google'
-    if 'gpt-' in m or any(m.startswith(prefix) for prefix in ('o1', 'o2', 'o3', 'o4', 'o5')):
-        return 'openai'
-    raise ValueError(
-        f"Could not infer API provider from model name: '{model}'. "
-        f"Expected name containing 'claude', 'gemini', 'gpt-', or starting with 'o1'..'o5'."
-    )
-
 # --- Data Structure Definitions ---
-
-# Allowed values for the unified, provider-agnostic reasoning dial. Each
-# value is mapped per-provider in shared/llm_client.py:
-#   - Anthropic: maps to a `thinking={"type":"enabled","budget_tokens":N}` block,
-#     or omitted entirely for "off".
-#   - OpenAI (gpt-5*, o-series): maps to the `reasoning_effort` request param;
-#     "off" -> "minimal" since reasoning models always reason internally.
-#   - Google Gemini (via OpenAI-compat): same `reasoning_effort` param.
-REASONING_EFFORT_VALUES = ("off", "minimal", "low", "medium", "high")
 
 
 @dataclass
@@ -310,48 +202,7 @@ def load_config(config_path: str = "config.yaml") -> AppConfig:
         if not isinstance(workflow_settings_raw, dict):
             raise ValueError("'workflow_settings' must be a dictionary.")
         
-        # Reasoning effort: prefer the new unified `reasoning_effort` field.
-        # If the legacy `thinking: {enabled, budget_tokens}` block is present
-        # (and `reasoning_effort` is not), translate it with a deprecation
-        # warning so existing configs keep working.
-        reasoning_effort_raw = llm_settings_raw.get("reasoning_effort")
-        legacy_thinking_raw = llm_settings_raw.get("thinking")
-
-        if reasoning_effort_raw is not None:
-            if not isinstance(reasoning_effort_raw, str):
-                raise TypeError(
-                    "'llm_settings.reasoning_effort' must be a string, one of "
-                    f"{list(REASONING_EFFORT_VALUES)}."
-                )
-            reasoning_effort = reasoning_effort_raw.strip().lower()
-            if legacy_thinking_raw is not None:
-                logger.warning(
-                    "Both 'reasoning_effort' and the legacy 'thinking' block are set in "
-                    "llm_settings; using 'reasoning_effort' and ignoring 'thinking'."
-                )
-        elif isinstance(legacy_thinking_raw, dict):
-            enabled = bool(legacy_thinking_raw.get("enabled", False))
-            budget_tokens = int(legacy_thinking_raw.get("budget_tokens", 4000))
-            if not enabled:
-                reasoning_effort = "off"
-            elif budget_tokens < 3000:
-                reasoning_effort = "low"
-            elif budget_tokens < 10000:
-                reasoning_effort = "medium"
-            else:
-                reasoning_effort = "high"
-            logger.warning(
-                "Config uses the legacy 'thinking: {enabled, budget_tokens}' block. "
-                "This is deprecated in favour of the unified 'reasoning_effort' field. "
-                f"Translated to reasoning_effort='{reasoning_effort}'. "
-                "Please replace `thinking: ...` with `reasoning_effort: \"%s\"` "
-                "in your config.",
-                reasoning_effort,
-            )
-        elif legacy_thinking_raw is not None:
-            raise ValueError("'llm_settings.thinking' must be a dictionary.")
-        else:
-            reasoning_effort = LLMSettings.reasoning_effort
+        reasoning_effort = parse_reasoning_effort(llm_settings_raw, logger_=logger)
 
         # `model` may be a single string or a list of strings. Normalise to a list
         # internally; LLMSettings.model holds the active model for the current run
