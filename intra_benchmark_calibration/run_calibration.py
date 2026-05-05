@@ -4,12 +4,12 @@
 Entry point for the intra-benchmark calibration experiment.
 
 Wires together: config -> Lyptus data load -> binning -> cell planning ->
-expert + prompt loading -> async LLM client -> async Delphi workflow ->
+expert + prompt loading -> async LLM client(s) -> async Delphi workflow ->
 progressive results persistence.
 
 Usage:
     python intra_benchmark_calibration/run_calibration.py \\
-        -c intra_benchmark_calibration/config_full.yaml -d
+        -c intra_benchmark_calibration/config_example.yaml -d
 """
 
 from __future__ import annotations
@@ -19,6 +19,7 @@ import asyncio
 import dataclasses
 import logging
 import sys
+from dataclasses import replace
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -41,6 +42,9 @@ from intra_benchmark_calibration.workflow import run_intra_benchmark_workflow  #
 from shared.llm_client import initialize_client  # noqa: E402
 from shared.loaders import load_experts, load_prompts  # noqa: E402
 
+from tqdm.auto import tqdm  # noqa: E402
+from tqdm.contrib.logging import logging_redirect_tqdm  # noqa: E402
+
 logger = logging.getLogger("IntraBenchmarkCalibration")
 
 
@@ -59,7 +63,19 @@ def _config_snapshot(cfg: IntraBenchmarkConfig) -> dict:
     snap = to_serialisable(cfg)
     snap.pop("api_key_anthropic", None)
     snap.pop("api_key_openai", None)
+    snap.pop("api_key_gemini", None)
     return snap
+
+
+def _config_for_forecaster(base_cfg: IntraBenchmarkConfig, model: str) -> IntraBenchmarkConfig:
+    """Return a copy of `base_cfg` with `llm_settings.model` rebound to `model`.
+
+    All other settings (rate limits, reasoning_effort, paths, API keys) are
+    preserved so a single `load_intra_benchmark_config` call covers a
+    multi-model run.
+    """
+    new_llm = replace(base_cfg.llm_settings, model=model)
+    return replace(base_cfg, llm_settings=new_llm)
 
 
 async def main(config_path: str) -> int:
@@ -130,9 +146,10 @@ async def main(config_path: str) -> int:
     # 6. Init run handles
     handles = initialize_run(
         output_base_dir=cfg.output_dir,
-        model=cfg.llm_settings.model,
+        models_run=cfg.models_to_run,
         num_experts=len(experts),
         delphi_rounds=cfg.workflow_settings.delphi_rounds,
+        num_repeats=cfg.workflow_settings.num_repeats,
         temperature=cfg.llm_settings.temperature,
         config_snapshot=_config_snapshot(cfg),
         dataset_provenance=dataset.provenance_dict(),
@@ -149,36 +166,110 @@ async def main(config_path: str) -> int:
     logger.info(f"Run ID: {handles.run_id}")
     logger.info(f"Run dir: {handles.run_dir}")
 
-    # 7. Workflow
-    try:
-        result = await run_intra_benchmark_workflow(
-            cfg=cfg,
-            cell_plans=cell_plans,
-            experts=experts,
-            prompt_templates=prompt_templates,
-            dataset=dataset,
-            client=client,
-            semaphore=semaphore,
-            handles=handles,
-        )
-    except Exception as e:
-        logger.error(f"Workflow crashed: {e}", exc_info=True)
-        return 1
+    # 6. Workflow: outer loop over forecaster models × repeats.
+    num_repeats = max(1, cfg.workflow_settings.num_repeats)
+    n_cells = len(cell_plans)
+    n_rounds = cfg.workflow_settings.delphi_rounds
+    n_experts = len(experts)
+    expected_per_run = n_cells * n_experts * n_rounds
+    expected_total = expected_per_run * len(cfg.models_to_run) * num_repeats
+    logger.info(
+        f"Total expected elicitations across {len(cfg.models_to_run)} forecaster "
+        f"model(s) × {num_repeats} repeat(s) × {n_cells} cells × {n_experts} experts "
+        f"× {n_rounds} rounds = up to {expected_total}"
+    )
 
-    # 8. Finalise
+    total_attempted = 0
+    total_completed = 0
+    crashed_models: list = []
+
+    with logging_redirect_tqdm():
+        progress = tqdm(
+            total=expected_total,
+            desc="Elicitations",
+            unit="call",
+            smoothing=0.05,
+            dynamic_ncols=True,
+        )
+        try:
+            for forecaster_model in cfg.models_to_run:
+                per_model_cfg = _config_for_forecaster(cfg, forecaster_model)
+                provider = per_model_cfg.inferred_api_provider
+                logger.info(
+                    f"\n=== Forecaster model: {forecaster_model} (provider: {provider}, "
+                    f"repeats: {num_repeats}) ==="
+                )
+
+                try:
+                    client = initialize_client(
+                        api_key_anthropic=per_model_cfg.api_key_anthropic,
+                        api_key_openai=per_model_cfg.api_key_openai,
+                        model=per_model_cfg.llm_settings.model,
+                        api_key_gemini=per_model_cfg.api_key_gemini,
+                    )
+                    logger.info(f"API client initialised for {provider}.")
+                except (ImportError, ValueError) as e:
+                    logger.error(
+                        f"Failed to initialise client for forecaster '{forecaster_model}': {e}",
+                        exc_info=True,
+                    )
+                    crashed_models.append((forecaster_model, str(e)))
+                    # Advance the bar past this model's expected slots so the
+                    # ETA stays sensible.
+                    skipped = expected_per_run * num_repeats
+                    progress.update(skipped)
+                    continue
+
+                semaphore = asyncio.Semaphore(per_model_cfg.llm_settings.max_concurrent_calls)
+
+                for repeat_index in range(1, num_repeats + 1):
+                    if num_repeats > 1:
+                        logger.info(
+                            f"\n--- {forecaster_model}: starting repeat {repeat_index}/{num_repeats} ---"
+                        )
+                    try:
+                        result = await run_intra_benchmark_workflow(
+                            cfg=per_model_cfg,
+                            cell_plans=cell_plans,
+                            experts=experts,
+                            prompt_templates=prompt_templates,
+                            dataset=dataset,
+                            client=client,
+                            semaphore=semaphore,
+                            handles=handles,
+                            forecaster_model=forecaster_model,
+                            repeat_index=repeat_index,
+                            progress=progress,
+                        )
+                    except Exception as e:
+                        logger.error(
+                            f"Workflow crashed for forecaster '{forecaster_model}' "
+                            f"(repeat {repeat_index}/{num_repeats}): {e}",
+                            exc_info=True,
+                        )
+                        crashed_models.append((forecaster_model, str(e)))
+                        # Best-effort progress advance for the unfinished slot.
+                        continue
+                    total_attempted += result["n_elicitations_attempted"]
+                    total_completed += result["n_elicitations_completed"]
+        finally:
+            progress.close()
+
+    # 7. Finalise (single registry entry covering all models / repeats).
     finalize_run(
         handles,
-        n_elicitations_attempted=result["n_elicitations_attempted"],
-        n_elicitations_succeeded=result["n_elicitations_completed"],
+        n_elicitations_attempted=total_attempted,
+        n_elicitations_succeeded=total_completed,
     )
     update_registry(
         registry_file=cfg.registry_file,
         run_id=handles.run_id,
-        model=cfg.llm_settings.model,
+        models_run=cfg.models_to_run,
         num_experts=len(experts),
         delphi_rounds=cfg.workflow_settings.delphi_rounds,
-        n_elicitations_attempted=result["n_elicitations_attempted"],
-        n_elicitations_completed=result["n_elicitations_completed"],
+        num_repeats=num_repeats,
+        n_elicitations_attempted=total_attempted,
+        n_elicitations_completed=total_completed,
         output_path=handles.run_dir,
         config_file=str(Path(config_path).resolve()),
         timestamp_start=handles.run_id,  # already in YYYYMMDD_HHMMSS form
@@ -186,7 +277,13 @@ async def main(config_path: str) -> int:
 
     logger.info(f"Run complete. CSV: {handles.csv_path}")
     logger.info(f"           JSON: {handles.json_path}")
-    logger.info(f"  Successful elicitations: {result['n_elicitations_completed']} / {result['n_elicitations_attempted']}")
+    logger.info(f"  Successful elicitations: {total_completed} / {total_attempted}")
+    if crashed_models:
+        logger.warning(
+            f"  {len(crashed_models)} forecaster (model, repeat) slot(s) crashed; "
+            f"see log above. Examples: {crashed_models[:3]}"
+        )
+        return 2
     return 0
 
 

@@ -3,29 +3,30 @@
 """
 Configuration loading for intra-benchmark calibration.
 
-Mirrors the dataclass / YAML loader pattern used by `inter_benchmark_calibration/config.py`,
-exposing only the knobs from the spec §6.
-
-Default `forecasted_models` excludes GPT-2, GPT-3, and GPT-3.5 because in
-model_runs.parquet these three models are only evaluated on a subset of the
-headline tasks (172, 172, and 142 of 291 respectively), which causes most
-(i, j, M) cells to be inadmissible.
+Mirrors the structure of `src/config.py` (the main risk-scenario workflow):
+the active LLM forecaster `model` is one entry of `models_to_run`, which the
+runner rotates through. API keys are resolved from `<intra>/.env` -> `<repo_root>/.env` -> process env via the shared resolver.
 """
 
 from __future__ import annotations
 
 import logging
-import os
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Set, Union
 
-import sys
 import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from shared.llm_client import LLMSettings, ThinkingSettings  # noqa: E402
+from shared.api_keys import parse_num_repeats, resolve_api_key  # noqa: E402
+from shared.llm_client import (  # noqa: E402
+    LLMSettings,
+    ThinkingSettings,
+    parse_reasoning_effort,
+    provider_for_model,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -34,105 +35,15 @@ logger = logging.getLogger(__name__)
 DEFAULT_DROP_MODELS: List[str] = ["GPT-2", "GPT-3", "GPT-3.5"]
 
 
-# YAML placeholder values that should be treated as "not set" and fall through
-# to environment / .env lookup.
-_API_KEY_PLACEHOLDERS = {
-    None, "", "YOUR_ANTHROPIC_API_KEY_HERE", "YOUR_OPENAI_API_KEY_HERE",
-    "SMOKE_TEST_NO_API_CALL",
-}
-
-
-def _redact(key: str) -> str:
-    """Return a short, safe-to-log prefix of an API key."""
-    if not key:
-        return "(empty)"
-    return f"{key[:14]}…[len={len(key)}]"
-
-
-def _parse_dotenv(path: Path) -> Dict[str, str]:
-    """
-    Minimal stdlib parser for KEY=VALUE lines in a .env file.
-
-    - Ignores blank lines and lines starting with '#'.
-    - Strips wrapping single or double quotes from the value.
-    - Last assignment wins.
-    - Does NOT do shell-style variable expansion.
-    """
-    out: Dict[str, str] = {}
-    if not path.is_file():
-        return out
-    try:
-        for line in path.read_text(encoding="utf-8").splitlines():
-            line = line.strip()
-            if not line or line.startswith("#") or "=" not in line:
-                continue
-            k, _, v = line.partition("=")
-            k = k.strip()
-            v = v.strip()
-            if (v.startswith("'") and v.endswith("'")) or (v.startswith('"') and v.endswith('"')):
-                v = v[1:-1]
-            if k:
-                out[k] = v
-    except Exception as e:
-        logger.warning(f"Failed to parse {path}: {e}")
-    return out
-
-
-def _dotenv_search_paths(base_dir: Path) -> List[Path]:
-    """
-    Search order for .env files (highest priority first):
-      1. <base_dir>/.env  (i.e. intra_benchmark_calibration/.env)
-      2. <repo_root>/.env (LLM_elicitation/.env)
-    """
-    paths = [base_dir / ".env"]
-    repo_root = base_dir.parent
-    if (repo_root / ".env") not in paths:
-        paths.append(repo_root / ".env")
-    return paths
-
-
-def _resolve_api_key(env_var: str, yaml_value: Optional[str], base_dir: Path) -> Optional[str]:
-    """
-    Resolve an API key with explicit precedence + clear logging:
-
-      1. YAML value (unless it's a known placeholder).
-      2. `KEY=VALUE` line in <base_dir>/.env, then <repo_root>/.env.
-         (Project-local .env wins over the global shell env so an old/wrong
-         shell-exported key cannot silently override a per-experiment key.
-         If you genuinely want the global env to win, just delete the .env
-         file or set the YAML value explicitly.)
-      3. process environment variable `env_var`.
-
-    The first non-empty source wins. Returns None if no source has a value.
-    """
-    # 1. YAML
-    if yaml_value not in _API_KEY_PLACEHOLDERS:
-        logger.info(f"{env_var}: source = YAML config, key = {_redact(yaml_value)}")
-        return yaml_value
-
-    # 2. .env files (project-local first, then repo-root)
-    for path in _dotenv_search_paths(base_dir):
-        parsed = _parse_dotenv(path)
-        if env_var in parsed and parsed[env_var]:
-            v = parsed[env_var]
-            logger.info(f"{env_var}: source = {path}, key = {_redact(v)}")
-            return v
-
-    # 3. process env
-    env_val = os.environ.get(env_var)
-    if env_val:
-        logger.info(f"{env_var}: source = process env, key = {_redact(env_val)}")
-        return env_val
-
-    logger.warning(f"{env_var}: no value found in YAML, env, or any .env file")
-    return None
-
-
 @dataclass
 class WorkflowSettings:
     num_experts: int = 2
     delphi_rounds: int = 1
     convergence_threshold: float = 0.05
+    # Number of independent repeats of the full elicitation workflow per
+    # forecaster model. Each repeat re-runs every cell plan; rows are tagged
+    # with `repeat_index` (1-based). Default 1 = run once.
+    num_repeats: int = 1
 
     def __post_init__(self):
         if self.num_experts <= 0:
@@ -141,9 +52,12 @@ class WorkflowSettings:
             raise ValueError("delphi_rounds must be positive")
         if self.convergence_threshold < 0:
             raise ValueError("convergence_threshold cannot be negative")
+        if isinstance(self.num_repeats, bool) or not isinstance(self.num_repeats, int):
+            raise TypeError("WorkflowSettings: 'num_repeats' must be a positive integer.")
+        if self.num_repeats < 1:
+            raise ValueError("WorkflowSettings: 'num_repeats' must be >= 1 (1 = run once).")
 
 
-@dataclass
 class BinningSettings:
     n_bins: int = 5
     strategy: str = "equal_count"  # equal_count | equal_log_fst | explicit_edges
@@ -197,6 +111,7 @@ class IntraBenchmarkConfig:
 
     api_key_anthropic: Optional[str]
     api_key_openai: Optional[str]
+    api_key_gemini: Optional[str]
 
     # Data
     lyptus_repo_dir: Path
@@ -219,6 +134,10 @@ class IntraBenchmarkConfig:
     expert_profiles_file: Path
     output_dir: Path
 
+    # Multi-model: list of LLM forecasters to run; the active model lives in
+    # `llm_settings.model` and the runner rotates it through `models_to_run`.
+    models_to_run: List[str] = field(default_factory=list)
+
     @property
     def runs_dir(self) -> Path:
         return self.output_dir
@@ -226,6 +145,32 @@ class IntraBenchmarkConfig:
     @property
     def registry_file(self) -> Path:
         return self.output_dir / "run_registry.json"
+
+    @property
+    def inferred_api_provider(self) -> str:
+        """Provider for the currently active model in `llm_settings`."""
+        return provider_for_model(self.llm_settings.model)
+
+    @property
+    def required_providers(self) -> Set[str]:
+        """Set of providers needed across `models_to_run`."""
+        return {provider_for_model(m) for m in self.models_to_run}
+
+def _normalise_models(raw_model) -> List[str]:
+    """Accept a string or list-of-strings; return a list of stripped model names."""
+    if raw_model is None:
+        raise ValueError("'llm_settings.model' is required (string or list of strings).")
+    if isinstance(raw_model, str):
+        return [raw_model.strip()]
+    if isinstance(raw_model, list):
+        if not raw_model:
+            raise ValueError("'llm_settings.model' is an empty list; provide at least one model.")
+        if not all(isinstance(m, str) and m.strip() for m in raw_model):
+            raise TypeError("'llm_settings.model' list must contain non-empty strings only.")
+        return [m.strip() for m in raw_model]
+    raise TypeError(
+        f"'llm_settings.model' must be a string or a list of strings (got {type(raw_model).__name__})."
+    )
 
 
 def load_intra_benchmark_config(config_path: str | Path, base_dir: Optional[Path] = None) -> IntraBenchmarkConfig:
@@ -247,25 +192,30 @@ def load_intra_benchmark_config(config_path: str | Path, base_dir: Optional[Path
         p = Path(s).expanduser()
         return p if p.is_absolute() else (base_dir / p).resolve()
 
-    # API-key resolution: YAML -> os.environ -> .env file. Logs the source
-    # (with the key prefix only) so it's easy to tell which key actually got
-    # used.
-    api_key_anthropic = _resolve_api_key("ANTHROPIC_API_KEY", data.get("anthropic_api_key"), base_dir)
-    api_key_openai = _resolve_api_key("OPENAI_API_KEY", data.get("openai_api_key"), base_dir)
+    # API-key resolution: <intra>/.env -> <repo_root>/.env -> process env.
+    repo_root = base_dir.parent
+    api_key_anthropic = resolve_api_key("ANTHROPIC_API_KEY", base_dir, repo_root)
+    api_key_openai = resolve_api_key("OPENAI_API_KEY", base_dir, repo_root)
+    api_key_gemini = resolve_api_key("GEMINI_API_KEY", base_dir, repo_root)
+    if not api_key_gemini:
+        api_key_gemini = resolve_api_key("GOOGLE_API_KEY", base_dir, repo_root)
 
     # LLM settings
     llm_data = data.get("llm_settings") or {}
-    thinking_data = llm_data.get("thinking") or {}
+    if not isinstance(llm_data, dict):
+        raise ValueError("'llm_settings' must be a dictionary.")
+    models_to_run = _normalise_models(llm_data.get("model"))
+    reasoning_effort = parse_reasoning_effort(llm_data, logger_=logger)
     llm_settings = LLMSettings(
-        model=str(llm_data.get("model", "claude-sonnet-4-6")),
+        model=models_to_run[0],
         temperature=float(llm_data.get("temperature", 0.8)),
         max_concurrent_calls=int(llm_data.get("max_concurrent_calls", 5)),
         rate_limit_calls=int(llm_data.get("rate_limit_calls", 45)),
         rate_limit_period=int(llm_data.get("rate_limit_period", 60)),
-        thinking=ThinkingSettings(
-            enabled=bool(thinking_data.get("enabled", False)),
-            budget_tokens=int(thinking_data.get("budget_tokens", 10000)),
-        ),
+        reasoning_effort=reasoning_effort,
+        # Keep the legacy field at its default so nothing else picks it up;
+        # `reasoning_effort` is the source of truth.
+        thinking=ThinkingSettings(),
     )
 
     # Workflow settings
@@ -274,6 +224,7 @@ def load_intra_benchmark_config(config_path: str | Path, base_dir: Optional[Path
         num_experts=int(wf_data.get("num_experts", 2)),
         delphi_rounds=int(wf_data.get("delphi_rounds", 1)),
         convergence_threshold=float(wf_data.get("convergence_threshold", 0.05)),
+        num_repeats=parse_num_repeats(wf_data.get("num_repeats", WorkflowSettings.num_repeats)),
     )
 
     # Intra-benchmark settings
@@ -338,6 +289,7 @@ def load_intra_benchmark_config(config_path: str | Path, base_dir: Optional[Path
     cfg = IntraBenchmarkConfig(
         api_key_anthropic=api_key_anthropic,
         api_key_openai=api_key_openai,
+        api_key_gemini=api_key_gemini,
         lyptus_repo_dir=lyptus_repo_dir,
         forecasted_models=forecasted_models,
         drop_models=drop_models,
@@ -351,14 +303,41 @@ def load_intra_benchmark_config(config_path: str | Path, base_dir: Optional[Path
         prompts_dir=prompts_dir,
         expert_profiles_file=expert_profiles_file,
         output_dir=output_dir,
+        models_to_run=models_to_run,
     )
+
+    # Validate that we have an API key for every required provider.
+    required = cfg.required_providers
+    if "anthropic" in required and not cfg.api_key_anthropic:
+        raise ValueError(
+            "At least one configured forecaster model is from Anthropic, but no Anthropic API key found "
+            f"(checked {base_dir / '.env'}, {repo_root / '.env'}, ANTHROPIC_API_KEY env var)."
+        )
+    if "openai" in required and not cfg.api_key_openai:
+        raise ValueError(
+            "At least one configured forecaster model is from OpenAI, but no OpenAI API key found "
+            f"(checked {base_dir / '.env'}, {repo_root / '.env'}, OPENAI_API_KEY env var)."
+        )
+    if "google" in required and not cfg.api_key_gemini:
+        raise ValueError(
+            "At least one configured forecaster model is from Google (Gemini), but no Gemini API key found "
+            f"(checked {base_dir / '.env'}, {repo_root / '.env'}, GEMINI_API_KEY/GOOGLE_API_KEY env vars)."
+        )
 
     logger.info("Intra-benchmark config loaded:")
     logger.info(f"  Lyptus repo: {cfg.lyptus_repo_dir}")
     logger.info(f"  n_bins: {cfg.binning.n_bins}, strategy: {cfg.binning.strategy}")
-    logger.info(f"  forecasted_models: {cfg.forecasted_models or '(all in outcomes matrix)'}")
+    logger.info(f"  forecasted_models (object of study): {cfg.forecasted_models or '(all in outcomes matrix)'}")
     logger.info(f"  drop_models: {cfg.drop_models}")
     logger.info(f"  K target tasks/cell: {cfg.target_selection.n_target_tasks_per_cell}")
-    logger.info(f"  num_experts: {cfg.workflow_settings.num_experts}, "
-                f"delphi_rounds: {cfg.workflow_settings.delphi_rounds}")
+    logger.info(
+        f"  forecaster models_to_run ({len(models_to_run)}): {models_to_run}; "
+        f"providers required: {sorted(required)}"
+    )
+    logger.info(
+        f"  num_experts: {cfg.workflow_settings.num_experts}, "
+        f"delphi_rounds: {cfg.workflow_settings.delphi_rounds}, "
+        f"num_repeats: {cfg.workflow_settings.num_repeats}, "
+        f"reasoning_effort: {cfg.llm_settings.reasoning_effort}"
+    )
     return cfg

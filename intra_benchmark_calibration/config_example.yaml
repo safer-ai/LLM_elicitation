@@ -26,7 +26,8 @@ intra_benchmark_settings:
   # most cells involving them to be inadmissible.
   drop_models: ["GPT-2", "GPT-3", "GPT-3.5"]
 
-  # Models to forecast for. Either:
+  # The PANEL OF MODELS BEING CALIBRATED (object of study), NOT the LLM
+  # forecasters. Either:
   #   null (or omitted) -> all models in outcomes matrix (post-drop, so 12)
   #   ["Sonnet 4.6", "Opus 4.6", ...] -> explicit subset
   # Available aliases in the panel (post-drop): Claude 3 Opus, DeepSeek V3.1, GLM-5, GPT-4o, GPT-5.1 Codex Max, GPT-5.2 Codex, GPT-5.3 Codex, Gemini 2.5 Pro, Opus 4, Opus 4.6, Sonnet 4.6, o3
@@ -90,29 +91,48 @@ intra_benchmark_settings:
   include_target_solution: false
 
 # =============================================================================
-# API keys: by default loaded from intra_benchmark_calibration/.env
-# (project-local) or LLM_elicitation/.env (repo-root). To override here, add
-# `anthropic_api_key: "sk-ant-..."` etc. -- but DO NOT commit a real key to git.
-# config.py logs the key source + first 14 chars so you can verify which key
-# is being used.
-# =============================================================================
 
 prompts_dir: "prompts"
 expert_profiles_file: "../inter_benchmark_calibration/input_data/expert_profiles/expert_profiles.yaml"
 output_dir: "results"
 
 llm_settings:
+  # `model` accepts either a single string or a list of strings. When a list
+  # is supplied the pipeline runs one full elicitation per LLM forecaster. Provider is inferred per model name (anthropic / openai / google).
+  # Examples:
+  #   model: "claude-sonnet-4-6"
+  #   model:
+  #     - "claude-sonnet-4-6"
+  #     - "gpt-5-mini"
+  #     - "gemini-3-flash-preview"
   model: "claude-sonnet-4-6"
   temperature: 1.0
   max_concurrent_calls: 5
   rate_limit_calls: 45
   rate_limit_period: 60   # seconds
 
-  thinking:
-    enabled: true
-    budget_tokens: 10000
+  # Provider-agnostic reasoning/thinking dial. One of:
+  #   "off"     - no extended reasoning (Anthropic: omit `thinking`;
+  #               OpenAI gpt-5*/o-series: reasoning_effort="minimal", since
+  #               those models always reason internally; Gemini 2.5+/3.x:
+  #               reasoning_effort="minimal").
+  #   "minimal" - smallest non-zero budget per provider.
+  #   "low"     - small budget; fast.
+  #   "medium"  - balanced budget; good default for most multi-model runs.
+  #   "high"    - largest budget; slow and expensive.
+  # Anthropic maps these to a `thinking={budget_tokens=N}` block; OpenAI/Gemini
+  # map to the `reasoning_effort` request parameter. Non-reasoning models
+  # silently ignore this setting.
+  reasoning_effort: "off"
 
 workflow_settings:
   num_experts: 2
   delphi_rounds: 1
   convergence_threshold: 0.05
+
+  # Number of independent repeats of the full elicitation pipeline per
+  # forecaster model. Each repeat re-runs every cell plan (cell plans
+  # themselves are deterministic given config + seed). All repeats share a
+  # single run directory, CSV, and JSON; rows/elicitations are tagged with a
+  # `repeat_index` column / field (1-based). Default 1 = run once.
+  num_repeats: 1
