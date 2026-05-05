@@ -34,100 +34,6 @@ logger = logging.getLogger(__name__)
 DEFAULT_DROP_MODELS: List[str] = ["GPT-2", "GPT-3", "GPT-3.5"]
 
 
-# YAML placeholder values that should be treated as "not set" and fall through
-# to environment / .env lookup.
-_API_KEY_PLACEHOLDERS = {
-    None, "", "YOUR_ANTHROPIC_API_KEY_HERE", "YOUR_OPENAI_API_KEY_HERE",
-    "SMOKE_TEST_NO_API_CALL",
-}
-
-
-def _redact(key: str) -> str:
-    """Return a short, safe-to-log prefix of an API key."""
-    if not key:
-        return "(empty)"
-    return f"{key[:14]}…[len={len(key)}]"
-
-
-def _parse_dotenv(path: Path) -> Dict[str, str]:
-    """
-    Minimal stdlib parser for KEY=VALUE lines in a .env file.
-
-    - Ignores blank lines and lines starting with '#'.
-    - Strips wrapping single or double quotes from the value.
-    - Last assignment wins.
-    - Does NOT do shell-style variable expansion.
-    """
-    out: Dict[str, str] = {}
-    if not path.is_file():
-        return out
-    try:
-        for line in path.read_text(encoding="utf-8").splitlines():
-            line = line.strip()
-            if not line or line.startswith("#") or "=" not in line:
-                continue
-            k, _, v = line.partition("=")
-            k = k.strip()
-            v = v.strip()
-            if (v.startswith("'") and v.endswith("'")) or (v.startswith('"') and v.endswith('"')):
-                v = v[1:-1]
-            if k:
-                out[k] = v
-    except Exception as e:
-        logger.warning(f"Failed to parse {path}: {e}")
-    return out
-
-
-def _dotenv_search_paths(base_dir: Path) -> List[Path]:
-    """
-    Search order for .env files (highest priority first):
-      1. <base_dir>/.env  (i.e. intra_benchmark_calibration/.env)
-      2. <repo_root>/.env (LLM_elicitation/.env)
-    """
-    paths = [base_dir / ".env"]
-    repo_root = base_dir.parent
-    if (repo_root / ".env") not in paths:
-        paths.append(repo_root / ".env")
-    return paths
-
-
-def _resolve_api_key(env_var: str, yaml_value: Optional[str], base_dir: Path) -> Optional[str]:
-    """
-    Resolve an API key with explicit precedence + clear logging:
-
-      1. YAML value (unless it's a known placeholder).
-      2. `KEY=VALUE` line in <base_dir>/.env, then <repo_root>/.env.
-         (Project-local .env wins over the global shell env so an old/wrong
-         shell-exported key cannot silently override a per-experiment key.
-         If you genuinely want the global env to win, just delete the .env
-         file or set the YAML value explicitly.)
-      3. process environment variable `env_var`.
-
-    The first non-empty source wins. Returns None if no source has a value.
-    """
-    # 1. YAML
-    if yaml_value not in _API_KEY_PLACEHOLDERS:
-        logger.info(f"{env_var}: source = YAML config, key = {_redact(yaml_value)}")
-        return yaml_value
-
-    # 2. .env files (project-local first, then repo-root)
-    for path in _dotenv_search_paths(base_dir):
-        parsed = _parse_dotenv(path)
-        if env_var in parsed and parsed[env_var]:
-            v = parsed[env_var]
-            logger.info(f"{env_var}: source = {path}, key = {_redact(v)}")
-            return v
-
-    # 3. process env
-    env_val = os.environ.get(env_var)
-    if env_val:
-        logger.info(f"{env_var}: source = process env, key = {_redact(env_val)}")
-        return env_val
-
-    logger.warning(f"{env_var}: no value found in YAML, env, or any .env file")
-    return None
-
-
 @dataclass
 class WorkflowSettings:
     num_experts: int = 2
@@ -197,6 +103,7 @@ class IntraBenchmarkConfig:
 
     api_key_anthropic: Optional[str]
     api_key_openai: Optional[str]
+    api_key_gemini: Optional[str]
 
     # Data
     lyptus_repo_dir: Path
@@ -247,11 +154,13 @@ def load_intra_benchmark_config(config_path: str | Path, base_dir: Optional[Path
         p = Path(s).expanduser()
         return p if p.is_absolute() else (base_dir / p).resolve()
 
-    # API-key resolution: YAML -> os.environ -> .env file. Logs the source
-    # (with the key prefix only) so it's easy to tell which key actually got
-    # used.
-    api_key_anthropic = _resolve_api_key("ANTHROPIC_API_KEY", data.get("anthropic_api_key"), base_dir)
-    api_key_openai = _resolve_api_key("OPENAI_API_KEY", data.get("openai_api_key"), base_dir)
+    # API-key resolution: <intra>/.env -> <repo_root>/.env -> process env.
+    repo_root = base_dir.parent
+    api_key_anthropic = resolve_api_key("ANTHROPIC_API_KEY", base_dir, repo_root)
+    api_key_openai = resolve_api_key("OPENAI_API_KEY", base_dir, repo_root)
+    api_key_gemini = resolve_api_key("GEMINI_API_KEY", base_dir, repo_root)
+    if not api_key_gemini:
+        api_key_gemini = resolve_api_key("GOOGLE_API_KEY", base_dir, repo_root)
 
     # LLM settings
     llm_data = data.get("llm_settings") or {}
@@ -338,6 +247,7 @@ def load_intra_benchmark_config(config_path: str | Path, base_dir: Optional[Path
     cfg = IntraBenchmarkConfig(
         api_key_anthropic=api_key_anthropic,
         api_key_openai=api_key_openai,
+        api_key_gemini=api_key_gemini,
         lyptus_repo_dir=lyptus_repo_dir,
         forecasted_models=forecasted_models,
         drop_models=drop_models,
