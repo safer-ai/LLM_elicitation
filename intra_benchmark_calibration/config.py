@@ -58,6 +58,7 @@ class WorkflowSettings:
             raise ValueError("WorkflowSettings: 'num_repeats' must be >= 1 (1 = run once).")
 
 
+@dataclass
 class BinningSettings:
     n_bins: int = 5
     strategy: str = "equal_count"  # equal_count | equal_log_fst | explicit_edges

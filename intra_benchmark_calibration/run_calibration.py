@@ -133,17 +133,7 @@ async def main(config_path: str) -> int:
     logger.info(f"Using {len(experts)}/{len(experts_all)} expert profiles: "
                 f"{[e.name for e in experts]}")
 
-    # 5. LLM client + concurrency
-    try:
-        client = initialize_client(
-            cfg.api_key_anthropic, cfg.api_key_openai, cfg.llm_settings.model
-        )
-    except (ImportError, ValueError) as e:
-        logger.error(f"Failed to initialise LLM client: {e}", exc_info=True)
-        return 1
-    semaphore = asyncio.Semaphore(cfg.llm_settings.max_concurrent_calls)
-
-    # 6. Init run handles
+    # 5. Init run handles
     handles = initialize_run(
         output_base_dir=cfg.output_dir,
         models_run=cfg.models_to_run,
