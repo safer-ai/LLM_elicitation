@@ -206,6 +206,27 @@ _ANTHROPIC_BUDGET_BY_EFFORT: Dict[str, int] = {
     "high":    16000,
 }
 
+# Mapping for models that use adaptive thinking + output_config.effort
+# (e.g. Claude Opus 4.7+). Adaptive models don't accept budget_tokens; instead
+# `output_config.effort` chooses one of {low, medium, high, xhigh, max}.
+_ANTHROPIC_ADAPTIVE_EFFORT_BY_EFFORT: Dict[str, str] = {
+    "minimal": "low",
+    "low":     "low",
+    "medium":  "medium",
+    "high":    "high",
+}
+
+
+def _anthropic_uses_adaptive_thinking(model: str) -> bool:
+    """Whether this Anthropic model requires adaptive-thinking + output_config.effort
+    instead of the legacy thinking.enabled + budget_tokens pair.
+
+    Currently this is the case for Opus 4.7 onwards. The legacy enabled-mode
+    request shape is rejected with a 400 on these models.
+    """
+    m = model.lower()
+    return ("opus-4-7" in m) or ("opus-4.7" in m)
+
 
 def _effective_reasoning_effort(settings: LLMSettings) -> str:
     """Resolve the active reasoning effort, preferring the unified field.
@@ -490,14 +511,35 @@ async def make_api_call(
                 "messages": [{"role": "user", "content": user_prompt}],
             }
 
-            thinking_param = _anthropic_thinking_param(effort)
-            if thinking_param is not None:
-                logger.debug(
-                    "Anthropic extended thinking enabled "
-                    f"(reasoning_effort={effort!r}, "
-                    f"budget_tokens={thinking_param['budget_tokens']})."
-                )
-                params["thinking"] = thinking_param
+            if _anthropic_uses_adaptive_thinking(model):
+                if effort != "off":
+                    adaptive_effort = _ANTHROPIC_ADAPTIVE_EFFORT_BY_EFFORT.get(effort)
+                    if adaptive_effort is None:
+                        logger.warning(
+                            "Unrecognised reasoning_effort=%r for adaptive-thinking "
+                            "Anthropic model %r; omitting thinking/output_config.",
+                            effort, model,
+                        )
+                    else:
+                        params["thinking"] = {
+                            "type": "adaptive",
+                            "display": "summarized",
+                        }
+                        params["output_config"] = {"effort": adaptive_effort}
+                        logger.debug(
+                            "Anthropic adaptive thinking enabled "
+                            f"(reasoning_effort={effort!r}, "
+                            f"output_config.effort={adaptive_effort!r})."
+                        )
+            else:
+                thinking_param = _anthropic_thinking_param(effort)
+                if thinking_param is not None:
+                    logger.debug(
+                        "Anthropic extended thinking enabled "
+                        f"(reasoning_effort={effort!r}, "
+                        f"budget_tokens={thinking_param['budget_tokens']})."
+                    )
+                    params["thinking"] = thinking_param
 
             response = await client.messages.create(**params)
             logger.debug(f"Anthropic API call successful. Raw response type: {type(response)}")
