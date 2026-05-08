@@ -5,22 +5,24 @@ Progressive results persistence for intra-benchmark calibration.
 
 Two output files per run, in `output_dir/{run_id}/`:
 
-  - `<descriptive>_estimates.csv`: ONE ROW PER ELICITATION (i.e. per
-    cell × expert × Delphi round). Written under an asyncio lock by
-    `append_elicitation_row()` immediately after each elicitation lands,
-    so a mid-run crash loses at most one in-flight call.
+  - `<run_id>_intra_estimates.csv`: ONE ROW PER ELICITATION (i.e. per
+    cell × forecaster_model × repeat_index × expert × Delphi round). Written
+    under an asyncio lock by `append_elicitation_row()` immediately after
+    each elicitation lands, so a mid-run crash loses at most one in-flight
+    call.
 
-  - `<descriptive>_results.json`: full structured record including the
+  - `<run_id>_intra_results.json`: full structured record including the
     Lyptus provenance dict, the bin definition, every cell plan, every
     elicitation's full prompts + raw response, and the run metadata.
     Updated incrementally per elicitation as well.
 
-CSV column contract (locked per user request, 2026-05-02):
+CSV column contract:
 
     condition_id, run_id, timestamp,
-    source_bin, target_bin,
-    forecasted_model, target_task_id, target_task_family, target_fst_minutes,
-    expert_id, delphi_round,
+    source_profile_type, source_bin, source_bins_shown, target_bin,
+    forecaster_model, forecasted_model,
+    target_task_id, target_task_family, target_fst_minutes,
+    expert_id, delphi_round, repeat_index,
     p25, p50, p75,
     outcome,
     anchor_task_id, easier_task_ids,
@@ -28,6 +30,12 @@ CSV column contract (locked per user request, 2026-05-02):
     prompt_hash, rationale
 
 `response_text` lives in the JSON only.
+
+Vocabulary:
+  - `forecaster_model` = the LLM acting as the FORECASTER (rotated by the
+    runner from `cfg.models_to_run`).
+  - `forecasted_model` = the model BEING CALIBRATED (object of study; one
+    of the panel rotated by the cell planner).
 """
 
 from __future__ import annotations
@@ -54,12 +62,14 @@ CSV_COLUMNS: List[str] = [
     "source_bin",           # int for single_bin/custom_subset; NaN for all_except_target
     "source_bins_shown",    # semicolon-joined list of bin indices actually shown
     "target_bin",
-    "forecasted_model",
+    "forecaster_model",     # LLM doing the forecasting (from cfg.models_to_run)
+    "forecasted_model",     # Model BEING CALIBRATED (object of study)
     "target_task_id",
     "target_task_family",
     "target_fst_minutes",
     "expert_id",
     "delphi_round",
+    "repeat_index",         # 1-based; iterates the full pipeline per forecaster model
     "p25",
     "p50",
     "p75",
@@ -91,13 +101,6 @@ def prompt_hash(*texts: str) -> str:
     return h.hexdigest()[:16]
 
 
-def _descriptive_filename(run_id: str, model: str, num_experts: int, delphi_rounds: int,
-                          temperature: float, base: str, ext: str) -> str:
-    temp_str = f"tmp{temperature:.1f}".replace(".", "")
-    safe_model = model.replace("/", "_")
-    return f"{run_id}_intra_{safe_model}_nexp{num_experts}_nrnd{delphi_rounds}_{temp_str}_{base}.{ext}"
-
-
 @dataclass
 class RunHandles:
     """Bundle of paths + lock used by the workflow to persist incrementally."""
@@ -112,27 +115,29 @@ class RunHandles:
 def initialize_run(
     *,
     output_base_dir: Path,
-    model: str,
+    models_run: List[str],
     num_experts: int,
     delphi_rounds: int,
+    num_repeats: int,
     temperature: float,
     config_snapshot: Dict[str, Any],
     dataset_provenance: Dict[str, Any],
     bin_definition: Dict[str, Any],
     n_cells_planned: int,
 ) -> RunHandles:
-    """Create the run directory and seed the CSV header + JSON metadata block."""
+    """Create the run directory and seed the CSV header + JSON metadata block.
+
+    `models_run` is the list of LLM forecasters that will be rotated through
+    in this run (i.e. `cfg.models_to_run`). All forecasters share one CSV /
+    JSON; rows are tagged with `forecaster_model`.
+    """
     run_id = _generate_run_id()
     run_dir = output_base_dir / run_id
     run_dir.mkdir(parents=True, exist_ok=True)
     logger.info(f"Created run directory: {run_dir}")
 
-    csv_path = run_dir / _descriptive_filename(
-        run_id, model, num_experts, delphi_rounds, temperature, "estimates", "csv"
-    )
-    json_path = run_dir / _descriptive_filename(
-        run_id, model, num_experts, delphi_rounds, temperature, "results", "json"
-    )
+    csv_path = run_dir / f"{run_id}_intra_estimates.csv"
+    json_path = run_dir / f"{run_id}_intra_results.json"
 
     pd.DataFrame(columns=CSV_COLUMNS).to_csv(csv_path, index=False)
     logger.info(f"Initialised CSV: {csv_path}")
@@ -143,9 +148,10 @@ def initialize_run(
             "timestamp_start": _now_iso(),
             "timestamp_end": None,
             "mode": "intra_benchmark",
-            "model": model,
+            "models_run": list(models_run),
             "num_experts": num_experts,
             "delphi_rounds_max": delphi_rounds,
+            "num_repeats": num_repeats,
             "temperature": temperature,
             "n_cells_planned": n_cells_planned,
             # `n_elicitations_persisted` counts every row written to the
@@ -243,9 +249,10 @@ def update_registry(
     *,
     registry_file: Path,
     run_id: str,
-    model: str,
+    models_run: List[str],
     num_experts: int,
     delphi_rounds: int,
+    num_repeats: int,
     n_elicitations_attempted: int,
     n_elicitations_completed: int,
     output_path: Path,
@@ -271,9 +278,10 @@ def update_registry(
         "run_id": run_id,
         "mode": "intra_benchmark",
         "timestamp": timestamp_start,
-        "model": model,
+        "models_run": list(models_run),
         "num_experts": num_experts,
         "delphi_rounds": delphi_rounds,
+        "num_repeats": num_repeats,
         "n_elicitations_attempted": n_elicitations_attempted,
         "n_elicitations_completed": n_elicitations_completed,
         "output_path": str(output_path),
@@ -292,6 +300,8 @@ def build_csv_row(
     *,
     handles: RunHandles,
     plan,                       # task_selector.CellPlan (typed loosely to avoid circular import)
+    forecaster_model: str,
+    repeat_index: int,
     expert_id: str,
     delphi_round: int,
     parsed: Dict[str, Any],
@@ -330,12 +340,14 @@ def build_csv_row(
         "source_bin": source_bin_csv,
         "source_bins_shown": bins_shown_str,
         "target_bin": plan.target_bin_j,
+        "forecaster_model": forecaster_model,
         "forecasted_model": plan.forecasted_model,
         "target_task_id": plan.target_task.task_id,
         "target_task_family": plan.target_task.task_family,
         "target_fst_minutes": round(plan.target_task.fst_minutes, 4),
         "expert_id": expert_id,
         "delphi_round": delphi_round,
+        "repeat_index": repeat_index,
         "p25": parsed.get("percentile_25th"),
         "p50": parsed.get("percentile_50th"),
         "p75": parsed.get("percentile_75th"),
@@ -354,6 +366,8 @@ def build_json_record(
     *,
     csv_row: Dict[str, Any],
     plan,
+    forecaster_model: str,
+    repeat_index: int,
     expert_id: str,
     delphi_round: int,
     system_prompt: str,
@@ -367,6 +381,9 @@ def build_json_record(
 
     Per-shown-bin context lives in `per_bin_profile_M` (parallel list to
     `source_bins_shown`). With single_bin mode this list has length 1.
+
+    `forecaster_model` and `repeat_index` are duplicated here (they're already
+    in `csv_row`) to make per-elicitation JSON entries self-contained.
     """
     per_bin = [
         {
