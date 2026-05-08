@@ -292,6 +292,74 @@ def initialize_run(config: AppConfig) -> Optional[Dict[str, Any]]:
         logger.error(f"Unexpected error during run initialization: {e}", exc_info=True)
         return None
 
+def load_existing_run(config: AppConfig, run_id: str) -> Optional[Dict[str, Any]]:
+    """Loads a previously-started run for `--resume`.
+
+    Returns the same shape of dict as `initialize_run` plus a `combined_state`
+    key holding the parsed full_results.json content. The CSV file is left
+    untouched (any new rounds will append to it; the JSON remains the source
+    of truth, so a few duplicate / superseded CSV rows from a crashed task are
+    acceptable -- the user can dedupe by (run_id, repeat_index, model,
+    step_name, task_name, round, expert_name) keeping the latest row).
+
+    Returns None if the run can't be resumed (missing directory or JSON).
+    """
+    run_dir = config.runs_dir / run_id
+    if not run_dir.is_dir():
+        logger.error(f"Cannot resume: run directory not found at {run_dir}")
+        return None
+
+    json_path = run_dir / "full_results.json"
+    csv_path = run_dir / "detailed_estimates.csv"
+
+    if not json_path.is_file():
+        logger.error(
+            f"Cannot resume run {run_id}: full_results.json missing at {json_path}. "
+            "The previous run probably crashed before any task completed."
+        )
+        return None
+
+    try:
+        with open(json_path, 'r', encoding='utf-8') as f:
+            combined_state = json.load(f)
+    except (json.JSONDecodeError, IOError) as e:
+        logger.error(f"Cannot resume run {run_id}: failed to read {json_path}: {e}")
+        return None
+
+    if not isinstance(combined_state, dict) or "results_per_model" not in combined_state:
+        logger.error(
+            f"Cannot resume run {run_id}: {json_path} doesn't have the expected shape "
+            "(missing 'results_per_model')."
+        )
+        return None
+
+    if not csv_path.is_file():
+        logger.warning(
+            f"CSV file {csv_path} not found; resuming will create a fresh CSV. "
+            "Note: rows for already-completed tasks will not be replayed into the new CSV "
+            "(JSON remains the source of truth)."
+        )
+
+    n_models = len(combined_state.get("results_per_model", []))
+    n_tasks = sum(
+        len(s.get("results_per_task", []))
+        for entry in combined_state.get("results_per_model", [])
+        for s in entry.get("results_per_step", [])
+    )
+    logger.info(
+        f"Resuming run {run_id}: loaded {n_models} model entry/entries with "
+        f"{n_tasks} persisted task result(s) from {json_path.name}."
+    )
+
+    return {
+        "run_id": run_id,
+        "run_dir": run_dir,
+        "csv_path": csv_path,
+        "json_path": json_path,
+        "combined_state": combined_state,
+    }
+
+
 def append_round_to_csv(
     csv_path: Path,
     step_name: str,

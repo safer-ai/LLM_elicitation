@@ -63,6 +63,87 @@ async def _get_cached_analysis(
     return await _analysis_cache[cache_key]
 
 
+# --- Resume / checkpoint helpers ---
+#
+# These let `run_delphi_estimation` pick up a partially-complete `combined_state`
+# (loaded from a previous run's full_results.json by main.py) and skip work that
+# already finished
+
+def _is_task_complete(task_result: Dict[str, Any], delphi_rounds: int) -> bool:
+    """Decides whether a persisted `results_per_task` entry is final.
+
+    A task is considered complete (and therefore safe to skip on resume) iff
+    one of the following holds:
+      - a final aggregated value was computed (probability or quantity);
+      - the Delphi loop reported convergence; or
+      - all configured Delphi rounds are present in `rounds_data`.
+
+    Anything weaker (e.g. a couple of round records but no aggregation) means
+    the workflow crashed mid-task; we redo it from scratch. Stale partial
+    rows in the CSV from that aborted attempt remain on disk but are clearly
+    superseded by the new rows; the JSON is the source of truth.
+    """
+    if task_result.get("final_aggregated_probability") is not None:
+        return True
+    if task_result.get("final_aggregated_estimate") is not None:
+        return True
+    if task_result.get("converged_at_round") is not None:
+        return True
+    rounds_data = task_result.get("rounds_data") or []
+    if isinstance(rounds_data, list) and len(rounds_data) >= delphi_rounds:
+        return True
+    return False
+
+
+def _find_existing_model_entry(
+    combined_state: Dict[str, Any],
+    model: str,
+    repeat_index: int,
+) -> Optional[Dict[str, Any]]:
+    """Returns the per-model entry for (model, repeat_index) in combined_state, or None.
+
+    Skips entries that carry an `error` key — those came from a crash and we
+    want a fresh entry rather than building on a half-broken state.
+    """
+    for entry in combined_state.get("results_per_model", []):
+        if (
+            entry.get("model") == model
+            and entry.get("repeat_index") == repeat_index
+            and "error" not in entry
+        ):
+            return entry
+    return None
+
+
+def _find_or_create_step_entry(
+    overall_results: Dict[str, Any],
+    step_name: str,
+    step_type: str,
+    step_description: str,
+    benchmark_used: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Returns the existing step block from `overall_results['results_per_step']`,
+    creating and registering a new one if it doesn't exist yet.
+
+    Registering up front (before the per-task loop) means intermediate JSON
+    snapshots include in-progress task lists, so a resume that lands inside
+    a half-finished step can pick up where we left off.
+    """
+    for entry in overall_results.get("results_per_step", []):
+        if entry.get("step_name") == step_name and entry.get("step_type") == step_type:
+            return entry
+    new_entry: Dict[str, Any] = {
+        "step_name": step_name,
+        "step_description": step_description,
+        "step_type": step_type,
+        "results_per_task": [],
+    }
+    if benchmark_used is not None:
+        new_entry["benchmark_used"] = benchmark_used
+    overall_results.setdefault("results_per_step", []).append(new_entry)
+    return new_entry
+
+
 # --- Helper Function ---
 
 def _select_items(items: List[Any], num_to_select: Optional[int], item_type_name: str) -> List[Any]:
@@ -528,7 +609,8 @@ async def _run_scenario_level_metric_estimation_phase(
     experts_to_use: List[ExpertProfile],
     project_root: Path,
     run_info: Dict[str, Any],
-    overall_results: Dict[str, Any]
+    overall_results: Dict[str, Any],
+    combined_state: Dict[str, Any],
 ) -> Dict[str, List[Dict[str, Any]]]:
     """
     Orchestrates Phase 2: Estimation of scenario-level metrics.
@@ -599,10 +681,40 @@ async def _run_scenario_level_metric_estimation_phase(
             phase2_results[pseudo_step_name] = []
             continue
 
-        metric_suite_task_results_list: List[Dict[str, Any]] = []
+        # Register / reuse this metric's pseudo-step entry so partial progress
+        # is reflected in intermediate JSON snapshots and resumable.
+        metric_step_entry = _find_or_create_step_entry(
+            overall_results,
+            step_name=pseudo_step_name,
+            step_type="ScenarioLevelMetricEstimation",
+            step_description=f"Estimation for {pseudo_step_name.replace('ScenarioLevelMetric_', '')}",
+        )
+        metric_suite_task_results_list: List[Dict[str, Any]] = metric_step_entry.setdefault("results_per_task", [])
 
         for task_from_bench in tasks_for_this_metric_benchmark:
             processed_metric_tasks_phase2 += 1
+
+            existing_metric_task = next(
+                (
+                    t for t in metric_suite_task_results_list
+                    if t.get("task_name") == task_from_bench.name
+                    and t.get("benchmark_source_for_task") == benchmark_file_path_normalized
+                ),
+                None,
+            )
+            if existing_metric_task is not None:
+                if _is_task_complete(existing_metric_task, config.workflow_settings.delphi_rounds):
+                    logger.info(
+                        f"  Skipping Metric Combo {processed_metric_tasks_phase2}/{total_metric_tasks_to_process_phase2}: "
+                        f"Metric='{metric_name_log}', BenchmarkTask='{task_from_bench.name}' (already complete)."
+                    )
+                    continue
+                logger.warning(
+                    f"  Discarding stale partial result for Metric='{metric_name_log}', "
+                    f"Task='{task_from_bench.name}' and re-running it."
+                )
+                metric_suite_task_results_list.remove(existing_metric_task)
+
             logger.info(f"\n\n  Processing Metric Combo {processed_metric_tasks_phase2}/{total_metric_tasks_to_process_phase2}: Metric='{metric_name_log}', BenchmarkTask='{task_from_bench.name}'")
             
             task_metric_result_dict: Dict[str, Any] = {"task_name": task_from_bench.name, "task_description": task_from_bench.description, "task_metrics": task_from_bench.metrics, "benchmark_source_for_task": benchmark_file_path_normalized, "rounds_data": [], "final_aggregated_estimate": None, "converged_at_round": None}
@@ -676,7 +788,8 @@ async def _run_scenario_level_metric_estimation_phase(
                     logger.warning(f"    No valid final quantity estimates found for {metric_name_log}/Task='{task_from_bench.name}' after R{final_round_num_metric}.")
             
             metric_suite_task_results_list.append(task_metric_result_dict)
-        
+            save_intermediate_json(run_info["json_path"], combined_state)
+
         phase2_results[pseudo_step_name] = metric_suite_task_results_list
         
         avg_metric_val, count_valid_metric_tasks = None, 0
@@ -752,29 +865,49 @@ async def run_delphi_estimation(
     # Per-model result block. The outer `run_metadata` lives at the top of
     # `combined_state` and is owned by main.py; this block holds everything
     # specific to the currently active (model, repeat_index).
-    overall_results: Dict[str, Any] = {
-        "model": config.llm_settings.model,
-        "provider": config.inferred_api_provider,
-        "repeat_index": repeat_index,
-        "run_metadata": {
-            "timestamp_start": datetime.datetime.now().isoformat(),
+    #
+    # On resume, an entry for this (model, repeat_index) may already exist in
+    # `combined_state['results_per_model']` (loaded from full_results.json).
+    # We reuse it rather than appending a duplicate so the skip-completed-tasks
+    # logic below has the previous run's progress to consult.
+    existing_entry = _find_existing_model_entry(
+        combined_state, config.llm_settings.model, repeat_index
+    )
+    if existing_entry is not None:
+        logger.info(
+            f"Resuming model '{config.llm_settings.model}' (repeat {repeat_index}): "
+            f"reusing existing entry with "
+            f"{sum(len(s.get('results_per_task', [])) for s in existing_entry.get('results_per_step', []))} "
+            f"persisted task result(s)."
+        )
+        overall_results = existing_entry
+        # Refresh metadata that depends on the current process invocation but
+        # leave persisted task / round data untouched.
+        overall_results.setdefault("run_metadata", {}).setdefault(
+            "config_used", {}
+        )["num_experts_run"] = len(experts_to_use)
+    else:
+        overall_results = {
+            "model": config.llm_settings.model,
+            "provider": config.inferred_api_provider,
             "repeat_index": repeat_index,
-            "config_used": {
-                 "llm_settings": asdict(config.llm_settings),
-                 "workflow_settings": asdict(config.workflow_settings),
-                 "provider": config.inferred_api_provider,
-                 "benchmark_file": str(config.default_benchmark_file.relative_to(project_root).as_posix()),
-                 "scenario_file": str(config.scenario_file.relative_to(project_root).as_posix()),
-                 "num_experts_run": len(experts_to_use),
-                 "num_steps_run": 0,
-                 "num_tasks_run": config.workflow_settings.num_tasks
+            "run_metadata": {
+                "timestamp_start": datetime.datetime.now().isoformat(),
+                "repeat_index": repeat_index,
+                "config_used": {
+                    "llm_settings": asdict(config.llm_settings),
+                    "workflow_settings": asdict(config.workflow_settings),
+                    "provider": config.inferred_api_provider,
+                    "benchmark_file": str(config.default_benchmark_file.relative_to(project_root).as_posix()),
+                    "scenario_file": str(config.scenario_file.relative_to(project_root).as_posix()),
+                    "num_experts_run": len(experts_to_use),
+                    "num_steps_run": 0,
+                    "num_tasks_run": config.workflow_settings.num_tasks,
+                },
             },
-        },
-        "results_per_step": []
-    }
-    # Register this model's block in the combined state up front so that any
-    # intermediate JSON snapshot includes its partial progress.
-    combined_state.setdefault("results_per_model", []).append(overall_results)
+            "results_per_step": [],
+        }
+        combined_state.setdefault("results_per_model", []).append(overall_results)
 
     # PHASE 1: Step-Specific Probability Estimation
     logger.info("\n\n--- Starting Phase 1: Step-Specific Probability Estimations ---")
@@ -815,19 +948,26 @@ async def run_delphi_estimation(
     processed_tasks_phase1 = 0
 
     for scenario_step in steps_to_run_phase1:
-        step_results_p1: Dict[str, Any] = {"step_name": scenario_step.name, "step_description": scenario_step.description, "step_type": "ProbabilityEstimation", "results_per_task": []}
-        
         benchmark_key = scenario_step.benchmark_file or overall_results["run_metadata"]["config_used"]["benchmark_file"]
         current_benchmark_p1 = input_data.loaded_benchmarks.get(benchmark_key)
+
+        # Register the step entry up front (or reuse an existing one from a
+        # prior partial run) so intermediate JSON snapshots include its
+        # in-progress task list. This is what makes mid-step resume work.
+        step_results_p1 = _find_or_create_step_entry(
+            overall_results,
+            step_name=scenario_step.name,
+            step_type="ProbabilityEstimation",
+            step_description=scenario_step.description,
+            benchmark_used=benchmark_key,
+        )
 
         if not current_benchmark_p1:
             logger.error(f"Phase 1: Benchmark (key: '{benchmark_key}') for step '{scenario_step.name}' not found. Skipping.")
             step_results_p1["error"] = f"Benchmark '{benchmark_key}' could not be loaded."
-            overall_results["results_per_step"].append(step_results_p1)
             continue
         
         logger.info(f"\nPhase 1: Processing Step '{scenario_step.name}' using Benchmark '{benchmark_key}'")
-        step_results_p1["benchmark_used"] = benchmark_key
 
         tasks_to_run_for_step = _select_tasks_for_benchmark(
             current_benchmark_p1.tasks,
@@ -837,6 +977,31 @@ async def run_delphi_estimation(
 
         for task_p1 in tasks_to_run_for_step:
             processed_tasks_phase1 += 1
+
+            # Resume: if a complete result for this task already exists from a
+            # previous run, skip it. If a partial / aborted result exists,
+            # discard it and process the task afresh.
+            existing_task = next(
+                (
+                    t for t in step_results_p1.get("results_per_task", [])
+                    if t.get("task_name") == task_p1.name
+                    and t.get("benchmark_source_for_task") == benchmark_key
+                ),
+                None,
+            )
+            if existing_task is not None:
+                if _is_task_complete(existing_task, config.workflow_settings.delphi_rounds):
+                    logger.info(
+                        f"  Skipping Prob. Combo {processed_tasks_phase1}/{approx_total_tasks_phase1}: "
+                        f"Step='{scenario_step.name}', Task='{task_p1.name}' (already complete from prior run)."
+                    )
+                    continue
+                logger.warning(
+                    f"  Discarding stale partial result for Step='{scenario_step.name}', "
+                    f"Task='{task_p1.name}' and re-running it."
+                )
+                step_results_p1["results_per_task"].remove(existing_task)
+
             logger.info(f"\n\n  Processing Prob. Combo {processed_tasks_phase1}/{approx_total_tasks_phase1}: Step='{scenario_step.name}', Task='{task_p1.name}'")
             
             task_step_result_p1: Dict[str, Any] = {"task_name": task_p1.name, "task_description": task_p1.description, "task_metrics": task_p1.metrics, "benchmark_source_for_task": benchmark_key, "rounds_data": [], "final_aggregated_probability": None, "converged_at_round": None}
@@ -902,24 +1067,14 @@ async def run_delphi_estimation(
             step_results_p1["results_per_task"].append(task_step_result_p1)
             save_intermediate_json(run_info["json_path"], combined_state)
 
-        overall_results["results_per_step"].append(step_results_p1)
-    
     logger.info("--- Phase 1: Step-Specific Probability Estimations Completed ---")
 
     # PHASE 2: Scenario-Level Metric Estimation
-    phase2_results = await _run_scenario_level_metric_estimation_phase(
+    await _run_scenario_level_metric_estimation_phase(
         client, semaphore, config, input_data, experts_to_use, project_root,
-        run_info, overall_results
+        run_info, overall_results, combined_state,
     )
-
-    for pseudo_step_name, tasks_list in phase2_results.items():
-        overall_results["results_per_step"].append({
-            "step_name": pseudo_step_name,
-            "step_description": f"Estimation for {pseudo_step_name.replace('ScenarioLevelMetric_', '')}",
-            "step_type": "ScenarioLevelMetricEstimation",
-            "results_per_task": tasks_list
-        })
-        save_intermediate_json(run_info["json_path"], combined_state)
+    save_intermediate_json(run_info["json_path"], combined_state)
 
     # Finalization
     run_duration = time.time() - run_start_time
