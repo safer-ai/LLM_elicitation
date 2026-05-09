@@ -1,0 +1,73 @@
+# =============================================================================
+# Experiment G — model sweep, condition C design
+#
+# Tests three Claude models on the same elicitation task to measure
+# capability scaling in forecasting quality.
+#
+# Design mirrors experiment C (single_bin, K=1):
+#   - 5 bins (equal_count), 20 i→j source→target pairs (all i≠j)
+#   - 12 models in the outcomes matrix (after dropping GPT-2/3/3.5)
+#   - K=1 target task per cell
+#   - 1 expert persona (per-expert analysis showed no benefit from 2)
+#   - 1 Delphi round
+#
+# Cell count:  5×4 pairs × 12 models × 1 task  = 240 cells / model
+# API calls:   240 × 2 (analysis + estimation)  = 480 / model
+#
+# Models in the sweep (pipeline runs each in sequence):
+#   1. claude-sonnet-4-20250514  — Sonnet 4 (deprecated 2026-06-15; run soon!)
+#   2. claude-sonnet-4-6         — Sonnet 4.6 baseline (already run in exp C)
+#   3. claude-opus-4-7           — Opus 4.7 (latest, adaptive thinking)
+#
+# Opus 4.7 note: uses adaptive thinking (not extended thinking). The API
+# handles this automatically; reasoning_effort="high" still applies an upper
+# budget per provider mapping in shared/llm_client.py.
+# =============================================================================
+
+intra_benchmark_settings:
+  lyptus_repo_dir: ~/lyptus-data
+  drop_models: ["GPT-2", "GPT-3", "GPT-3.5"]
+  forecasted_models: null   # null → all 12 models post-drop
+
+  binning:
+    n_bins: 5
+    strategy: equal_count
+
+  target_selection:
+    selection_mode: auto_sample
+    n_target_tasks_per_cell: 1    # K=1
+    sampling_seed: 42             # same seed as exp C for comparability
+
+  source_profile:
+    source_bins_to_show: []       # single_bin mode (show only source bin i)
+    n_examples_per_source_bin: 2
+
+  include_target_solution: false
+
+prompts_dir: prompts
+expert_profiles_file: ../../../inter_benchmark_calibration/input_data/expert_profiles/expert_profiles.yaml
+output_dir: results
+
+llm_settings:
+  # Three-model sweep. Pipeline runs each model independently; one run
+  # directory + CSV + JSON per model (tagged by model name + timestamp).
+  model:
+    - "claude-sonnet-4-20250514"  # Sonnet 4  (deprecated; run before 2026-06-15)
+    - "claude-sonnet-4-6"         # Sonnet 4.6 baseline
+    - "claude-opus-4-7"           # Opus 4.7 latest
+
+  temperature: 1.0
+  max_concurrent_calls: 10
+  rate_limit_calls: 200
+  rate_limit_period: 60
+
+  # Provider-agnostic reasoning dial.
+  # "high" → Anthropic: budget_tokens=16000 (extended or adaptive per model).
+  # Sonnet 4 / 4.6: extended thinking. Opus 4.7: adaptive thinking.
+  reasoning_effort: "high"
+
+workflow_settings:
+  num_experts: 1       # 1 expert — per-expert analysis showed no quality loss
+  delphi_rounds: 1
+  convergence_threshold: 0.05
+  num_repeats: 1

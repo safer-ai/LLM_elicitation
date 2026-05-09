@@ -1,0 +1,20 @@
+{
+  "runs": [
+    {
+      "run_id": "20260508_203012",
+      "mode": "intra_benchmark",
+      "timestamp": "20260508_203012",
+      "models_run": [
+        "claude-sonnet-4-6"
+      ],
+      "num_experts": 1,
+      "delphi_rounds": 1,
+      "num_repeats": 1,
+      "n_elicitations_attempted": 240,
+      "n_elicitations_completed": 240,
+      "output_path": "/Users/madhav/SaferAI/LLM_elicitation/intra_benchmark_calibration/experiments/H_task_variance_bin3/results/20260508_203012",
+      "config_file": "/Users/madhav/SaferAI/LLM_elicitation/intra_benchmark_calibration/experiments/H_task_variance_bin3/config_task_variance.yaml"
+    }
+  ],
+  "last_updated": "2026-05-09T03:13:35"
+}

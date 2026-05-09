@@ -1,0 +1,48 @@
+# =============================================================================
+# Experiment G — model sweep, condition C design
+# Elicitation model: claude-sonnet-4-20250514 (Sonnet 4)
+#
+# NOTE: claude-sonnet-4-20250514 is deprecated and retires 2026-06-15.
+#       Run before that date.
+#
+# Design mirrors experiment C (single_bin, K=1):
+#   20 pairs × 12 models × 1 task × 1 expert = 240 elicitations
+# =============================================================================
+
+intra_benchmark_settings:
+  lyptus_repo_dir: ~/lyptus-data
+  drop_models: ["GPT-2", "GPT-3", "GPT-3.5"]
+  forecasted_models: null
+
+  binning:
+    n_bins: 5
+    strategy: equal_count
+
+  target_selection:
+    selection_mode: auto_sample
+    n_target_tasks_per_cell: 1
+    sampling_seed: 42
+
+  source_profile:
+    source_bins_to_show: []
+    n_examples_per_source_bin: 2
+
+  include_target_solution: false
+
+prompts_dir: prompts
+expert_profiles_file: ../../../inter_benchmark_calibration/input_data/expert_profiles/expert_profiles.yaml
+output_dir: results
+
+llm_settings:
+  model: "claude-sonnet-4-20250514"
+  temperature: 1.0
+  max_concurrent_calls: 10
+  rate_limit_calls: 200
+  rate_limit_period: 60
+  reasoning_effort: "high"   # extended thinking, budget_tokens=16000
+
+workflow_settings:
+  num_experts: 1
+  delphi_rounds: 1
+  convergence_threshold: 0.05
+  num_repeats: 1

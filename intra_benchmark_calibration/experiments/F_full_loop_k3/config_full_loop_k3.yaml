@@ -1,0 +1,51 @@
+# Experiment F: full loop K=3
+# All 20 (source_bin i, target_bin j) pairs where i≠j, K=3 target tasks per cell.
+# This is the full single_bin loop (same as run C) but with K=3 target tasks.
+#
+# K=3 target tasks are stratified by log-FST within the target bin:
+#   one task sampled from the low-FST third, one from mid, one from high (seed=42).
+#
+# Cell count: 20 pairs × 12 models × 3 targets × 2 experts = 1440 rows
+# API calls:  1440 elicitations × 2 calls (analysis + estimation) = 2880 total
+#
+# You can always extract the 5 closest-bin pairs post-hoc from these results
+# to compare K=3 closest-bin vs K=3 full-loop on equal footing.
+#
+# Everything else identical to run C (single_bin, thinking on, T=1.0).
+
+lyptus_repo_dir: ~/lyptus-data
+
+llm_settings:
+  model: claude-sonnet-4-6
+  temperature: 1.0
+  max_concurrent_calls: 10
+  rate_limit_calls: 200
+  rate_limit_period: 60
+  thinking:
+    enabled: true
+    budget_tokens: 10000
+
+workflow_settings:
+  num_experts: 2
+  delphi_rounds: 1
+  convergence_threshold: 0.05
+
+intra_benchmark_settings:
+  lyptus_repo_dir: ~/lyptus-data
+  drop_models: ["GPT-2", "GPT-3", "GPT-3.5"]
+  binning:
+    n_bins: 5
+    strategy: equal_count
+  target_selection:
+    selection_mode: auto_sample
+    n_target_tasks_per_cell: 3      # K=3: one target per FST third of the bin
+    sampling_seed: 42
+  source_profile:
+    source_bins_to_show: []         # single_bin mode: show only source bin i
+    n_examples_per_source_bin: 2
+    resample_anchors_per_target: false
+  include_target_solution: false
+
+prompts_dir: prompts
+expert_profiles_file: ../../../inter_benchmark_calibration/input_data/expert_profiles/expert_profiles.yaml
+output_dir: results

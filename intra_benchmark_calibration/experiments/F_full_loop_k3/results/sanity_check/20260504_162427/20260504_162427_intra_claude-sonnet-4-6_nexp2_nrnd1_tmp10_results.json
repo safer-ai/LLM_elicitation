@@ -1,0 +1,161 @@
+{
+  "run_metadata": {
+    "run_id": "20260504_162427",
+    "timestamp_start": "2026-05-04T16:24:27",
+    "timestamp_end": null,
+    "mode": "intra_benchmark",
+    "model": "claude-sonnet-4-6",
+    "num_experts": 2,
+    "delphi_rounds_max": 1,
+    "temperature": 1.0,
+    "n_cells_planned": 56,
+    "n_elicitations_persisted": 0,
+    "n_elicitations_succeeded": 0,
+    "config_snapshot": {
+      "lyptus_repo_dir": "/Users/madhav/lyptus-data",
+      "forecasted_models": [
+        "Sonnet 4.6"
+      ],
+      "drop_models": [
+        "GPT-2",
+        "GPT-3",
+        "GPT-3.5"
+      ],
+      "benchmark_description": null,
+      "binning": {
+        "n_bins": 5,
+        "strategy": "equal_count",
+        "explicit_edges": null
+      },
+      "target_selection": {
+        "selection_mode": "auto_sample",
+        "explicit_target_tasks": null,
+        "sampling_seed": 42,
+        "n_target_tasks_per_cell": 3
+      },
+      "source_profile": {
+        "source_bins_to_show": [
+          1
+        ],
+        "n_examples_per_source_bin": 2,
+        "resample_anchors_per_target": false
+      },
+      "include_target_solution": false,
+      "llm_settings": {
+        "model": "claude-sonnet-4-6",
+        "temperature": 1.0,
+        "max_concurrent_calls": 3,
+        "rate_limit_calls": 45,
+        "rate_limit_period": 60,
+        "thinking": {
+          "enabled": true,
+          "budget_tokens": 10000
+        }
+      },
+      "workflow_settings": {
+        "num_experts": 2,
+        "delphi_rounds": 1,
+        "convergence_threshold": 0.05
+      },
+      "prompts_dir": "/Users/madhav/SaferAI/LLM_elicitation/intra_benchmark_calibration/experiments/F_full_loop_k3/prompts",
+      "expert_profiles_file": "/Users/madhav/SaferAI/LLM_elicitation/inter_benchmark_calibration/input_data/expert_profiles/expert_profiles.yaml",
+      "output_dir": "/Users/madhav/SaferAI/LLM_elicitation/intra_benchmark_calibration/experiments/F_full_loop_k3/results/sanity_check"
+    },
+    "dataset_provenance": {
+      "lyptus_repo_dir": "/Users/madhav/lyptus-data",
+      "lyptus_commit_sha": "a514c63feb9eb34df3a013e46cc625338d5beeab",
+      "n_headline_tasks_in_parquet": 291,
+      "n_headline_tasks_used": 269,
+      "n_dropped_no_estimation_instructions": 22,
+      "dropped_task_ids_no_estimation_instructions": [
+        "arvo:10252",
+        "arvo:11523",
+        "arvo:1236",
+        "arvo:13345",
+        "arvo:25332",
+        "arvo:26829",
+        "arvo:3408",
+        "arvo:3498",
+        "arvo:3736",
+        "arvo:41221",
+        "arvo:43268",
+        "arvo:44432",
+        "arvo:44855",
+        "arvo:46279",
+        "arvo:46307",
+        "arvo:51045",
+        "arvo:5494",
+        "arvo:5914",
+        "arvo:5992",
+        "arvo:6336",
+        "arvo:65531",
+        "arvo:65820"
+      ],
+      "models_in_outcomes_matrix": [
+        "Claude 3 Opus",
+        "DeepSeek V3.1",
+        "GLM-5",
+        "GPT-4o",
+        "GPT-5.1 Codex Max",
+        "GPT-5.2 Codex",
+        "GPT-5.3 Codex",
+        "Gemini 2.5 Pro",
+        "Opus 4",
+        "Opus 4.6",
+        "Sonnet 4.6",
+        "o3"
+      ],
+      "n_models_in_outcomes_matrix": 12,
+      "all_model_aliases_in_parquet": [
+        "Claude 3 Opus",
+        "DeepSeek V3.1",
+        "GLM-5",
+        "GPT-2",
+        "GPT-3",
+        "GPT-3.5",
+        "GPT-4o",
+        "GPT-5.1 Codex Max",
+        "GPT-5.2 Codex",
+        "GPT-5.3 Codex",
+        "Gemini 2.5 Pro",
+        "Opus 4",
+        "Opus 4.6",
+        "Sonnet 4.6",
+        "o3"
+      ],
+      "sparse_models_at_load": [
+        "GLM-5",
+        "GPT-2",
+        "GPT-3",
+        "GPT-3.5",
+        "Opus 4"
+      ],
+      "design_observations": [
+        "Per-task binary outcomes for the forecasted model are shown alongside anchor and easier tasks in the prompt (more discriminative than the bin-level pass rate alone). See prompt_builder._outcome_tag.",
+        "Anchor selection is M-independent in practice: with 10/12 models having full coverage of the 269 headline tasks, the representativeness heuristic |task_panel_pass_rate - bin_panel_mean| picks the same task across forecasted models within a bin. GLM-5 / Opus 4 are missing 1-2 tasks each in the harder bins but this never changes the top candidate (verified for n_bins=5, see production_anchors.csv).",
+        "Anchor distribution skews to NYUCTF (3 of 5 bins under default n_bins=5 / equal_count): NYUCTF tasks tend to have tight per-task pass-rate distributions that match bin means well. cybashbench anchors bin 0; cybergym (arvo) anchors bin 3. Documented design observation, not a bug."
+      ]
+    },
+    "bin_definition": {
+      "strategy": "equal_count",
+      "n_bins": 5,
+      "edges_minutes": [
+        0.45859747473539997,
+        2.8128791726073152,
+        12.819694992907904,
+        59.999999999999986,
+        180.0,
+        2160.002159999999
+      ],
+      "n_tasks_per_bin": [
+        54,
+        54,
+        51,
+        55,
+        55
+      ]
+    }
+  },
+  "cells": [],
+  "elicitations": []
+}

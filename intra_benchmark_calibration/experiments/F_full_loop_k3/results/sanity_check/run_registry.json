@@ -1,0 +1,17 @@
+{
+  "runs": [
+    {
+      "run_id": "20260504_162511",
+      "mode": "intra_benchmark",
+      "timestamp": "20260504_162511",
+      "model": "claude-sonnet-4-6",
+      "num_experts": 2,
+      "delphi_rounds": 1,
+      "n_elicitations_attempted": 120,
+      "n_elicitations_completed": 120,
+      "output_path": "/Users/madhav/SaferAI/LLM_elicitation/intra_benchmark_calibration/experiments/F_full_loop_k3/results/sanity_check/20260504_162511",
+      "config_file": "/Users/madhav/SaferAI/LLM_elicitation/intra_benchmark_calibration/experiments/F_full_loop_k3/config_sanity_check.yaml"
+    }
+  ],
+  "last_updated": "2026-05-04T17:55:18"
+}

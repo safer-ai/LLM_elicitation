@@ -1,0 +1,40 @@
+# Run D: single_bin mode, thinking on, T=1.0, K=3
+# Identical to run C (20260503_011139) except n_target_tasks_per_cell: 3
+# Target tasks are stratified by log-FST into 3 equal strata (low/mid/high),
+# one task sampled per stratum (seeded, reproducible).
+
+lyptus_repo_dir: ~/lyptus-data
+
+llm_settings:
+  model: claude-sonnet-4-6
+  temperature: 1.0
+  max_concurrent_calls: 5
+  rate_limit_calls: 45
+  rate_limit_period: 60
+  thinking:
+    enabled: true
+    budget_tokens: 10000
+
+workflow_settings:
+  num_experts: 2
+  delphi_rounds: 1
+  convergence_threshold: 0.05
+
+intra_benchmark_settings:
+  drop_models: ["GPT-2", "GPT-3", "GPT-3.5"]
+  binning:
+    n_bins: 5
+    strategy: equal_count
+  target_selection:
+    selection_mode: auto_sample
+    n_target_tasks_per_cell: 3      # K=3: one target from each FST third of the bin
+    sampling_seed: 42
+  source_profile:
+    source_bins_to_show: []         # single_bin mode: show only source bin i
+    n_examples_per_source_bin: 2
+    resample_anchors_per_target: false
+  include_target_solution: false
+
+prompts_dir: intra_benchmark_calibration/prompts
+expert_profiles_file: inter_benchmark_calibration/input_data/expert_profiles/expert_profiles.yaml
+output_dir: intra_benchmark_calibration/results/D_single_bin_k3

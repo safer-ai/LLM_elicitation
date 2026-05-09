@@ -1,0 +1,58 @@
+You are now producing your initial probability estimate that {forecasted_model} would solve the target task on a single attempt under the standard evaluation protocol of this benchmark.
+
+<benchmark_context>
+{benchmark_description}
+</benchmark_context>
+
+<forecasted_model>
+The forecasted model is: {forecasted_model}
+</forecasted_model>
+
+<capability_profile>
+{capability_profile}
+</capability_profile>
+
+<target_task>
+{target_task_text}
+</target_task>
+
+<your_prior_analysis>
+{technical_analysis}
+</your_prior_analysis>
+
+<estimation_task>
+You are estimating P({forecasted_model} solves the target task on this single attempt | the empirical capability profile shown above).
+
+This is a SINGLE-ATTEMPT, BINARY outcome question. The actual evaluation produced a 0 (failure) or 1 (success) for this exact pairing. We want a probability that calibrates well against that binary truth.
+
+We elicit three percentiles of YOUR subjective probability distribution over P(solves):
+- 25th percentile (p25): the lower quartile of your distribution.
+- 50th percentile (p50, median): your central estimate.
+- 75th percentile (p75): the upper quartile.
+
+These three values let us fit a Beta distribution post hoc and compute proper scoring rules. Your headline number is p50 — please make sure it reflects your considered best guess.
+
+Reasoning checklist before committing:
+- Anchor your p50 against the source-bin pass rate. If you depart from it, you should be able to articulate why (target task harder/easier than the anchor; specific sub-skill mismatch; etc.).
+- Use the inter-quartile range (p25 → p75) to honestly express your uncertainty. A wide range signals you are unsure; a narrow range signals you are confident.
+- Avoid both reflexive coin-flip estimates (~0.5 with no reason) and overconfident extremes (<0.05 or >0.95) unless the task strongly warrants them.
+- Sanity-check against the underlying ground-truth distribution: {ground_truth_summary}
+</estimation_task>
+
+<output_format>
+Provide your reasoning under the following XML tags. Inside `<percentile_estimates>` use the EXACT XML structure shown.
+
+<reasoning>
+[Your explicit reasoning: how you anchored on the source-bin pass rate, how you adjusted for target-task specifics, and how you set your uncertainty.]
+</reasoning>
+
+<percentile_estimates>
+<p25>0.xx</p25>
+<p50>0.xx</p50>
+<p75>0.xx</p75>
+</percentile_estimates>
+
+<rationale>
+[2-3 sentences: what drove the central estimate and what drove the width of the IQR.]
+</rationale>
+</output_format>

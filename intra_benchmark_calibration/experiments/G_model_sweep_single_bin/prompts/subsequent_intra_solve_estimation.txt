@@ -1,0 +1,52 @@
+You previously produced a probability estimate that {forecasted_model} would solve the target task. You now have access to the other experts' previous-round responses and have the option to update your estimate.
+
+<benchmark_context>
+{benchmark_description}
+</benchmark_context>
+
+<forecasted_model>
+The forecasted model is: {forecasted_model}
+</forecasted_model>
+
+<capability_profile>
+{capability_profile}
+</capability_profile>
+
+<target_task>
+{target_task_text}
+</target_task>
+
+<previous_round_feedback>
+{context}
+</previous_round_feedback>
+
+<refinement_task>
+You are estimating P({forecasted_model} solves the target task on this single attempt | the empirical capability profile shown above).
+
+Reflect on the previous-round feedback:
+
+1. Where do the other experts cluster, and where do they disagree?
+2. Did anyone identify a sub-skill mismatch (in either direction) you had missed?
+3. Are you the outlier? If so, do you have a defensible reason to remain there, or has new evidence been presented?
+4. Has your uncertainty (IQR width) been justifiably altered by what others said?
+
+You may move toward, away from, or stay at your previous estimate — whichever is best supported. Do NOT artificially conform to the median; the goal is calibration, not consensus.
+</refinement_task>
+
+<output_format>
+Provide your reasoning under the following XML tags. Inside `<percentile_estimates>` use the EXACT XML structure shown.
+
+<reasoning>
+[Your synthesis of the previous round, your assessment of any updates to your estimate, and the justification for the resulting p50 and IQR.]
+</reasoning>
+
+<percentile_estimates>
+<p25>0.xx</p25>
+<p50>0.xx</p50>
+<p75>0.xx</p75>
+</percentile_estimates>
+
+<rationale>
+[2-3 sentences: how the round-to-round update was driven, or why you held your ground.]
+</rationale>
+</output_format>
