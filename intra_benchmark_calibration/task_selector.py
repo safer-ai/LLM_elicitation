@@ -11,8 +11,8 @@ forecasted model M:
     by M, never trivially {0%, 100%} unless the whole bin is).
   - `n_examples_per_source_bin` easier tasks from bin i, evaluated by M.
 
-The target side picks K target tasks from bin j either deterministically (when
-`explicit_target_tasks` is provided) or via stratified-by-log-FST sampling.
+The target side picks K target tasks from bin j either via a fixed list (when
+`explicit_target_tasks` is provided) or via stratified-by-log-FST median picks.
 
 Cell admissibility (q3 caveat):
     For cell (i, j, M, t), require M to have a non-NaN outcome on:
@@ -180,15 +180,14 @@ def sample_target_tasks(
     dataset: LyptusDataset,
     *,
     k: int,
-    seed: int,
 ) -> List[LyptusTask]:
     """
     Stratified-by-log-FST sample of K target tasks from bin j.
 
     Strategy:
-      - Sort bin's tasks by log10(FST), divide into K equal-count strata,
-        pick one per stratum at random (seeded).
-      - If K == 1, pick the median-FST task deterministically.
+      - Sort bin's tasks by log10(FST), split into K parts,
+        and pick the median-FST task from each
+      - If K == 1, pick the median-FST task over the whole bin.
     """
     by_id = dataset.task_by_id
     in_bin = [tid for tid, b in zip(dataset.task_ids, bins.bin_index_per_task) if b == bin_idx_j]
@@ -200,9 +199,8 @@ def sample_target_tasks(
     if k <= 1:
         return [by_id[in_bin[len(in_bin) // 2]]]
 
-    rng = np.random.default_rng(seed)
     chunks = np.array_split(np.array(in_bin), k)
-    return [by_id[str(rng.choice(c))] for c in chunks]
+    return [by_id[str(c[len(c) // 2])] for c in chunks]
 
 
 def build_cell_plans(
@@ -213,7 +211,6 @@ def build_cell_plans(
     source_bins_to_show: Union[List[int], str],
     n_examples_per_source_bin: int,
     n_target_tasks_per_cell: int,
-    target_sampling_seed: int,
     explicit_target_tasks: Optional[Dict[int, List[str]]] = None,
 ) -> List[CellPlan]:
     """
@@ -272,9 +269,7 @@ def build_cell_plans(
     def targets_for_bin(j: int) -> List[LyptusTask]:
         if j in explicit_target_tasks:
             return [by_id[tid] for tid in explicit_target_tasks[j] if tid in by_id]
-        return sample_target_tasks(
-            j, bins, dataset, k=n_target_tasks_per_cell, seed=target_sampling_seed + j
-        )
+        return sample_target_tasks(j, bins, dataset, k=n_target_tasks_per_cell)
 
     targets_cache: Dict[int, List[LyptusTask]] = {j: targets_for_bin(j) for j in range(n_bins)}
 
