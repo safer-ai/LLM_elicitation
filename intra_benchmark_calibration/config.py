@@ -67,9 +67,8 @@ class BinningSettings:
 
 @dataclass
 class TargetSelectionSettings:
-    selection_mode: str = "auto_sample"  # auto_sample | explicit_target_tasks
+    selection_mode: str = "auto"  # auto | explicit_target_tasks
     explicit_target_tasks: Optional[Dict[int, List[str]]] = None
-    sampling_seed: int = 42
     n_target_tasks_per_cell: int = 1
 
 
@@ -246,9 +245,8 @@ def load_intra_benchmark_config(config_path: str | Path, base_dir: Optional[Path
         {int(k): list(v) for k, v in raw_explicit.items()} if raw_explicit else None
     )
     target_selection = TargetSelectionSettings(
-        selection_mode=str(tgt_data.get("selection_mode", "auto_sample")),
+        selection_mode=str(tgt_data.get("selection_mode", "auto")),
         explicit_target_tasks=explicit_target_tasks,
-        sampling_seed=int(tgt_data.get("sampling_seed", 42)),
         n_target_tasks_per_cell=int(tgt_data.get("n_target_tasks_per_cell", 1)),
     )
 

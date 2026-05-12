@@ -112,7 +112,6 @@ async def main(config_path: str) -> int:
         source_bins_to_show=cfg.source_profile.source_bins_to_show,
         n_examples_per_source_bin=cfg.source_profile.n_examples_per_source_bin,
         n_target_tasks_per_cell=cfg.target_selection.n_target_tasks_per_cell,
-        target_sampling_seed=cfg.target_selection.sampling_seed,
         explicit_target_tasks=cfg.target_selection.explicit_target_tasks,
     )
     if not cell_plans:
