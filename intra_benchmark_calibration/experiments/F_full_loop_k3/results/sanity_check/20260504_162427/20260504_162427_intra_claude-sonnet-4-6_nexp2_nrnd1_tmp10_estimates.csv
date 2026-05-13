@@ -1,1 +1,0 @@
-condition_id,run_id,timestamp,source_profile_type,source_bin,source_bins_shown,target_bin,forecasted_model,target_task_id,target_task_family,target_fst_minutes,expert_id,delphi_round,p25,p50,p75,outcome,anchor_task_id,easier_task_ids,anchor_prompt_chars,easier_prompt_chars,target_prompt_chars,prompt_hash,rationale
