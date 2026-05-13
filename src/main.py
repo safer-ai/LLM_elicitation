@@ -21,7 +21,7 @@ try:
     from data_loader import load_all_inputs, InputData
     from shared.llm_client import initialize_client
     from workflow import run_delphi_estimation
-    from results_handler import initialize_run, finalize_run, save_intermediate_json
+    from results_handler import initialize_run, finalize_run, load_existing_run, save_intermediate_json
 except ImportError as e:
     logger.error(f"Failed to import necessary project modules: {e}")
     logger.error("Ensure you have run 'pip install -r requirements.txt' (if applicable) and that the script is run from the project root directory.")
@@ -210,15 +210,25 @@ def _config_for_model(base_config: AppConfig, model: str) -> AppConfig:
     return replace(base_config, llm_settings=new_llm_settings)
 
 
-async def main(config_path: str):
+async def main(config_path: str, resume_run_id: Optional[str] = None):
     """Orchestrates the LLM Delphi estimation pipeline.
 
     A single `run_id` is created for the whole process. All models loop into
     the same CSV (one row per expert/round/task, with a `model` column) and
     the same JSON (a top-level `results_per_model` list). Intermediate JSON
     snapshots are written after each task so a partial run is recoverable.
+
+    When `resume_run_id` is provided, the pipeline reuses the existing run
+    directory (and its full_results.json + CSV) and skips any (model,
+    repeat_index, step, task) units already completed in the persisted state.
     """
-    logger.info(f"--- Starting LLM Estimator Pipeline using config: {config_path} ---")
+    if resume_run_id:
+        logger.info(
+            f"--- Resuming LLM Estimator Pipeline (run_id={resume_run_id}) "
+            f"using config: {config_path} ---"
+        )
+    else:
+        logger.info(f"--- Starting LLM Estimator Pipeline using config: {config_path} ---")
 
     # 1. Load Configuration
     try:
@@ -242,38 +252,78 @@ async def main(config_path: str):
         logger.error(f"An unexpected error occurred during input data loading: {e}", exc_info=True)
         return
 
-    # 3. Initialize Run Output
-    # One run for the whole process: one timestamp / run_id / directory / CSV / JSON.
-    run_info = initialize_run(config)
-    if not run_info:
-        logger.error("Failed to initialise run output directory; aborting.")
-        return
+    # 3. Initialize (or reload) Run Output
+    # In a fresh run: one new timestamped run_id / directory / CSV / JSON.
+    # In a resumed run: reuse the existing run_id and its files; the previously
+    # persisted combined_state is loaded so the workflow can skip completed work.
     project_root = Path.cwd()
+    if resume_run_id:
+        run_info = load_existing_run(config, resume_run_id)
+        if not run_info:
+            logger.error(f"Failed to load existing run '{resume_run_id}'; aborting.")
+            return
+        combined_state = run_info["combined_state"]
+        # Ensure top-level metadata exists (older runs might have been written
+        # before the current schema). New `timestamp_start_resume` records when
+        # we picked the run back up.
+        combined_state.setdefault("run_metadata", {})
+        combined_state["run_metadata"].setdefault("run_id", run_info["run_id"])
+        combined_state["run_metadata"].setdefault(
+            "models_run", list(config.models_to_run)
+        )
+        combined_state["run_metadata"]["timestamp_start_resume"] = (
+            datetime.datetime.now().isoformat()
+        )
+        # Stamp number of resumes so repeated --resume cycles are visible in JSON.
+        combined_state["run_metadata"]["resume_count"] = (
+            int(combined_state["run_metadata"].get("resume_count", 0)) + 1
+        )
+        # If a previous attempt crashed mid-run, main.py stamped an `error`
+        # field on the in-progress per-model entry. We clear those errors here
+        # so the workflow can pick up the partial step/task data instead of
+        # treating the entry as a write-off and starting from scratch.
+        cleared = 0
+        for entry in combined_state.get("results_per_model", []):
+            if "error" in entry and entry.get("results_per_step"):
+                logger.info(
+                    f"Resume: clearing prior crash-error on entry "
+                    f"(model={entry.get('model')!r}, repeat={entry.get('repeat_index')}) "
+                    f"to continue its partial progress."
+                )
+                entry.pop("error", None)
+                cleared += 1
+        if cleared:
+            logger.info(f"Resume: cleared {cleared} prior crash-error flag(s) on partial entries.")
+    else:
+        run_info = initialize_run(config)
+        if not run_info:
+            logger.error("Failed to initialise run output directory; aborting.")
+            return
+        combined_state = {
+            "run_metadata": {
+                "run_id": run_info["run_id"],
+                "timestamp_start": datetime.datetime.now().isoformat(),
+                "models_run": list(config.models_to_run),
+                "scenario_file": str(config.scenario_file.relative_to(project_root).as_posix()),
+                "default_benchmark_file": str(config.default_benchmark_file.relative_to(project_root).as_posix()),
+                "workflow_settings": asdict(config.workflow_settings),
+                "shared_llm_settings": {
+                    # Settings that are constant across all model runs (everything
+                    # except `model` itself). Captured here so per-model entries
+                    # don't have to repeat them.
+                    "temperature": config.llm_settings.temperature,
+                    "max_concurrent_calls": config.llm_settings.max_concurrent_calls,
+                    "rate_limit_calls": config.llm_settings.rate_limit_calls,
+                    "rate_limit_period": config.llm_settings.rate_limit_period,
+                    "reasoning_effort": config.llm_settings.reasoning_effort,
+                },
+                "num_repeats": config.workflow_settings.num_repeats,
+            },
+            "results_per_model": [],
+        }
 
     # 4. Run Core Workflow
     process_start = time.time()
-    combined_state: Dict[str, Any] = {
-        "run_metadata": {
-            "run_id": run_info["run_id"],
-            "timestamp_start": datetime.datetime.now().isoformat(),
-            "models_run": list(config.models_to_run),
-            "scenario_file": str(config.scenario_file.relative_to(project_root).as_posix()),
-            "default_benchmark_file": str(config.default_benchmark_file.relative_to(project_root).as_posix()),
-            "workflow_settings": asdict(config.workflow_settings),
-            "shared_llm_settings": {
-                # Settings that are constant across all model runs (everything
-                # except `model` itself). Captured here so per-model entries
-                # don't have to repeat them.
-                "temperature": config.llm_settings.temperature,
-                "max_concurrent_calls": config.llm_settings.max_concurrent_calls,
-                "rate_limit_calls": config.llm_settings.rate_limit_calls,
-                "rate_limit_period": config.llm_settings.rate_limit_period,
-                "reasoning_effort": config.llm_settings.reasoning_effort,
-            },
-            "num_repeats": config.workflow_settings.num_repeats,
-        },
-        "results_per_model": [],
-    }
     save_intermediate_json(run_info["json_path"], combined_state)
 
     num_repeats = max(1, config.workflow_settings.num_repeats)
@@ -393,6 +443,15 @@ if __name__ == "__main__":
         action="store_true",
         help="Enable debug level logging for detailed output."
     )
+    parser.add_argument(
+        "-r", "--resume",
+        default=None,
+        metavar="RUN_ID",
+        help=(
+            "Resume a previous run. Pass the run_id (e.g. 20260507_143015) of an "
+            "existing directory under output_data/runs/."
+        ),
+    )
     args = parser.parse_args()
 
     if args.debug:
@@ -424,7 +483,7 @@ if __name__ == "__main__":
         if not Path(args.config).is_file():
              logger.error(f"Configuration file specified does not exist: {args.config}")
              sys.exit(1)
-        asyncio.run(main(config_path=args.config))
+        asyncio.run(main(config_path=args.config, resume_run_id=args.resume))
     except KeyboardInterrupt:
         logger.info("Pipeline interrupted by user (Ctrl+C).")
         sys.exit(0)

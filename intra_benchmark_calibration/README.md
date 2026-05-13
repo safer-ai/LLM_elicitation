@@ -81,7 +81,6 @@ Brier on p50; CRPS via Beta fit is the v2 stub.
 | `forecasted_models` | `null` (= all 12 in panel) | List of model aliases |
 | `drop_models` | `["GPT-2", "GPT-3", "GPT-3.5"]` | Sparse-coverage models to exclude |
 | `target_selection.n_target_tasks_per_cell` | 1 | K target tasks per cell |
-| `target_selection.sampling_seed` | 42 | RNG seed for stratified-by-log-FST sampling |
 | `source_profile.source_bins_to_show` | `[]` (= `[i]`) | Which bins to include in capability profile |
 | `source_profile.n_examples_per_source_bin` | 2 | Easier-tasks count per shown bin (1 anchor + N) |
 | `include_target_solution` | `false` | Show `solution_walkthrough` to forecaster |

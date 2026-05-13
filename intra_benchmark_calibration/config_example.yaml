@@ -50,14 +50,13 @@ intra_benchmark_settings:
 
   target_selection:
     # How target tasks are picked from each target bin j:
-    #   "auto_sample"            - stratified-by-log-FST sample, K per cell,
-    #                              deterministic by `sampling_seed`.
+    #   "auto"            - stratified-by-log-FST: median picks from K sub-bins
+    #                              spaced equally in log10(FST) space.
     #   "explicit_target_tasks"  - user-supplied list per bin (paper-friendly,
     #                              fully reproducible). Then set
     #                              `explicit_target_tasks:` below as a dict
     #                              {bin_j: [task_id, ...]}.
-    selection_mode: "auto_sample"
-    sampling_seed: 42
+    selection_mode: "auto"
     n_target_tasks_per_cell: 1  # K target tasks per cell
     # explicit_target_tasks:
     #   0: ["cybashbench_misc/contextual_001"]

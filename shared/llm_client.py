@@ -35,7 +35,27 @@ except ImportError:
     AsyncOpenAI = None
     ChatCompletion = None
 
+try:
+    from tenacity import (
+        AsyncRetrying,
+        before_sleep_log,
+        retry_if_exception_type,
+        stop_after_delay,
+        wait_exponential,
+    )
+    _TENACITY_AVAILABLE = True
+except ImportError:
+    _TENACITY_AVAILABLE = False
+
 logger = logging.getLogger(__name__)
+
+_RETRY_TOTAL_BUDGET_SECONDS = 60 * 60   # ~60 minutes total wall clock
+_RETRY_WAIT_MIN_SECONDS = 4
+_RETRY_WAIT_MAX_SECONDS = 300            # cap each backoff at 5 minutes
+_RETRY_WAIT_MULTIPLIER = 2
+
+_SDK_MAX_RETRIES = 8
+_SDK_REQUEST_TIMEOUT_SECONDS = 120.0
 
 _call_timestamps: List[float] = []
 
@@ -186,6 +206,27 @@ _ANTHROPIC_BUDGET_BY_EFFORT: Dict[str, int] = {
     "high":    16000,
 }
 
+# Mapping for models that use adaptive thinking + output_config.effort
+# (e.g. Claude Opus 4.7+). Adaptive models don't accept budget_tokens; instead
+# `output_config.effort` chooses one of {low, medium, high, xhigh, max}.
+_ANTHROPIC_ADAPTIVE_EFFORT_BY_EFFORT: Dict[str, str] = {
+    "minimal": "low",
+    "low":     "low",
+    "medium":  "medium",
+    "high":    "high",
+}
+
+
+def _anthropic_uses_adaptive_thinking(model: str) -> bool:
+    """Whether this Anthropic model requires adaptive-thinking + output_config.effort
+    instead of the legacy thinking.enabled + budget_tokens pair.
+
+    Currently this is the case for Opus 4.7 onwards. The legacy enabled-mode
+    request shape is rejected with a 400 on these models.
+    """
+    m = model.lower()
+    return ("opus-4-7" in m) or ("opus-4.7" in m)
+
 
 def _effective_reasoning_effort(settings: LLMSettings) -> str:
     """Resolve the active reasoning effort, preferring the unified field.
@@ -272,7 +313,11 @@ def initialize_client(
         if not api_key_anthropic:
             raise ValueError("Anthropic provider selected, but API key is missing in config.")
         logger.info(f"Initializing Anthropic client for model: {model}")
-        return AsyncAnthropic(api_key=api_key_anthropic)
+        return AsyncAnthropic(
+            api_key=api_key_anthropic,
+            max_retries=_SDK_MAX_RETRIES,
+            timeout=_SDK_REQUEST_TIMEOUT_SECONDS,
+        )
 
     if provider == 'openai':
         if not openai:
@@ -280,7 +325,11 @@ def initialize_client(
         if not api_key_openai:
             raise ValueError("OpenAI provider selected, but API key is missing in config.")
         logger.info(f"Initializing OpenAI client for model: {model}")
-        return AsyncOpenAI(api_key=api_key_openai)
+        return AsyncOpenAI(
+            api_key=api_key_openai,
+            max_retries=_SDK_MAX_RETRIES,
+            timeout=_SDK_REQUEST_TIMEOUT_SECONDS,
+        )
 
     if provider == 'google':
         if not openai:
@@ -294,7 +343,12 @@ def initialize_client(
             f"Initializing OpenAI-compat client for Gemini model '{model}' "
             f"(base_url={GEMINI_OPENAI_COMPAT_BASE_URL})"
         )
-        return AsyncOpenAI(api_key=api_key_gemini, base_url=GEMINI_OPENAI_COMPAT_BASE_URL)
+        return AsyncOpenAI(
+            api_key=api_key_gemini,
+            base_url=GEMINI_OPENAI_COMPAT_BASE_URL,
+            max_retries=_SDK_MAX_RETRIES,
+            timeout=_SDK_REQUEST_TIMEOUT_SECONDS,
+        )
 
     raise ValueError(f"Unsupported API provider for model: {model}")
 
@@ -389,6 +443,25 @@ def _get_final_text_openai(response: Union[ChatCompletion, Any]) -> str:
         return ""
 
 
+def _network_retryable_exceptions() -> tuple:
+    """Returns the tuple of exception types our outer retry loop should retry on.
+
+    These are transient network-level failures: TCP/DNS errors, request
+    timeouts, etc. They're typically what we see when Wi-Fi is dropped while
+    a request is in flight. The SDK retries each request a few times itself;
+    only after those fail does our outer loop see one of these exceptions.
+    """
+    excs: list = []
+    for mod in (anthropic, openai):
+        if mod is None:
+            continue
+        for name in ("APIConnectionError", "APITimeoutError"):
+            cls = getattr(mod, name, None)
+            if cls is not None:
+                excs.append(cls)
+    return tuple(excs) if excs else (ConnectionError,)
+
+
 async def make_api_call(
     client: Union[AsyncAnthropic, AsyncOpenAI],
     semaphore: Semaphore,
@@ -401,6 +474,11 @@ async def make_api_call(
     Makes an asynchronous call to the configured LLM API (Anthropic or OpenAI),
     handling rate limiting, errors, and response text extraction.
     Supports extended thinking for Anthropic models when configured.
+
+    Network resilience: transient connection / timeout errors are retried via
+    an outer tenacity loop with exponential backoff (capped at 5 min per wait,
+    ~60 min total). This is on top of the SDK's own internal retries (see
+    `_SDK_MAX_RETRIES`)
 
     Returns:
         The extracted text content from the LLM response, or an
@@ -417,7 +495,13 @@ async def make_api_call(
         f"Temp={settings.temperature}, MaxTokens={max_tokens}, ReasoningEffort={effort!r}"
     )
 
-    try:
+    async def _do_request() -> str:
+        """Performs one SDK request and extracts the response text.
+
+        Raised exceptions propagate so the outer tenacity loop can decide
+        whether to retry them. Non-network errors (auth, bad request, ...)
+        bubble up to the existing handler chain below.
+        """
         if provider == 'anthropic' and isinstance(client, AsyncAnthropic):
             params: Dict[str, Any] = {
                 "model": model,
@@ -427,14 +511,35 @@ async def make_api_call(
                 "messages": [{"role": "user", "content": user_prompt}],
             }
 
-            thinking_param = _anthropic_thinking_param(effort)
-            if thinking_param is not None:
-                logger.debug(
-                    "Anthropic extended thinking enabled "
-                    f"(reasoning_effort={effort!r}, "
-                    f"budget_tokens={thinking_param['budget_tokens']})."
-                )
-                params["thinking"] = thinking_param
+            if _anthropic_uses_adaptive_thinking(model):
+                if effort != "off":
+                    adaptive_effort = _ANTHROPIC_ADAPTIVE_EFFORT_BY_EFFORT.get(effort)
+                    if adaptive_effort is None:
+                        logger.warning(
+                            "Unrecognised reasoning_effort=%r for adaptive-thinking "
+                            "Anthropic model %r; omitting thinking/output_config.",
+                            effort, model,
+                        )
+                    else:
+                        params["thinking"] = {
+                            "type": "adaptive",
+                            "display": "summarized",
+                        }
+                        params["output_config"] = {"effort": adaptive_effort}
+                        logger.debug(
+                            "Anthropic adaptive thinking enabled "
+                            f"(reasoning_effort={effort!r}, "
+                            f"output_config.effort={adaptive_effort!r})."
+                        )
+            else:
+                thinking_param = _anthropic_thinking_param(effort)
+                if thinking_param is not None:
+                    logger.debug(
+                        "Anthropic extended thinking enabled "
+                        f"(reasoning_effort={effort!r}, "
+                        f"budget_tokens={thinking_param['budget_tokens']})."
+                    )
+                    params["thinking"] = thinking_param
 
             response = await client.messages.create(**params)
             logger.debug(f"Anthropic API call successful. Raw response type: {type(response)}")
@@ -488,8 +593,40 @@ async def make_api_call(
             logger.error(err_msg)
             return "Error: Client/Provider mismatch"
 
-    except (anthropic.APIConnectionError if anthropic else Exception, openai.APIConnectionError if openai else Exception) as e:
-        logger.error(f"API Connection Error: {e}", exc_info=True)
+    retryable = _network_retryable_exceptions()
+    try:
+        if _TENACITY_AVAILABLE:
+            async for attempt in AsyncRetrying(
+                retry=retry_if_exception_type(retryable),
+                wait=wait_exponential(
+                    multiplier=_RETRY_WAIT_MULTIPLIER,
+                    min=_RETRY_WAIT_MIN_SECONDS,
+                    max=_RETRY_WAIT_MAX_SECONDS,
+                ),
+                stop=stop_after_delay(_RETRY_TOTAL_BUDGET_SECONDS),
+                reraise=True,
+                before_sleep=before_sleep_log(logger, logging.WARNING),
+            ):
+                with attempt:
+                    return await _do_request()
+            # AsyncRetrying with reraise=True always either returns from inside
+            # the loop or re-raises; this line is unreachable but keeps the
+            # type checker happy.
+            return "Error: Unexpected: retry loop exited without result"
+        else:
+            logger.warning(
+                "tenacity is not installed; falling back to a single attempt without "
+                "outer retry. Long network outages will produce 'Error: API Connection Error'. "
+                "Run `pip install tenacity` to enable resilient retries."
+            )
+            return await _do_request()
+
+    except retryable as e:
+        logger.error(
+            f"API Connection Error after exhausting outer retry budget "
+            f"({_RETRY_TOTAL_BUDGET_SECONDS}s): {e}",
+            exc_info=True,
+        )
         return "Error: API Connection Error"
     except (anthropic.RateLimitError if anthropic else Exception, openai.RateLimitError if openai else Exception) as e:
         logger.warning(f"API Rate Limit Error encountered: {e}. Consider adjusting rate limit settings in config.")
