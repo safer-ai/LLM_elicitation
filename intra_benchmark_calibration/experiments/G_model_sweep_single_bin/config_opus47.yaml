@@ -1,13 +1,13 @@
 # =============================================================================
-# Experiment G — model sweep, condition C design
+# Experiment G — model sweep
 # Elicitation model: claude-opus-4-7 (Opus 4.7, latest)
 #
 # Opus 4.7 uses adaptive thinking (not extended thinking).
-# reasoning_effort="high" maps to budget_tokens=16000 on Anthropic;
-# the model uses this budget adaptively.
+# reasoning_effort="high" maps to output_config.effort="high".
 #
-# Design mirrors experiment C (single_bin, K=1):
-#   20 pairs × 12 models × 1 task × 1 expert = 240 elicitations
+# Design: all_except_target, K=3, 1 expert (Case A)
+#   5 target bins × 12 forecasted models × 3 tasks = 180 cells
+#   180 × 2 API calls (analysis + estimation)       = 360 API calls
 # =============================================================================
 
 intra_benchmark_settings:
@@ -21,11 +21,11 @@ intra_benchmark_settings:
 
   target_selection:
     selection_mode: auto_sample
-    n_target_tasks_per_cell: 1
+    n_target_tasks_per_cell: 3    # K=3: 3 separate elicitations, one target task each
     sampling_seed: 42
 
   source_profile:
-    source_bins_to_show: []
+    source_bins_to_show: "all_except_target"   # show all 4 other bins as source context
     n_examples_per_source_bin: 2
 
   include_target_solution: false
@@ -40,7 +40,7 @@ llm_settings:
   max_concurrent_calls: 10
   rate_limit_calls: 200
   rate_limit_period: 60
-  reasoning_effort: "high"   # adaptive thinking, budget_tokens=16000
+  reasoning_effort: "high"   # adaptive thinking for Opus 4.7
 
 workflow_settings:
   num_experts: 1

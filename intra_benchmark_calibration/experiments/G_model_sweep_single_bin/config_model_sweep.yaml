@@ -1,27 +1,32 @@
 # =============================================================================
-# Experiment G — model sweep, condition C design
+# Experiment G — model sweep (Case A design)
 #
-# Tests three Claude models on the same elicitation task to measure
-# capability scaling in forecasting quality.
+# Tests Claude models on the same elicitation task to measure capability
+# scaling in forecasting quality.
 #
-# Design mirrors experiment C (single_bin, K=1):
-#   - 5 bins (equal_count), 20 i→j source→target pairs (all i≠j)
-#   - 12 models in the outcomes matrix (after dropping GPT-2/3/3.5)
-#   - K=1 target task per cell
-#   - 1 expert persona (per-expert analysis showed no benefit from 2)
+# Design: all_except_target, K=3, 1 expert
+#   - 5 bins (equal_count)
+#   - all_except_target: for each target bin j, all 4 other bins shown as source
+#   - 12 forecasted models (after dropping GPT-2/3/3.5)
+#   - K=3 target tasks per cell (3 separate elicitations, 1 target task each)
+#   - 1 expert persona
 #   - 1 Delphi round
 #
-# Cell count:  5×4 pairs × 12 models × 1 task  = 240 cells / model
-# API calls:   240 × 2 (analysis + estimation)  = 480 / model
+# Cell count:  5 target bins × 12 models × 3 tasks = 180 cells / forecaster
+# API calls:   180 × 2 (analysis + estimation)      = 360 / forecaster
 #
-# Models in the sweep (pipeline runs each in sequence):
-#   1. claude-sonnet-4-20250514  — Sonnet 4 (deprecated 2026-06-15; run soon!)
-#   2. claude-sonnet-4-6         — Sonnet 4.6 baseline (already run in exp C)
-#   3. claude-opus-4-7           — Opus 4.7 (latest, adaptive thinking)
+# Models in the sweep:
+#   1. claude-haiku-4-5   — Haiku 4.5 (no extended thinking; reasoning_effort=off)
+#   2. claude-opus-4-7    — Opus 4.7 (adaptive thinking; reasoning_effort=high)
+#   Note: claude-sonnet-4-6 results already available from prior runs.
 #
-# Opus 4.7 note: uses adaptive thinking (not extended thinking). The API
-# handles this automatically; reasoning_effort="high" still applies an upper
-# budget per provider mapping in shared/llm_client.py.
+# IMPORTANT: Haiku and Opus require different reasoning_effort settings.
+# Run them using their individual configs to avoid mismatches:
+#   python run_calibration.py -c config_haiku45.yaml
+#   python run_calibration.py -c config_opus47.yaml
+#
+# This file is a combined reference only. If running the sweep jointly,
+# reasoning_effort="off" is used (safe for both models; Opus loses thinking).
 # =============================================================================
 
 intra_benchmark_settings:
@@ -35,11 +40,11 @@ intra_benchmark_settings:
 
   target_selection:
     selection_mode: auto_sample
-    n_target_tasks_per_cell: 1    # K=1
-    sampling_seed: 42             # same seed as exp C for comparability
+    n_target_tasks_per_cell: 3    # K=3: 3 separate elicitations, one target task each
+    sampling_seed: 42
 
   source_profile:
-    source_bins_to_show: []       # single_bin mode (show only source bin i)
+    source_bins_to_show: "all_except_target"   # show all 4 other bins as source context
     n_examples_per_source_bin: 2
 
   include_target_solution: false
@@ -49,25 +54,21 @@ expert_profiles_file: ../../../inter_benchmark_calibration/input_data/expert_pro
 output_dir: results
 
 llm_settings:
-  # Three-model sweep. Pipeline runs each model independently; one run
-  # directory + CSV + JSON per model (tagged by model name + timestamp).
+  # Use individual per-model configs (config_haiku45.yaml, config_opus47.yaml)
+  # for correct reasoning_effort per model. This combined sweep uses "off"
+  # as a safe fallback for both.
   model:
-    - "claude-sonnet-4-20250514"  # Sonnet 4  (deprecated; run before 2026-06-15)
-    - "claude-sonnet-4-6"         # Sonnet 4.6 baseline
-    - "claude-opus-4-7"           # Opus 4.7 latest
+    - "claude-haiku-4-5"   # Haiku 4.5 — no extended thinking
+    - "claude-opus-4-7"    # Opus 4.7  — adaptive thinking (use config_opus47.yaml for "high")
 
   temperature: 1.0
   max_concurrent_calls: 10
   rate_limit_calls: 200
   rate_limit_period: 60
-
-  # Provider-agnostic reasoning dial.
-  # "high" → Anthropic: budget_tokens=16000 (extended or adaptive per model).
-  # Sonnet 4 / 4.6: extended thinking. Opus 4.7: adaptive thinking.
-  reasoning_effort: "high"
+  reasoning_effort: "off"   # safe default for combined sweep; see per-model configs
 
 workflow_settings:
-  num_experts: 1       # 1 expert — per-expert analysis showed no quality loss
+  num_experts: 1
   delphi_rounds: 1
   convergence_threshold: 0.05
   num_repeats: 1
