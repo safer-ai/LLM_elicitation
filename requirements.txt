@@ -7,3 +7,7 @@ PyYAML==6.0.2
 scipy==1.17.1
 seaborn==0.13.2
 scipy==1.17.1
+<<<<<<< HEAD
+=======
+inspect-ai==0.3.205
+>>>>>>> 2dffb5c (lyptus explorations)
