@@ -81,3 +81,5 @@ consistency_checks/output_data_quintiles
 consistency_checks/negation_prompts
 consistency_checks/output_data*
 consistency_checks/quantile_variance_prompts
+
+*.codex
