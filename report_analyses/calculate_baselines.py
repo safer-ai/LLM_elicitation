@@ -970,21 +970,28 @@ def score_runs(
     *,
     config: BaselineConfig | None = None,
     one_row_per_evaluation_cell: bool = False,
+    group_cols: Sequence[str] | None = None,
 ) -> pd.DataFrame:
     config = config or BaselineConfig()
+    group_cols = list(group_cols or [])
     rows = []
     for idx, (label, df) in enumerate(run_frames.items(), start=100):
-        rows.append(
-            score_prediction_source(
-                run_rows_for_scoring(df, one_row_per_evaluation_cell=one_row_per_evaluation_cell),
+        scored_rows = run_rows_for_scoring(df, one_row_per_evaluation_cell=one_row_per_evaluation_cell)
+        groups = [((), scored_rows)] if not group_cols else scored_rows.groupby(group_cols, dropna=False)
+        for group_idx, (key, group) in enumerate(groups):
+            if group_cols and not isinstance(key, tuple):
+                key = (key,)
+            group_values = dict(zip(group_cols, key)) if group_cols else {}
+            row = score_prediction_source(
+                group,
                 source_type="run",
                 source=label,
                 pred_col="p50",
                 interval_cols=("p25", "p50", "p75"),
                 config=config,
-                seed_offset=idx,
+                seed_offset=idx + 100 * group_idx,
             )
-        )
+            rows.append({**group_values, **row})
     return pd.DataFrame(rows)
 
 
