@@ -1,3 +1,14 @@
+# Notes, reports, and personal docs (keep README.md and QUICK_START.md)
+*_notes.md
+*_reports.md
+*_spec.md
+meet.md
+metrics.md
+FRECHET_ANOVA_IMPLEMENTATION.md
+latex/notes/
+RESULTS*.md
+*RESULTS_SUMMARY.md
+
 # Env files and API keys (NEVER commit)
 .env
 .env.*
