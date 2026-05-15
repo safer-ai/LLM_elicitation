@@ -134,6 +134,7 @@ class RunComparisonData:
     run_frames: dict[str, pd.DataFrame]
     shared_run_frames: dict[str, pd.DataFrame]
     shared_panel: pd.DataFrame
+    all_panel: pd.DataFrame
     run_index: pd.DataFrame
     target_count_summary: pd.DataFrame
     target_presence: pd.DataFrame
@@ -829,6 +830,7 @@ def load_shared_run_comparison(
     *,
     run_labels: dict[Path, str] | None = None,
     strict_evaluation_cell_match: bool = True,
+    require_shared_panel: bool = True,
 ) -> RunComparisonData:
     if not run_paths:
         raise ValueError("Set run_paths to one or more run directories or *_estimates.csv files.")
@@ -888,14 +890,18 @@ def load_shared_run_comparison(
         if len(missing_task_ids) > 20:
             missing_task_list += f", ... (+{len(missing_task_ids) - 20} more)"
         warnings.warn(
-            f"{len(incomplete_targets)} raw target tasks are not present in every run and will be excluded "
-            f"from the shared scoring panel: {missing_task_list}. Inspect incomplete_targets for missing_from per task.",
+            f"{len(incomplete_targets)} raw target tasks are not present in every run: {missing_task_list}. "
+            "Inspect incomplete_targets for missing_from per task.",
             stacklevel=2,
         )
 
     common_target_ids = set(target_presence.loc[target_presence["n_runs"] == len(run_frames), "target_task_id"])
-    if not common_target_ids:
+    if not common_target_ids and require_shared_panel:
         raise ValueError("No raw target_task_id values are present in every run.")
+
+    all_cell_tables = {label: evaluation_cell_table(df) for label, df in run_frames.items()}
+    all_cells = set.union(*(tuple_set(cells, EVALUATION_CELL_COLUMNS) for cells in all_cell_tables.values()))
+    all_panel = pd.DataFrame(sorted(all_cells), columns=EVALUATION_CELL_COLUMNS).reset_index(drop=True)
 
     task_shared_run_frames = {
         label: df[df["target_task_id"].isin(common_target_ids)].copy().reset_index(drop=True)
@@ -904,7 +910,7 @@ def load_shared_run_comparison(
 
     cell_tables = {label: evaluation_cell_table(df) for label, df in task_shared_run_frames.items()}
     cell_sets = {label: tuple_set(cells, EVALUATION_CELL_COLUMNS) for label, cells in cell_tables.items()}
-    all_cells = set.union(*cell_sets.values())
+    shared_candidate_cells = set.union(*cell_sets.values())
     common_cells = set.intersection(*cell_sets.values())
     cell_mismatch_rows = []
     for label, cell_set in cell_sets.items():
@@ -912,7 +918,7 @@ def load_shared_run_comparison(
             cell_mismatch_rows.append(
                 {
                     "run_label": label,
-                    "n_cells_not_in_this_run": len(all_cells - cell_set),
+                    "n_cells_not_in_this_run": len(shared_candidate_cells - cell_set),
                     "n_excluded_from_shared_panel": len(cell_set - common_cells),
                 }
             )
@@ -928,7 +934,7 @@ def load_shared_run_comparison(
         else:
             print(f"Warning: {message}")
 
-    if not common_cells:
+    if not common_cells and require_shared_panel:
         raise ValueError("No scoreable evaluation cells are present in every run after target-task filtering.")
 
     shared_panel = pd.DataFrame(sorted(common_cells), columns=EVALUATION_CELL_COLUMNS).reset_index(drop=True)
@@ -942,6 +948,7 @@ def load_shared_run_comparison(
         run_frames=run_frames,
         shared_run_frames=shared_run_frames,
         shared_panel=shared_panel,
+        all_panel=all_panel,
         run_index=run_index,
         target_count_summary=target_count_summary,
         target_presence=target_presence,
