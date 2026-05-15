@@ -8,6 +8,9 @@ FRECHET_ANOVA_IMPLEMENTATION.md
 latex/notes/
 RESULTS*.md
 *RESULTS_SUMMARY.md
+*FINDINGS*.md
+poster/*.md
+poster/*.pdf
 
 # Env files and API keys (NEVER commit)
 .env
