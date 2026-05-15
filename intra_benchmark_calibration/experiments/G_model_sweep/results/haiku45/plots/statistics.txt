@@ -1,0 +1,28 @@
+======================================================================
+INTRA-BENCHMARK CALIBRATION STATISTICS (v1)
+======================================================================
+  Source-profile type(s) in this run: all_except_target
+  N elicitations analysed (final-round, parsed p50): 299
+
+--- Headline (Brier on p50) ---
+  Brier-on-p50:                   0.1712
+  (chance baseline = 0.25; perfect = 0)
+
+--- Error metrics ---
+  MAE:                            0.3319
+  RMSE:                           0.4138
+  Bias (mean p50 - outcome):      -0.0938
+
+--- Calibration ---
+  Expected Calibration Error (10-bin equal-width): 0.1025
+
+--- Rank correlation between p50 and outcome ---
+  Spearman's rho:                 0.5868  (p=0.0000)
+  Kendall's tau:                  0.4836  (p=0.0000)
+
+--- CRPS (v2 stub: Beta fit to (p25, p50, p75)) ---
+  Mean CRPS:                      0.2594
+  N rows scored:                  299
+  N Beta-fit failures:            0
+
+======================================================================

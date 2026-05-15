@@ -1,0 +1,65 @@
+{
+  "runs": [
+    {
+      "run_id": "20260513_162934",
+      "mode": "intra_benchmark",
+      "timestamp": "20260513_162934",
+      "models_run": [
+        "claude-opus-4-7"
+      ],
+      "num_experts": 1,
+      "delphi_rounds": 1,
+      "num_repeats": 1,
+      "n_elicitations_attempted": 300,
+      "n_elicitations_completed": 290,
+      "output_path": "/Users/madhav/SaferAI/LLM_elicitation/intra_benchmark_calibration/experiments/G_model_sweep/results/20260513_162934",
+      "config_file": "/Users/madhav/SaferAI/LLM_elicitation/intra_benchmark_calibration/experiments/G_model_sweep/config_opus47.yaml"
+    },
+    {
+      "run_id": "20260513_095333",
+      "mode": "intra_benchmark",
+      "timestamp": "20260513_095333",
+      "models_run": [
+        "gemini-2.5-flash"
+      ],
+      "num_experts": 1,
+      "delphi_rounds": 1,
+      "num_repeats": 1,
+      "n_elicitations_attempted": 300,
+      "n_elicitations_completed": 300,
+      "output_path": "/Users/madhav/SaferAI/LLM_elicitation/intra_benchmark_calibration/experiments/G_model_sweep/results/20260513_095333",
+      "config_file": "/Users/madhav/SaferAI/LLM_elicitation/intra_benchmark_calibration/experiments/G_model_sweep/config_gemini25flash.yaml"
+    },
+    {
+      "run_id": "20260513_082133",
+      "mode": "intra_benchmark",
+      "timestamp": "20260513_082133",
+      "models_run": [
+        "claude-sonnet-4-6"
+      ],
+      "num_experts": 1,
+      "delphi_rounds": 1,
+      "num_repeats": 1,
+      "n_elicitations_attempted": 300,
+      "n_elicitations_completed": 299,
+      "output_path": "/Users/madhav/SaferAI/LLM_elicitation/intra_benchmark_calibration/experiments/G_model_sweep/results/20260513_082133",
+      "config_file": "/Users/madhav/SaferAI/LLM_elicitation/intra_benchmark_calibration/experiments/G_model_sweep/config_sonnet46.yaml"
+    },
+    {
+      "run_id": "20260512_230408",
+      "mode": "intra_benchmark",
+      "timestamp": "20260512_230408",
+      "models_run": [
+        "claude-haiku-4-5"
+      ],
+      "num_experts": 1,
+      "delphi_rounds": 1,
+      "num_repeats": 1,
+      "n_elicitations_attempted": 300,
+      "n_elicitations_completed": 299,
+      "output_path": "/Users/madhav/SaferAI/LLM_elicitation/intra_benchmark_calibration/experiments/G_model_sweep/results/20260512_230408",
+      "config_file": "/Users/madhav/SaferAI/LLM_elicitation/intra_benchmark_calibration/experiments/G_model_sweep/config_haiku45.yaml"
+    }
+  ],
+  "last_updated": "2026-05-13T18:54:38"
+}
