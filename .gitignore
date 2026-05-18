@@ -1,3 +1,6 @@
+# Generated figure staging directory (run reproduce_figures.sh to populate)
+figures_for_report/
+
 # Notes, reports, and personal docs (keep README.md and QUICK_START.md)
 *_notes.md
 *_reports.md
