@@ -29,7 +29,8 @@
 #   New 2  — Model sweep vs baselines per bin [committed PNG: report_analyses/]
 #   New 3  — All-tasks model sweep           [committed PNG: report_analyses/]
 #   New 4  — METR-style logFST (Sonnet 4.6)  [committed PNG: G_model_sweep/]
-#   New 5  — Reliability diagram (Sonnet 4.6) [committed PNG: G_model_sweep/]
+#   New 5  — p50 vs GT solve rate, bin 1      [committed PNG: H_task_variance_bin1/]
+#   New 6  — Per-task Brier, bin 1            [committed PNG: H_task_variance_bin1/]
 #
 # TABLE CSVs
 #   Condition A/B/C/E/F comparison: numbers are hardcoded in poster/context.md §6.4
@@ -123,10 +124,12 @@ cp "$REPO/report_analyses/results/model_sweep_baseline/target_bin_score_comparis
 cp "$REPO/report_analyses/results/model_sweep_baseline_all_tasks/score_comparison.png" \
    "$OUT/new_fig1c_all_tasks_comparison.png"
 
-# ── POST-MIDTERM: Sonnet 4.6 diagnostic figures ───────────────────────────────
+# ── POST-MIDTERM: Sonnet 4.6 + bin-1 diagnostic figures ──────────────────────
 SONNET="$REPO/intra_benchmark_calibration/experiments/G_model_sweep/results/sonnet46/plots"
 cp "$SONNET/metr_style_logfst.png"    "$OUT/new_fig2_metr_logfst_sonnet46.png"
-cp "$SONNET/reliability_diagram.png"  "$OUT/new_fig3_reliability_sonnet46.png"
+BIN1="$REPO/intra_benchmark_calibration/experiments/H_task_variance_bin1/results"
+cp "$BIN1/fig_exp_h_bin1_p50_vs_gt_solve_rate.png" "$OUT/new_fig3_p50_vs_gt_solve_rate_bin1.png"
+cp "$BIN1/fig_exp_h_bin1_per_task_brier.png"        "$OUT/new_fig4_per_task_brier_bin1.png"
 
 # ── TABLE CSVs ────────────────────────────────────────────────────────────────
 # Condition A/B/C/E/F: numbers are in poster/context.md §6.4 (hardcoded, no CSV)
