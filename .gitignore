@@ -62,6 +62,7 @@ analysis_results.json
 .idea/
 .cursor/
 .claude/
+CLAUDE.md
 .ruff_cache/
 
 # macOS files
@@ -106,3 +107,13 @@ input_data/reruns/
 
 # Experiment output: copied configs/scenarios (keep local only)
 output_data/experiments/**/*.yaml
+
+# Consistency checks output (generated data, not committed)
+consistency_checks/config*.yaml
+consistency_checks/output_data_negation
+consistency_checks/output_data_quintiles
+consistency_checks/negation_prompts
+consistency_checks/output_data*
+consistency_checks/quantile_variance_prompts
+
+*.codex

@@ -1,0 +1,3 @@
+[submodule "external/cyber-task-horizons-data"]
+	path = external/cyber-task-horizons-data
+	url = https://github.com/lyptus-research/cyber-task-horizons-data.git
