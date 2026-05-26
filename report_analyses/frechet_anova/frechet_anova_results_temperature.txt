@@ -1,0 +1,28 @@
+================================================================================
+FRÉCHET ANOVA RESULTS (TEMPERATURE-VARIANCE)
+================================================================================
+
+--------------------------------------------------------------------------------
+EXPERIMENT: TEMPERATURE VARIANCE (FIXED PERSONA: Academic Security Researcher)
+--------------------------------------------------------------------------------
+
+H₀: All temperature levels produce the same belief distribution.
+Claude temps: 0.0, 0.25, 0.5, 0.75, 1.0  |  GPT-4o temps: 0.0, 0.5, 1.0, 1.5, 2.0
+
+Model                Step                N   k      T_n   p (perm)    ICC_F  W1_within  W1_between
+--------------------------------------------------------------------------------------------------------------
+Claude Sonnet 4.6    TA0002 (50%)       50   5   0.0016     0.7676    0.051     0.0264      0.0254
+Claude Sonnet 4.6    TA0007 (85%)       45   5   0.0002     0.9830    0.023     0.0133      0.0126
+Claude Sonnet 4.6    T1657 (30%)        50   5   0.0794     0.1952    0.120     0.1023      0.1061
+GPT-4o               TA0002 (50%)       27   3   0.0029     0.3907    0.081     0.0386      0.0393
+GPT-4o               TA0007 (85%)       30   3   0.0027     0.0318    0.186     0.0191      0.0223
+GPT-4o               T1657 (30%)        30   3   0.0085     0.0818    0.149     0.0410      0.0450
+
+
+Reference (from prior experiments, percentile elicitation):
+  Persona ICC_F: 6%–25% (mostly non-significant within Claude/GPT-4o)
+  Cross-model ICC_F: 48%–69% (highly significant across all steps)
+
+================================================================================
+END OF RESULTS
+================================================================================

@@ -1,0 +1,8 @@
+<task>
+Task: {task_name} - {task_description}
+{task_relevant_metrics_details}
+</task>
+
+<output>
+Acknowledge with one sentence.
+</output>

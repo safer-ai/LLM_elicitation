@@ -1,4 +1,5 @@
 anthropic==0.100.0
+inspect-ai==0.3.205
 matplotlib==3.10.3
 numpy==2.2.6
 openai==1.82.0

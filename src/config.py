@@ -34,6 +34,7 @@ class LLMSettings:
     max_concurrent_calls: int = 5 # Max parallel API requests
     rate_limit_calls: int = 45    # Max calls per rate_limit_period
     rate_limit_period: int = 60   # Time window for rate limit (seconds)
+    min_seconds_between_calls: float = 0  # Min delay between calls (for output token limits, e.g. 20)
     # Provider-agnostic reasoning/thinking knob. One of REASONING_EFFORT_VALUES.
     # "off" means: don't request extended reasoning. For OpenAI reasoning models
     # (gpt-5*, o-series) this is translated to reasoning_effort="minimal" because
@@ -51,6 +52,9 @@ class LLMSettings:
             raise ValueError("LLMSettings: 'rate_limit_calls' must be positive.")
         if self.rate_limit_period <= 0:
             raise ValueError("LLMSettings: 'rate_limit_period' must be positive.")
+        min_interval = getattr(self, "min_seconds_between_calls", 0)
+        if min_interval < 0:
+            raise ValueError("LLMSettings: 'min_seconds_between_calls' cannot be negative.")
         if self.reasoning_effort not in REASONING_EFFORT_VALUES:
             raise ValueError(
                 f"LLMSettings: 'reasoning_effort' must be one of "
@@ -229,6 +233,7 @@ def load_config(config_path: str = "config.yaml") -> AppConfig:
             max_concurrent_calls=int(llm_settings_raw.get("max_concurrent_calls", LLMSettings.max_concurrent_calls)),
             rate_limit_calls=int(llm_settings_raw.get("rate_limit_calls", LLMSettings.rate_limit_calls)),
             rate_limit_period=int(llm_settings_raw.get("rate_limit_period", LLMSettings.rate_limit_period)),
+            min_seconds_between_calls=float(llm_settings_raw.get("min_seconds_between_calls", 0)),
             reasoning_effort=reasoning_effort,
         )
 

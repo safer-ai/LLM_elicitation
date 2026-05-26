@@ -1,5 +1,58 @@
-# Env file
+# Generated figure staging directory (run reproduce_figures.sh to populate)
+figures_for_report/
+
+# Generated experiment outputs and report artifacts
+output_data/
+prompt_sensitivity/output/
+prompt_sensitivity/*.png
+report_analyses/results/
+report_analyses/*.ipynb
+report_analyses/baseline_uplift/**/configs/
+report_analyses/baseline_uplift/**/scenarios/
+report_analyses/baseline_uplift/**/results/
+report_analyses/baseline_uplift/**/single_expert.yaml
+intra_benchmark_calibration/experiments/*/results/
+latex/
+poster/
+
+# Notes, reports, and personal docs (keep README.md and QUICK_START.md)
+*_notes.md
+*_reports.md
+*_spec.md
+meet.md
+metrics.md
+FRECHET_ANOVA_IMPLEMENTATION.md
+EXPERIMENT_INSTRUCTIONS.md
+latex/notes/
+RESULTS*.md
+!report_analyses/results_manifest.md
+*RESULTS_SUMMARY.md
+*FINDINGS*.md
+poster/*.md
+poster/*.pdf
+
+# Env files and API keys (NEVER commit)
 .env
+.env.*
+.env.local
+.env.*.local
+*.env
+env.yml
+.env.yml
+.env.yaml
+.env.yaml
+
+# Config files with API keys (use config_example.yaml as template)
+config.yaml
+config_claude_*.yaml
+config_gpt4o_*.yaml
+config_gemini_*.yaml
+prompt_sensitivity/config_*.yaml
+intra_benchmark_calibration/config.yaml
+*credentials*.yaml
+*secrets*.yaml
+!config_example.yaml
+!intra_benchmark_calibration/config_example.yaml
 
 # Python virtual environments
 venv/
@@ -25,11 +78,8 @@ analysis_results.json
 .idea/
 .cursor/
 .claude/
+CLAUDE.md
 .ruff_cache/
-
-# macOS files
-*.DS_Store
-**/.DS_Store
 
 # macOS files
 *.DS_Store
@@ -60,13 +110,53 @@ __marimo__
 
 run
 
-/config*.yaml 
-!config_example.yaml
-intra_benchmark_calibration/config*.yaml
-!intra_benchmark_calibration/config_example.yaml
-
 inter_benchmark_calibration/config*.yaml
 !inter_benchmark_calibration/config_example.yaml
 
+
 # Temporary experiment data
 input_data/reruns/
+
+# Experiment output: copied configs/scenarios (keep local only)
+output_data/experiments/**/*.yaml
+
+# Consistency checks output (generated data, not committed)
+consistency_checks/*.ipynb
+consistency_checks/config*.yaml
+consistency_checks/output_data_negation
+consistency_checks/output_data_quintiles
+consistency_checks/negation_prompts
+consistency_checks/output_data*
+consistency_checks/quantile_variance_prompts
+
+*.codex
+
+# Large reference PDFs and compiled reports (not code artifacts)
+Gneiting2007jasa.pdf
+full_paper.pdf
+final_paper.pdf
+mid_term_report_*.pdf
+
+# LaTeX build artifacts
+.latexmkrc
+latex/*.aux
+latex/*.fdb_latexmk
+latex/*.fls
+latex/*.out
+latex/*_standalone.pdf
+latex/*_standalone.tex
+latex/*_standalone.aux
+
+# Ad-hoc dev/run helper scripts (not part of reproducible pipeline)
+run_one.sh
+run_single_experiment.sh
+rerun_missing.sh
+run_temperature_sweep.sh
+reproduce_figures.sh
+
+# Exploratory notebooks (not part of reproducible pipeline)
+cyber-task-horizons-explore/
+
+# Intermediate experiment report drafts
+output_data/experiments/experiment_report*.tex
+output_data/experiments/experiment_report*.pdf

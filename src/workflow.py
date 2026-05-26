@@ -262,20 +262,12 @@ async def _run_expert_round(
 
     prompt_data["task_relevant_metrics_details"] = "Relevant Task Metrics: " + ", ".join(relevant_metrics_parts) + "." if relevant_metrics_parts else "Relevant Task Metrics: None specified or available for this task."
 
-    # Reasoning models (gpt-5*, gemini-3*, claude with extended thinking) burn
-    # part of the completion budget on hidden reasoning tokens before producing
-    # the visible <percentile_estimates>/<rationale> blocks. For Anthropic with
-    # extended thinking, max_tokens MUST be > thinking.budget_tokens. We compute
-    # these dynamically to satisfy that constraint while still allowing headroom
-    # for actual completions. See _get_final_text_openai for the finish_reason='length'
-    # warning when this is still hit.
-    
-    # Determine thinking budget based on config
+    # Reasoning models burn part of the completion budget on hidden reasoning
+    # tokens. For Anthropic with extended thinking, max_tokens MUST be >
+    # thinking.budget_tokens. Compute dynamically to satisfy that constraint.
     thinking_budget = 0
     if config.inferred_api_provider == "anthropic" and config.llm_settings.reasoning_effort != "off":
         thinking_budget = _ANTHROPIC_BUDGET_BY_EFFORT.get(config.llm_settings.reasoning_effort, 0)
-    
-    # Ensure max_tokens > thinking_budget + room for actual output
     min_reasoning_output_tokens = 2000
     max_tokens_analysis = max(8000, thinking_budget + min_reasoning_output_tokens)
     max_tokens_estimation = max(8000, thinking_budget + min_reasoning_output_tokens)
@@ -464,11 +456,9 @@ async def _run_expert_round_for_scenario_metric(
     
     prompt_data["task_relevant_metrics_details"] = "Relevant Task Metrics (for this capability benchmark task): " + ", ".join(relevant_metrics_parts) + "." if relevant_metrics_parts else "Relevant Task Metrics: None specified or available for this capability benchmark task."
 
-    # Ensure max_tokens > thinking_budget for Anthropic with extended thinking
     thinking_budget = 0
     if config.inferred_api_provider == "anthropic" and config.llm_settings.reasoning_effort != "off":
         thinking_budget = _ANTHROPIC_BUDGET_BY_EFFORT.get(config.llm_settings.reasoning_effort, 0)
-    
     min_reasoning_output_tokens = 2000
     max_tokens_estimation = max(8000, thinking_budget + min_reasoning_output_tokens)
 

@@ -1,0 +1,17 @@
+<context>
+{context}
+</context>
+
+<task>
+Revise your estimate for {risk_scenario_step_name} considering the above context.
+</task>
+
+<output>
+<percentile_estimates>
+<p25>0.xx</p25>
+<p50>0.xx</p50>
+<p75>0.xx</p75>
+</percentile_estimates>
+
+<rationale>Brief reasoning.</rationale>
+</output>
