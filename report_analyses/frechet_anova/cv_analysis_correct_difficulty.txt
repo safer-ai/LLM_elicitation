@@ -1,0 +1,102 @@
+================================================================================
+CV ANALYSIS WITH CORRECT DIFFICULTY ORDERING
+================================================================================
+
+IMPORTANT: Difficulty = LLM-estimated exploit difficulty (0-100 scale)
+           NOT CVSS score (which measures impact, not difficulty)
+
+Task difficulty rankings (from LLM estimation):
+  - Imaginairy: 22/100 (Easy to exploit)
+  - MLFlow0:    38/100 (Medium)
+  - cURL:       42/100 (Hard)
+
+
+================================================================================
+PATTERN ANALYSIS
+================================================================================
+
+1. CV STATISTICS BY NODE TYPE (across all models and tasks)
+--------------------------------------------------------------------------------
+
+  QUANTITY:
+    Min CV:    12.1%
+    Max CV:    19.8%
+    Mean CV:   16.3%
+    Median CV: 16.8%
+    N cells:   9
+
+  PROBABILITY:
+    Min CV:    1.4%
+    Max CV:    9.8%
+    Mean CV:   5.7%
+    Median CV: 5.0%
+    N cells:   9
+
+
+2. QUANTITY NODE CV BY DIFFICULTY
+--------------------------------------------------------------------------------
+
+Easy (Imaginairy) (Difficulty score: 22):
+  CV range: 12.1% - 18.7%
+  CV mean:  15.9%
+  Models:
+    GPT-4o: 18.7% (n=100)
+    Gemini 2.5 Pro: 16.8% (n=100)
+    Claude Sonnet 4.5: 12.1% (n=99)
+
+Medium (MLFlow0) (Difficulty score: 38):
+  CV range: 15.0% - 17.4%
+  CV mean:  16.6%
+  Models:
+    GPT-4o: 17.4% (n=100)
+    Gemini 2.5 Pro: 15.0% (n=72)
+    Claude Sonnet 4.5: 17.2% (n=99)
+
+Hard (cURL) (Difficulty score: 42):
+  CV range: 13.1% - 19.8%
+  CV mean:  16.5%
+  Models:
+    GPT-4o: 16.5% (n=100)
+    Gemini 2.5 Pro: 13.1% (n=88)
+    Claude Sonnet 4.5: 19.8% (n=100)
+
+
+3. TREND ANALYSIS (QUANTITY CV vs DIFFICULTY)
+--------------------------------------------------------------------------------
+
+GPT-4o:
+  Easy (Imaginairy): 18.7%
+  Medium (MLFlow0): 17.4%
+  Hard (cURL): 16.5%
+  → Monotonically decreasing
+
+Gemini 2.5 Pro:
+  Easy (Imaginairy): 16.8%
+  Medium (MLFlow0): 15.0%
+  Hard (cURL): 13.1%
+  → Monotonically decreasing
+
+Claude Sonnet 4.5:
+  Easy (Imaginairy): 12.1%
+  Medium (MLFlow0): 17.2%
+  Hard (cURL): 19.8%
+  → Monotonically increasing
+
+
+4. DOMINANCE CHECK: QUANTITY vs PROBABILITY
+--------------------------------------------------------------------------------
+
+For Easy difficulty (where both exist):
+
+  ✓ GPT-4o                 | Qty:  18.7%  vs  TA0002 (50%):   8.3%
+  ✓ GPT-4o                 | Qty:  18.7%  vs  TA0007 (85%):   2.4%
+  ✓ GPT-4o                 | Qty:  18.7%  vs  T1657 (30%):   7.6%
+  ✓ Gemini 2.5 Pro         | Qty:  16.8%  vs  TA0002 (50%):   9.8%
+  ✓ Gemini 2.5 Pro         | Qty:  16.8%  vs  TA0007 (85%):   3.0%
+  ✓ Gemini 2.5 Pro         | Qty:  16.8%  vs  T1657 (30%):   8.9%
+  ✓ Claude Sonnet 4.5      | Qty:  12.1%  vs  TA0002 (50%):   4.8%
+  ✓ Claude Sonnet 4.5      | Qty:  12.1%  vs  TA0007 (85%):   1.4%
+  ✓ Claude Sonnet 4.5      | Qty:  12.1%  vs  T1657 (30%):   5.0%
+
+
+================================================================================

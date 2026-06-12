@@ -32,6 +32,25 @@ Supports multiple ranking approaches including First Solve Time (FST) prediction
 
 ---
 
+## External Data Sources
+
+This repo includes the Lyptus Research `cyber-task-horizons-data` repository as a git submodule at `external/cyber-task-horizons-data/`.
+
+- Initialize it after cloning with `git submodule update --init --recursive`
+- Large raw `.eval` logs are not required for the structured task, human, and model metadata we use here
+- Use `shared/cyber_task_horizons.py` to load upstream data through a stable local interface instead of importing directly from the submodule's analysis package
+
+Example:
+
+```python
+from shared.cyber_task_horizons import list_benchmarks, load_tasks
+
+benchmarks = list_benchmarks()
+cybench_tasks = load_tasks("cybench")
+```
+
+---
+
 ## Risk Scenario Estimation Tool
 
 ### Overview

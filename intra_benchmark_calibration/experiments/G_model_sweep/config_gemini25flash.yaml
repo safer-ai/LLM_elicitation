@@ -1,0 +1,55 @@
+# =============================================================================
+# Experiment G — model sweep
+# Elicitation model: gemini-2.5-flash
+#
+# Gemini 2.5 Flash supports thinking (first Flash model to do so).
+# Routed through Google's OpenAI-compatible endpoint using GEMINI_API_KEY.
+# reasoning_effort="high" maps to reasoning_effort param on the compat API.
+#
+# Design:
+#   - all_except_target: each of the 5 bins held as target once,
+#     all other 4 bins shown as source context
+#   - K=5 target tasks per cell (5 independent elicitations, 1 task each)
+#   - 1 expert, 1 Delphi round
+#
+# Cell count:  5 target bins × 12 forecasted models × 5 tasks = 300 cells
+# API calls:   300 × 2 (analysis + estimation)                 = 600
+# Approx cost: ~$8 (input: $0.15/MTok, output+thinking: ~$1.75/MTok)
+# =============================================================================
+
+intra_benchmark_settings:
+  lyptus_repo_dir: ~/lyptus-data
+  drop_models: ["GPT-2", "GPT-3", "GPT-3.5"]
+  forecasted_models: null   # null → all 12 models post-drop
+
+  binning:
+    n_bins: 5
+    strategy: equal_count
+
+  target_selection:
+    selection_mode: "auto"
+    n_target_tasks_per_cell: 5
+
+  source_profile:
+    source_bins_to_show: "all_except_target"
+    n_examples_per_source_bin: 2
+
+  include_target_solution: false
+
+prompts_dir: "../../prompts"
+expert_profiles_file: "../../../inter_benchmark_calibration/input_data/expert_profiles/expert_profiles.yaml"
+output_dir: "results"
+
+llm_settings:
+  model: "gemini-2.5-flash"
+  temperature: 1.0
+  max_concurrent_calls: 15
+  rate_limit_calls: 100
+  rate_limit_period: 60
+  reasoning_effort: "high"
+
+workflow_settings:
+  num_experts: 1
+  delphi_rounds: 1
+  convergence_threshold: 0.05
+  num_repeats: 1
