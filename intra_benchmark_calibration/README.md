@@ -111,19 +111,30 @@ results/20260502_171824/
     └── per_cell_distributions.png
 ```
 
+Output files are named `<run_id>__<experiment_label>[__<model>]_intra_estimates.csv`
+(and `..._intra_results.json`) — the run id, the ablation condition, and (for
+single-forecaster runs) the model are baked into the filename. Readers locate
+them by `*_estimates.csv` / `*_results.json` glob, so the infix is backward
+compatible.
+
 CSV columns (one row per cell × expert × Delphi round, **flushed per row**):
 
 ```
-condition_id, run_id, timestamp,
+experiment_label, condition_id, run_id, timestamp,
 source_bin, target_bin,
-forecasted_model, target_task_id, target_task_family, target_fst_minutes,
-expert_id, delphi_round,
+forecaster_model, forecasted_model, target_task_id, target_task_family, target_fst_minutes,
+expert_id, delphi_round, repeat_index,
 p25, p50, p75,
 outcome,
 anchor_task_id, easier_task_ids,
 anchor_prompt_chars, easier_prompt_chars, target_prompt_chars,
 prompt_hash, rationale
 ```
+
+> `experiment_label` = the ablation **condition** this run belongs to (constant
+> per run; e.g. `control`). `condition_id` is the design **cell** id (varies per
+> row) — despite the name it is *not* the condition. `forecaster_model` is the
+> LLM doing the forecasting; `forecasted_model` is the model being calibrated.
 
 Full system + user prompts and raw API responses live only in the JSON.
 

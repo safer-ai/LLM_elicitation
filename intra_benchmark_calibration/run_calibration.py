@@ -151,9 +151,11 @@ async def main(config_path: str) -> int:
                                                               minlength=bins.n_bins)],
         },
         n_cells_planned=len(cell_plans),
+        experiment_label=cfg.experiment_label,
     )
     logger.info(f"Run ID: {handles.run_id}")
     logger.info(f"Run dir: {handles.run_dir}")
+    logger.info(f"Experiment label (condition): {cfg.experiment_label}")
 
     # 6. Workflow: outer loop over forecaster models × repeats.
     num_repeats = max(1, cfg.workflow_settings.num_repeats)
@@ -262,6 +264,7 @@ async def main(config_path: str) -> int:
         output_path=handles.run_dir,
         config_file=str(Path(config_path).resolve()),
         timestamp_start=handles.run_id,  # already in YYYYMMDD_HHMMSS form
+        experiment_label=cfg.experiment_label,
     )
 
     logger.info(f"Run complete. CSV: {handles.csv_path}")

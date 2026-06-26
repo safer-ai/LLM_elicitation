@@ -44,6 +44,11 @@ class WorkflowSettings:
     # forecaster model. Each repeat re-runs every cell plan; rows are tagged
     # with `repeat_index` (1-based). Default 1 = run once.
     num_repeats: int = 1
+    # When True, the round-1 stage-1 capability-analysis API call is skipped
+    # entirely: the estimation prompt is built directly with an empty
+    # technical_analysis. Used by the `minimal` / `skip_analysis` prompt
+    # conditions (single API call per cell instead of two).
+    skip_analysis: bool = False
 
     def __post_init__(self):
         if self.num_experts <= 0:
@@ -56,6 +61,8 @@ class WorkflowSettings:
             raise TypeError("WorkflowSettings: 'num_repeats' must be a positive integer.")
         if self.num_repeats < 1:
             raise ValueError("WorkflowSettings: 'num_repeats' must be >= 1 (1 = run once).")
+        if not isinstance(self.skip_analysis, bool):
+            raise TypeError("WorkflowSettings: 'skip_analysis' must be a boolean.")
 
 
 @dataclass
@@ -103,6 +110,13 @@ class SourceProfileSettings:
 
     source_bins_to_show: Union[List[int], str] = field(default_factory=list)
     n_examples_per_source_bin: int = 2
+    # Evidence ablations (Experiment I, Level 1). Both default True (full
+    # control profile). Set False to drop one evidence component from the
+    # capability profile shown to the forecaster:
+    #   include_bin_rate=False     -> no_bin_rate condition
+    #   include_task_outcomes=False -> no_task_outcomes condition
+    include_bin_rate: bool = True
+    include_task_outcomes: bool = True
 
 
 @dataclass
@@ -137,6 +151,13 @@ class IntraBenchmarkConfig:
     # Multi-model: list of LLM forecasters to run; the active model lives in
     # `llm_settings.model` and the runner rotates it through `models_to_run`.
     models_to_run: List[str] = field(default_factory=list)
+
+    # Human-readable label identifying THIS run's experimental condition
+    # (e.g. "control", "minimal", "no_ground_truth_summary"). Recorded in the
+    # JSON run_metadata, as a CSV column, in the output filenames, and in the
+    # run registry so a run can always be traced back to its condition without
+    # relying on the folder path. Defaults to `output_dir.name` when omitted.
+    experiment_label: str = ""
 
     @property
     def runs_dir(self) -> Path:
@@ -225,6 +246,7 @@ def load_intra_benchmark_config(config_path: str | Path, base_dir: Optional[Path
         delphi_rounds=int(wf_data.get("delphi_rounds", 1)),
         convergence_threshold=float(wf_data.get("convergence_threshold", 0.05)),
         num_repeats=parse_num_repeats(wf_data.get("num_repeats", WorkflowSettings.num_repeats)),
+        skip_analysis=bool(wf_data.get("skip_analysis", False)),
     )
 
     # Intra-benchmark settings
@@ -267,6 +289,8 @@ def load_intra_benchmark_config(config_path: str | Path, base_dir: Optional[Path
     source_profile = SourceProfileSettings(
         source_bins_to_show=parsed_bins,
         n_examples_per_source_bin=int(sp_data.get("n_examples_per_source_bin", 2)),
+        include_bin_rate=bool(sp_data.get("include_bin_rate", True)),
+        include_task_outcomes=bool(sp_data.get("include_task_outcomes", True)),
     )
 
     forecasted_models = ib.get("forecasted_models")
@@ -284,6 +308,12 @@ def load_intra_benchmark_config(config_path: str | Path, base_dir: Optional[Path
         "expert_profiles_file",
     )
     output_dir = resolve_path(data.get("output_dir", "results"), "output_dir")
+
+    # Condition label: explicit `experiment_label` wins; otherwise fall back to
+    # the output dir's own name (e.g. results/control -> "control") so every
+    # run is self-identifying even for configs that predate this field.
+    raw_label = data.get("experiment_label")
+    experiment_label = str(raw_label).strip() if raw_label else output_dir.name
 
     cfg = IntraBenchmarkConfig(
         api_key_anthropic=api_key_anthropic,
@@ -303,6 +333,7 @@ def load_intra_benchmark_config(config_path: str | Path, base_dir: Optional[Path
         expert_profiles_file=expert_profiles_file,
         output_dir=output_dir,
         models_to_run=models_to_run,
+        experiment_label=experiment_label,
     )
 
     # Validate that we have an API key for every required provider.
@@ -324,6 +355,7 @@ def load_intra_benchmark_config(config_path: str | Path, base_dir: Optional[Path
         )
 
     logger.info("Intra-benchmark config loaded:")
+    logger.info(f"  experiment_label (condition): {cfg.experiment_label}")
     logger.info(f"  Lyptus repo: {cfg.lyptus_repo_dir}")
     logger.info(f"  n_bins: {cfg.binning.n_bins}, strategy: {cfg.binning.strategy}")
     logger.info(f"  forecasted_models (object of study): {cfg.forecasted_models or '(all in outcomes matrix)'}")

@@ -1,0 +1,1 @@
+(Capability-analysis stage is DISABLED for the `minimal` / skip_analysis condition. This file exists only so the prompt loader and the round-1 assembler have a complete template set; its contents are never sent to the API because workflow_settings.skip_analysis = true. See README.md.)

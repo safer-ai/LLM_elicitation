@@ -1,0 +1,1 @@
+(Subsequent-round template is UNUSED for the `minimal` condition: delphi_rounds = 1, so rounds 2+ never run. Present only to keep a complete, uniform template set across prompt variants.)

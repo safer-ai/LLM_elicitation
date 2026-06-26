@@ -1,0 +1,60 @@
+# =============================================================================
+# Experiment I — prompt ablation (Brier), condition: NO_GROUND_TRUTH_SUMMARY
+# Forecaster model: claude-sonnet-4-6, reasoning_effort=off (no thinking)
+#
+# Ablation of the {ground_truth_summary} gray-zone leak: the dataset-wide
+# base-rate footnote (line 39 of initial_intra_solve_estimation.txt) is
+# REMOVED in this condition's prompt copy. Everything else is identical to
+# config_control.yaml, so the only variable that changes between the two runs
+# is the presence of that footnote.
+#
+# Cells are deterministic from the design params below, so this run sees the
+# EXACT SAME 300 target tasks as the control run.
+#
+# Cell count:  5 target bins × 12 forecasted models × 5 tasks = 300 cells
+# API calls:   300 × 2 (analysis + estimation) × 3 repeats     = 1800
+# =============================================================================
+
+intra_benchmark_settings:
+  lyptus_repo_dir: ~/lyptus-data
+  drop_models: ["GPT-2", "GPT-3", "GPT-3.5"]
+  forecasted_models: null   # null → all 12 models post-drop
+
+  binning:
+    n_bins: 5
+    strategy: equal_count
+
+  target_selection:
+    selection_mode: "auto"
+    n_target_tasks_per_cell: 5
+
+  source_profile:
+    source_bins_to_show: "all_except_target"
+    n_examples_per_source_bin: 2
+
+  include_target_solution: false
+
+# Condition label: stamped on every CSV row, the JSON run_metadata, the output
+# filenames, and the run registry so runs are traceable without the folder path.
+experiment_label: "no_ground_truth_summary"
+
+prompts_dir: "prompt_variants/no_ground_truth_summary"
+expert_profiles_file: "../../../inter_benchmark_calibration/input_data/expert_profiles/expert_profiles.yaml"
+output_dir: "results/no_ground_truth_summary"
+
+llm_settings:
+  model: "claude-sonnet-4-6"
+  temperature: 1.0
+  max_concurrent_calls: 10
+  rate_limit_calls: 200
+  rate_limit_period: 60
+  reasoning_effort: "off"   # no extended thinking (matches the no-thinking cost basis)
+
+workflow_settings:
+  num_experts: 1
+  delphi_rounds: 1
+  convergence_threshold: 0.05
+  # 1 run = 300 cells. Run-to-run noise was measured at SD~0.0013 (negligible);
+  # the real uncertainty (~±0.025) is task-sampling, captured by bootstrap over
+  # the 300 cells, not by repeats. So a single run suffices. (Was 3.)
+  num_repeats: 1

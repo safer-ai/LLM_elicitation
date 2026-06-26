@@ -1,0 +1,63 @@
+# =============================================================================
+# Experiment I — prompt ablation (Brier), condition: MINIMAL
+# Forecaster model: claude-sonnet-4-6, reasoning_effort=off (no thinking)
+#
+# The "floor" of the Level-0 bracket (see PLAN.md §8): the most stripped-down
+# prompt we can run — *"here are some tasks with pass/fail, predict the next
+# one."* Compared against `control` (full prompt), this measures how much the
+# elaborate scaffold (analysis stage + reasoning checklist + base-rate
+# footnote + benchmark framing) is actually buying us.
+#
+# What is stripped vs control (the ONLY differences are prompt scaffold; the
+# capability evidence shown is IDENTICAL — same cells, same source profiles):
+#   - skip_analysis: true  -> no stage-1 capability-analysis API call
+#                             (1 API call per cell instead of 2)
+#   - minimal estimation template: no reasoning checklist, no IQR guidance,
+#     no {ground_truth_summary} footnote, no <benchmark_context> blurb.
+#
+# Cell count:  5 target bins × 12 forecasted models × 5 tasks = 300 cells
+# API calls:   300 × 1 (estimation only) × 3 repeats           = 900
+# (half the control/no_gts call count, since the analysis stage is skipped)
+# =============================================================================
+
+intra_benchmark_settings:
+  lyptus_repo_dir: ~/lyptus-data
+  drop_models: ["GPT-2", "GPT-3", "GPT-3.5"]
+  forecasted_models: null   # null → all 12 models post-drop
+
+  binning:
+    n_bins: 5
+    strategy: equal_count
+
+  target_selection:
+    selection_mode: "auto"
+    n_target_tasks_per_cell: 5
+
+  source_profile:
+    source_bins_to_show: "all_except_target"
+    n_examples_per_source_bin: 2
+
+  include_target_solution: false
+
+# Condition label: stamped on every CSV row, the JSON run_metadata, the output
+# filenames, and the run registry so runs are traceable without the folder path.
+experiment_label: "minimal"
+
+prompts_dir: "prompt_variants/minimal"
+expert_profiles_file: "../../../inter_benchmark_calibration/input_data/expert_profiles/expert_profiles.yaml"
+output_dir: "results/minimal"
+
+llm_settings:
+  model: "claude-sonnet-4-6"
+  temperature: 1.0
+  max_concurrent_calls: 10
+  rate_limit_calls: 200
+  rate_limit_period: 60
+  reasoning_effort: "off"   # no extended thinking (matches the no-thinking cost basis)
+
+workflow_settings:
+  num_experts: 1
+  delphi_rounds: 1
+  convergence_threshold: 0.05
+  num_repeats: 3
+  skip_analysis: true        # no stage-1 analysis call — single-call minimal prompt
