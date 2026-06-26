@@ -91,14 +91,23 @@ def _outcome_tag(outcome: Optional[float], model: str) -> str:
 def _format_task_block(label: str, task, *, outcome_tag: str, indent: str = "    ") -> str:
     body = task.estimation_instructions.strip()
     body_indented = body.replace(chr(10), chr(10) + indent)
+    # `outcome_tag=""` (the no_task_outcomes ablation) drops the SOLVED/FAILED
+    # line entirely rather than printing a blank line.
+    tag_line = f"{indent}{outcome_tag}\n" if outcome_tag else ""
     return (
         f"{indent}--- {label} (task_id={task.task_id}) ---\n"
-        f"{indent}{outcome_tag}\n"
+        f"{tag_line}"
         f"{indent}{body_indented}"
     )
 
 
-def format_capability_profile(profiles: List[SourceBinProfile], model: str) -> str:
+def format_capability_profile(
+    profiles: List[SourceBinProfile],
+    model: str,
+    *,
+    include_bin_rate: bool = True,
+    include_task_outcomes: bool = True,
+) -> str:
     """Render the source capability profile as plain text for the prompt.
 
     For each shown bin we report the model's empirical pass rate on the bin
@@ -107,17 +116,26 @@ def format_capability_profile(profiles: List[SourceBinProfile], model: str) -> s
     task — this is more discriminative information than the bin-level rate
     alone, e.g. it tells the forecaster whether the anchor is one of the
     solved or failed tasks.
+
+    Ablation toggles (Experiment I, Level 1):
+      - include_bin_rate=False     -> drop the empirical bin pass-rate header
+                                      (the `no_bin_rate` condition).
+      - include_task_outcomes=False -> drop the per-task SOLVED/FAILED tags
+                                      (the `no_task_outcomes` condition).
+    The task texts and bin grouping are retained in both cases; only the named
+    component is removed, so each condition is a clean leave-one-out.
     """
     chunks: List[str] = []
     for p in profiles:
         chunks.append(f"=== Source bin {p.bin_index} ===")
-        chunks.append(_format_pass_rate(p, model))
+        if include_bin_rate:
+            chunks.append(_format_pass_rate(p, model))
         chunks.append("")
         chunks.append(
             _format_task_block(
                 f"ANCHOR (representative of bin {p.bin_index})",
                 p.anchor,
-                outcome_tag=_outcome_tag(p.anchor_outcome, model),
+                outcome_tag=_outcome_tag(p.anchor_outcome, model) if include_task_outcomes else "",
             )
         )
         easier_outcomes = p.easier_outcomes or [None] * len(p.easier_tasks)
@@ -127,7 +145,7 @@ def format_capability_profile(profiles: List[SourceBinProfile], model: str) -> s
                 _format_task_block(
                     f"Easier example #{k}",
                     et,
-                    outcome_tag=_outcome_tag(eo, model),
+                    outcome_tag=_outcome_tag(eo, model) if include_task_outcomes else "",
                 )
             )
         chunks.append("")
@@ -180,6 +198,8 @@ def assemble_prompts(
     benchmark_description: Optional[str] = None,
     ground_truth_summary: Optional[Dict[str, float]] = None,
     include_target_solution: bool = False,
+    include_bin_rate: bool = True,
+    include_task_outcomes: bool = True,
 ) -> AssembledPrompts:
     """
     Build all prompt strings for one expert × round.
@@ -213,7 +233,12 @@ def assemble_prompts(
     template_data: Dict[str, str] = {
         "benchmark_description": benchmark_description,
         "forecasted_model": plan.forecasted_model,
-        "capability_profile": format_capability_profile(plan.profiles, plan.forecasted_model),
+        "capability_profile": format_capability_profile(
+            plan.profiles,
+            plan.forecasted_model,
+            include_bin_rate=include_bin_rate,
+            include_task_outcomes=include_task_outcomes,
+        ),
         "target_task_text": format_target_task(plan, include_solution=include_target_solution),
         "technical_analysis": technical_analysis or "",
         "context": _format_previous_round_context(prev_round_responses or []),

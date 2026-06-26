@@ -1,0 +1,50 @@
+You are now producing your initial probability estimate that {forecasted_model} would solve the target task on a single attempt under the standard evaluation protocol of this benchmark.
+
+<benchmark_context>
+{benchmark_description}
+</benchmark_context>
+
+<forecasted_model>
+The forecasted model is: {forecasted_model}
+</forecasted_model>
+
+<target_task>
+{target_task_text}
+</target_task>
+
+<estimation_task>
+You are estimating P({forecasted_model} solves the target task on this single attempt | the target task description and what you know about this model's general capabilities). NOTE: no per-model empirical pass-rate evidence on related tasks is provided in this condition — you must reason from the task itself and your prior knowledge of the model.
+
+This is a SINGLE-ATTEMPT, BINARY outcome question. The actual evaluation produced a 0 (failure) or 1 (success) for this exact pairing. We want a probability that calibrates well against that binary truth.
+
+We elicit three percentiles of YOUR subjective probability distribution over P(solves):
+- 25th percentile (p25): the lower quartile of your distribution.
+- 50th percentile (p50, median): your central estimate.
+- 75th percentile (p75): the upper quartile.
+
+These three values let us fit a Beta distribution post hoc and compute proper scoring rules. Your headline number is p50 — please make sure it reflects your considered best guess.
+
+Reasoning checklist before committing:
+- Anchor your p50 on your assessment of the task's intrinsic difficulty and this model's general capability level. With no empirical pass-rate evidence available, lean on the underlying ground-truth base rate below as your prior.
+- Use the inter-quartile range (p25 → p75) to honestly express your uncertainty. A wide range signals you are unsure; a narrow range signals you are confident.
+- Avoid both reflexive coin-flip estimates (~0.5 with no reason) and overconfident extremes (<0.05 or >0.95) unless the task strongly warrants them.
+- Sanity-check against the underlying ground-truth distribution: {ground_truth_summary}
+</estimation_task>
+
+<output_format>
+Provide your reasoning under the following XML tags. Inside `<percentile_estimates>` use the EXACT XML structure shown.
+
+<reasoning>
+[Your explicit reasoning: how you judged the task's difficulty and this model's capability, and how you set your uncertainty.]
+</reasoning>
+
+<percentile_estimates>
+<p25>0.xx</p25>
+<p50>0.xx</p50>
+<p75>0.xx</p75>
+</percentile_estimates>
+
+<rationale>
+[2-3 sentences: what drove the central estimate and what drove the width of the IQR.]
+</rationale>
+</output_format>

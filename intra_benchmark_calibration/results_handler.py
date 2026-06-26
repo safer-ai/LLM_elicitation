@@ -3,22 +3,27 @@
 """
 Progressive results persistence for intra-benchmark calibration.
 
-Two output files per run, in `output_dir/{run_id}/`:
+Two output files per run, in `output_dir/{run_id}/`. Both filenames carry the
+run_id, the condition label, and (for single-forecaster runs) the model, so a
+file is self-identifying even when copied out of its folder:
 
-  - `<run_id>_intra_estimates.csv`: ONE ROW PER ELICITATION (i.e. per
-    cell × forecaster_model × repeat_index × expert × Delphi round). Written
-    under an asyncio lock by `append_elicitation_row()` immediately after
-    each elicitation lands, so a mid-run crash loses at most one in-flight
-    call.
+  - `<run_id>__<label>[__<model>]_intra_estimates.csv`: ONE ROW PER ELICITATION
+    (i.e. per cell × forecaster_model × repeat_index × expert × Delphi round).
+    Written under an asyncio lock by `append_elicitation_row()` immediately
+    after each elicitation lands, so a mid-run crash loses at most one
+    in-flight call.
 
-  - `<run_id>_intra_results.json`: full structured record including the
-    Lyptus provenance dict, the bin definition, every cell plan, every
-    elicitation's full prompts + raw response, and the run metadata.
+  - `<run_id>__<label>[__<model>]_intra_results.json`: full structured record
+    including the Lyptus provenance dict, the bin definition, every cell plan,
+    every elicitation's full prompts + raw response, and the run metadata.
     Updated incrementally per elicitation as well.
+
+(Readers locate these via `*_estimates.csv` / `*_results.json` globs, so the
+label/model infix is backward compatible.)
 
 CSV column contract:
 
-    condition_id, run_id, timestamp,
+    experiment_label, condition_id, run_id, timestamp,
     source_profile_type, source_bin, source_bins_shown, target_bin,
     forecaster_model, forecasted_model,
     target_task_id, target_task_family, target_fst_minutes,
@@ -31,7 +36,14 @@ CSV column contract:
 
 `response_text` lives in the JSON only.
 
-Vocabulary:
+Vocabulary (read carefully — two different "condition" notions):
+  - `experiment_label` = the ABLATION CONDITION / experiment this whole run
+    belongs to (e.g. "control", "minimal", "no_ground_truth_summary"). Constant
+    across every row of a run. This is the field to group runs by.
+  - `condition_id` = the design CELL id (one (source_profile, target_bin,
+    forecasted_model, target_task) combination). Varies row to row. Despite the
+    name it is NOT the ablation condition; it predates `experiment_label` and is
+    kept because `analyse_results` groups Delphi rounds by it.
   - `forecaster_model` = the LLM acting as the FORECASTER (rotated by the
     runner from `cfg.models_to_run`).
   - `forecasted_model` = the model BEING CALIBRATED (object of study; one
@@ -55,7 +67,8 @@ logger = logging.getLogger(__name__)
 
 
 CSV_COLUMNS: List[str] = [
-    "condition_id",
+    "experiment_label",     # ablation condition this run belongs to (e.g. "control")
+    "condition_id",         # design CELL id (NOT the ablation condition; see below)
     "run_id",
     "timestamp",
     "source_profile_type",  # single_bin | all_except_target | custom_subset
@@ -92,6 +105,14 @@ def _generate_run_id() -> str:
     return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
 
+def _slug(text: str, *, maxlen: int = 40) -> str:
+    """Filesystem-safe slug: keep alnum/._-, collapse everything else to '-'."""
+    import re
+
+    s = re.sub(r"[^0-9A-Za-z._-]+", "-", str(text)).strip("-")
+    return (s[:maxlen].strip("-") or "run")
+
+
 def prompt_hash(*texts: str) -> str:
     """Stable hash of the concatenated prompt strings, for traceability."""
     h = hashlib.sha256()
@@ -109,6 +130,7 @@ class RunHandles:
     run_dir: Path
     csv_path: Path
     json_path: Path
+    experiment_label: str = ""
     lock: asyncio.Lock = field(default_factory=asyncio.Lock)
 
 
@@ -124,20 +146,35 @@ def initialize_run(
     dataset_provenance: Dict[str, Any],
     bin_definition: Dict[str, Any],
     n_cells_planned: int,
+    experiment_label: str = "",
 ) -> RunHandles:
     """Create the run directory and seed the CSV header + JSON metadata block.
 
     `models_run` is the list of LLM forecasters that will be rotated through
     in this run (i.e. `cfg.models_to_run`). All forecasters share one CSV /
     JSON; rows are tagged with `forecaster_model`.
+
+    `experiment_label` is the human-readable ablation condition for the whole
+    run. It is recorded in the JSON metadata, stamped on every CSV row, and
+    woven into the output filenames so a run is always traceable to its
+    condition.
     """
     run_id = _generate_run_id()
     run_dir = output_base_dir / run_id
     run_dir.mkdir(parents=True, exist_ok=True)
     logger.info(f"Created run directory: {run_dir}")
 
-    csv_path = run_dir / f"{run_id}_intra_estimates.csv"
-    json_path = run_dir / f"{run_id}_intra_results.json"
+    # Self-identifying filename stem: <run_id>__<label>[__<model>]. The model
+    # infix is only unambiguous for single-forecaster runs; multi-model runs
+    # share one file (rows tagged by `forecaster_model`), so it is omitted then.
+    stem = run_id
+    if experiment_label:
+        stem += f"__{_slug(experiment_label)}"
+    if len(models_run) == 1:
+        stem += f"__{_slug(models_run[0])}"
+
+    csv_path = run_dir / f"{stem}_intra_estimates.csv"
+    json_path = run_dir / f"{stem}_intra_results.json"
 
     pd.DataFrame(columns=CSV_COLUMNS).to_csv(csv_path, index=False)
     logger.info(f"Initialised CSV: {csv_path}")
@@ -145,6 +182,7 @@ def initialize_run(
     initial_json: Dict[str, Any] = {
         "run_metadata": {
             "run_id": run_id,
+            "experiment_label": experiment_label,
             "timestamp_start": _now_iso(),
             "timestamp_end": None,
             "mode": "intra_benchmark",
@@ -171,7 +209,13 @@ def initialize_run(
         json.dump(initial_json, fh, indent=2, ensure_ascii=False, default=str)
     logger.info(f"Initialised JSON: {json_path}")
 
-    return RunHandles(run_id=run_id, run_dir=run_dir, csv_path=csv_path, json_path=json_path)
+    return RunHandles(
+        run_id=run_id,
+        run_dir=run_dir,
+        csv_path=csv_path,
+        json_path=json_path,
+        experiment_label=experiment_label,
+    )
 
 
 async def append_elicitation_row(
@@ -258,6 +302,7 @@ def update_registry(
     output_path: Path,
     config_file: str,
     timestamp_start: str,
+    experiment_label: str = "",
 ) -> None:
     """Add the run to a top-level run registry (created if missing)."""
     registry: Dict[str, Any] = {"runs": [], "last_updated": None}
@@ -276,6 +321,7 @@ def update_registry(
 
     registry["runs"].append({
         "run_id": run_id,
+        "experiment_label": experiment_label,
         "mode": "intra_benchmark",
         "timestamp": timestamp_start,
         "models_run": list(models_run),
@@ -333,6 +379,7 @@ def build_csv_row(
     source_bin_csv = plan.source_bin_i if plan.source_bin_i is not None else None
 
     return {
+        "experiment_label": handles.experiment_label,
         "condition_id": plan.cell_id,
         "run_id": handles.run_id,
         "timestamp": _now_iso(),

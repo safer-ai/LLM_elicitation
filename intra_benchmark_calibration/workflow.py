@@ -102,7 +102,11 @@ async def _one_elicitation(
     raw_analysis: Optional[str] = None
     analysis_user_prompt: Optional[str] = None
 
-    if round_num == 1:
+    if round_num == 1 and cfg.workflow_settings.skip_analysis:
+        # Minimal / skip-analysis condition: no stage-1 call. Build the
+        # estimation prompt directly with an empty technical_analysis. Only
+        # one API call (estimation) is made for this cell. `analysis_user_prompt`
+        # and `raw_analysis` stay None so the persisted row reflects no stage-1.
         prep = assemble_prompts(
             plan=plan,
             persona_system_prompt=persona_system_prompt,
@@ -113,6 +117,23 @@ async def _one_elicitation(
             benchmark_description=benchmark_description,
             ground_truth_summary=ground_truth_summary,
             include_target_solution=cfg.include_target_solution,
+            include_bin_rate=cfg.source_profile.include_bin_rate,
+            include_task_outcomes=cfg.source_profile.include_task_outcomes,
+        )
+        estimation_user_prompt = prep.estimation_user_prompt
+    elif round_num == 1:
+        prep = assemble_prompts(
+            plan=plan,
+            persona_system_prompt=persona_system_prompt,
+            prompt_templates=prompt_templates,
+            round_num=1,
+            prev_round_responses=None,
+            technical_analysis=None,
+            benchmark_description=benchmark_description,
+            ground_truth_summary=ground_truth_summary,
+            include_target_solution=cfg.include_target_solution,
+            include_bin_rate=cfg.source_profile.include_bin_rate,
+            include_task_outcomes=cfg.source_profile.include_task_outcomes,
         )
         analysis_user_prompt = prep.analysis_user_prompt
 
@@ -144,6 +165,8 @@ async def _one_elicitation(
             benchmark_description=benchmark_description,
             ground_truth_summary=ground_truth_summary,
             include_target_solution=cfg.include_target_solution,
+            include_bin_rate=cfg.source_profile.include_bin_rate,
+            include_task_outcomes=cfg.source_profile.include_task_outcomes,
         )
         estimation_user_prompt = prep.estimation_user_prompt
     else:
@@ -157,6 +180,8 @@ async def _one_elicitation(
             benchmark_description=benchmark_description,
             ground_truth_summary=ground_truth_summary,
             include_target_solution=cfg.include_target_solution,
+            include_bin_rate=cfg.source_profile.include_bin_rate,
+            include_task_outcomes=cfg.source_profile.include_task_outcomes,
         )
         estimation_user_prompt = prep.estimation_user_prompt
 

@@ -1,0 +1,69 @@
+# =============================================================================
+# Experiment I — prompt ablation (Brier), condition: NO_TASK_OUTCOMES  (Level 1, evidence)
+# Forecaster model: claude-sonnet-4-6, reasoning_effort=off (no thinking)
+#
+# Leave-one-out from control: drops the per-task binary outcome tags
+# ("[<model> outcome on this task: SOLVED (1) / FAILED (0)]") from every anchor
+# and easier-example task in the capability profile. Everything else is held
+# identical to control:
+#   - the stage-1 analysis CALL is KEPT (skip_analysis: false)
+#   - the per-bin empirical pass-rate header is KEPT (include_bin_rate: true)
+#   - the bin grouping + anchor/easier task texts are KEPT
+#   - the {ground_truth_summary} footnote is KEPT
+#
+# This isolates the value of fine-grained per-task labels OVER AND ABOVE the
+# aggregate bin pass rate (which already summarises the same outcomes).
+#
+# The prompt TEMPLATE is byte-identical to control; the ablation is data-driven
+# via source_profile.include_task_outcomes=false, so the assembled prompt differs
+# and prompt_hash stays disjoint from control.
+#
+# Cell count:  5 target bins × 12 forecasted models × 5 tasks = 300 cells
+# API calls:   300 × 2 (analysis + estimation) × 1 repeat       = 600
+# =============================================================================
+
+intra_benchmark_settings:
+  lyptus_repo_dir: ~/lyptus-data
+  drop_models: ["GPT-2", "GPT-3", "GPT-3.5"]
+  forecasted_models: null   # null → all 12 models post-drop
+
+  binning:
+    n_bins: 5
+    strategy: equal_count
+
+  target_selection:
+    selection_mode: "auto"
+    n_target_tasks_per_cell: 5
+
+  source_profile:
+    source_bins_to_show: "all_except_target"
+    n_examples_per_source_bin: 2
+    include_bin_rate: true
+    include_task_outcomes: false   # <-- the ablation
+
+  include_target_solution: false
+
+# Condition label: stamped on every CSV row, the JSON run_metadata, the output
+# filenames, and the run registry so runs are traceable without the folder path.
+experiment_label: "no_task_outcomes"
+
+prompts_dir: "prompt_variants/no_task_outcomes"
+expert_profiles_file: "../../../inter_benchmark_calibration/input_data/expert_profiles/expert_profiles.yaml"
+output_dir: "results/no_task_outcomes"
+
+llm_settings:
+  model: "claude-sonnet-4-6"
+  temperature: 1.0
+  max_concurrent_calls: 10
+  rate_limit_calls: 200
+  rate_limit_period: 60
+  reasoning_effort: "off"   # no extended thinking (matches the no-thinking cost basis)
+
+workflow_settings:
+  num_experts: 1
+  delphi_rounds: 1
+  convergence_threshold: 0.05
+  # 1 run = 300 cells; run-to-run noise is negligible (SD~0.0013).
+  num_repeats: 1
+  # analysis stage KEPT — this condition removes only the per-task outcome tags.
+  skip_analysis: false

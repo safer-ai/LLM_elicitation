@@ -1,0 +1,66 @@
+# =============================================================================
+# Experiment I — prompt ablation (Brier), condition: NO_SOURCE_CONTEXT  (Level 1, evidence floor)
+# Forecaster model: claude-sonnet-4-6, reasoning_effort=off (no thinking)
+#
+# Removes the ENTIRE source-side capability profile: no bin pass rates, no
+# per-task outcome tags, no anchor/easier example tasks. The forecaster sees
+# only the model name, the target task text, and the {ground_truth_summary}
+# base-rate footnote, then must estimate P(solve) from prior knowledge alone.
+#
+# Because there is no capability profile to analyse, the stage-1 analysis call
+# is meaningless here and is SKIPPED (skip_analysis: true) — like the minimal
+# condition. This is the "evidence floor": it tells us how much of the headline
+# accuracy comes from the per-model evidence vs. the model's priors about the
+# task and the global base rate.
+#
+# Implemented as a dedicated prompt variant (the <capability_profile> and
+# <your_prior_analysis> blocks are deleted from the estimation template, and the
+# anchor instructions are rewritten to not reference a source-bin pass rate).
+#
+# Cell count:  5 target bins × 12 forecasted models × 5 tasks = 300 cells
+# API calls:   300 × 1 (estimation only) × 1 repeat            = 300
+# =============================================================================
+
+intra_benchmark_settings:
+  lyptus_repo_dir: ~/lyptus-data
+  drop_models: ["GPT-2", "GPT-3", "GPT-3.5"]
+  forecasted_models: null   # null → all 12 models post-drop
+
+  binning:
+    n_bins: 5
+    strategy: equal_count
+
+  target_selection:
+    selection_mode: "auto"
+    n_target_tasks_per_cell: 5
+
+  source_profile:
+    source_bins_to_show: "all_except_target"
+    n_examples_per_source_bin: 2
+
+  include_target_solution: false
+
+# Condition label: stamped on every CSV row, the JSON run_metadata, the output
+# filenames, and the run registry so runs are traceable without the folder path.
+experiment_label: "no_source_context"
+
+prompts_dir: "prompt_variants/no_source_context"
+expert_profiles_file: "../../../inter_benchmark_calibration/input_data/expert_profiles/expert_profiles.yaml"
+output_dir: "results/no_source_context"
+
+llm_settings:
+  model: "claude-sonnet-4-6"
+  temperature: 1.0
+  max_concurrent_calls: 10
+  rate_limit_calls: 200
+  rate_limit_period: 60
+  reasoning_effort: "off"   # no extended thinking (matches the no-thinking cost basis)
+
+workflow_settings:
+  num_experts: 1
+  delphi_rounds: 1
+  convergence_threshold: 0.05
+  # 1 run = 300 cells; run-to-run noise is negligible (SD~0.0013).
+  num_repeats: 1
+  # no capability profile to analyse → skip the stage-1 analysis call.
+  skip_analysis: true

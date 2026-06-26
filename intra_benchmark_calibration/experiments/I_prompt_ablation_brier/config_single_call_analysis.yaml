@@ -1,0 +1,74 @@
+# =============================================================================
+# Experiment I — prompt ablation (Brier), condition: SINGLE_CALL_ANALYSIS
+# Forecaster model: claude-sonnet-4-6, reasoning_effort=off (no thinking)
+#
+# Tests: is the analysis stage's value tied to it being a SEPARATE API call, or
+# just to the analysis CONTENT? This condition merges the 4-axis capability
+# analysis INTO the estimation prompt, so the model writes the analysis inline
+# and then the percentiles in ONE response (one API call, not two).
+#
+#   control            = 2 calls: analysis call -> estimation call (analysis pasted in)
+#   single_call_analysis = 1 call: analysis written inline, then percentiles
+#   skip_analysis      = 1 call: NO analysis at all (for contrast)
+#
+# Everything else is held identical to control (reasoning checklist, base-rate
+# footnote, capability profile, percentile ask). The ONLY change vs control is
+# same-call-inline vs separate-call analysis.
+#
+# Interpretation:
+#   - Δ vs control NOT significant -> analysis CONTENT is what matters, not the
+#     separate call. We halve cost (1 call) and use THIS as the GEPA seed.
+#   - Δ vs control significant (worse) -> "analysis in a separate forward pass"
+#     is genuinely different from inline reasoning. Interesting finding.
+#
+# Implemented as a prompt variant + skip_analysis=true (single estimation call);
+# no code change needed. Output maxes ~4.3k tokens << max_tokens=20000, so no
+# truncation risk.
+#
+# Cell count:  5 target bins × 12 forecasted models × 5 tasks = 300 cells
+# API calls:   300 × 1 (merged) × 1 repeat                     = 300
+# =============================================================================
+
+intra_benchmark_settings:
+  lyptus_repo_dir: ~/lyptus-data
+  drop_models: ["GPT-2", "GPT-3", "GPT-3.5"]
+  forecasted_models: null   # null → all 12 models post-drop
+
+  binning:
+    n_bins: 5
+    strategy: equal_count
+
+  target_selection:
+    selection_mode: "auto"
+    n_target_tasks_per_cell: 5
+
+  source_profile:
+    source_bins_to_show: "all_except_target"
+    n_examples_per_source_bin: 2
+
+  include_target_solution: false
+
+# Condition label: stamped on every CSV row, the JSON run_metadata, the output
+# filenames, and the run registry so runs are traceable without the folder path.
+experiment_label: "single_call_analysis"
+
+prompts_dir: "prompt_variants/single_call_analysis"
+expert_profiles_file: "../../../inter_benchmark_calibration/input_data/expert_profiles/expert_profiles.yaml"
+output_dir: "results/single_call_analysis"
+
+llm_settings:
+  model: "claude-sonnet-4-6"
+  temperature: 1.0
+  max_concurrent_calls: 10
+  rate_limit_calls: 200
+  rate_limit_period: 60
+  reasoning_effort: "off"   # no extended thinking (matches the no-thinking cost basis)
+
+workflow_settings:
+  num_experts: 1
+  delphi_rounds: 1
+  convergence_threshold: 0.05
+  # 1 run = 300 cells; run-to-run noise is negligible (SD~0.0013).
+  num_repeats: 1
+  # single merged call: analysis written inline in the estimation response.
+  skip_analysis: true
