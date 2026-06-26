@@ -4,6 +4,7 @@ no_ground_truth_summary,"Removed dataset-wide base-rate footnote {ground_truth_s
 no_task_outcomes,"Removed per-task [SOLVED/FAILED] tags from source tasks (bin pass-rate kept)",299,0.1367,-0.0012,-0.0108,0.0079,0.854,no,0.2155,0.0028,-0.0055,0.0110,0.302,no
 no_bin_rate,"Removed per-bin empirical pass-rate line (per-task SOLVED/FAILED tags kept)",300,0.1417,0.0040,-0.0060,0.0144,0.546,no,0.2122,-0.0004,-0.0100,0.0090,0.615,no
 trim_reasoning,"Removed reasoning checklist + <reasoning> block (stage-1 analysis call kept)",300,0.1427,0.0050,-0.0015,0.0120,0.432,no,0.2181,0.0056,-0.0009,0.0123,0.261,no
+single_call_analysis,"Merged stage-1 analysis into the estimation call (1 API call instead of 2; same analysis content, no separate call)",300,0.1428,0.0051,-0.0028,0.0129,0.0466,yes,0.2209,0.0083,0.0012,0.0155,0.0255,yes
 trim_all,"Removed stage-1 analysis call + reasoning checklist/block (skip_analysis + trim_reasoning)",300,0.1447,0.0070,-0.0012,0.0150,0.00217,yes,0.2259,0.0133,0.0055,0.0209,0.000291,yes
 skip_analysis,"Removed stage-1 capability-analysis API call (single-call estimation; estimation prompt otherwise full)",300,0.1482,0.0105,0.0028,0.0181,2.5e-05,yes,0.2281,0.0155,0.0084,0.0225,7.32e-07,yes
 minimal,"Stripped: removed analysis call + reasoning checklist + base-rate footnote + benchmark framing (only source-task evidence + target + percentile ask remain)",893,0.1502,0.0136,0.0051,0.0224,7.2e-05,yes,0.2352,0.0224,0.0139,0.0307,1.85e-06,yes
