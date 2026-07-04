@@ -23,6 +23,12 @@ meet.md
 metrics.md
 FRECHET_ANOVA_IMPLEMENTATION.md
 EXPERIMENT_INSTRUCTIONS.md
+
+# Personal planning / meeting-note docs (internal only, not reproducibility content)
+/PLAN.md
+/new_plan.md
+/COST_BREAKDOWN.md
+intra_benchmark_calibration/experiments/III_gepa_optimization/PLAN.md
 latex/notes/
 RESULTS*.md
 !report_analyses/results_manifest.md
