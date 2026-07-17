@@ -1,0 +1,38 @@
+# Packaging for the LLM_estimator / LLM_elicitation repo.
+#
+# Only the two packages needed by external consumers (notably the GEPA fork)
+# are installed: `intra_benchmark_calibration` and `shared`. The install is
+# intended to be *editable* (`pip install -e .` / uv path source), so
+# non-package data (prompt templates under intra_benchmark_calibration/
+# experiments/..., configs, etc.) remains accessible via paths relative to
+# the module files.
+
+[build-system]
+requires = ["setuptools>=77.0.1"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "llm-estimator"
+version = "0.1.0"
+description = "SaferAI LLM-forecaster estimation pipeline (intra-benchmark calibration), packaged for the GEPA fork."
+requires-python = ">=3.10"
+dependencies = [
+    "anthropic>=0.40",
+    "openai>=1.60",
+    "pandas>=2.0",
+    "numpy>=1.26",
+    "pyyaml>=6.0",
+    "tenacity>=8.2",
+    "tqdm>=4.66",
+    "pyarrow>=15.0",
+]
+
+[project.optional-dependencies]
+analysis = [
+    "scipy",
+    "matplotlib",
+    "seaborn",
+]
+
+[tool.setuptools.packages.find]
+include = ["intra_benchmark_calibration*", "shared*"]

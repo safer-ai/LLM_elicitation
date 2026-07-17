@@ -61,6 +61,10 @@ env/
 .env/
 .pixi/
 
+# Packaging build artefacts (editable install of llm-estimator)
+*.egg-info/
+uv.lock
+
 # Python cache files
 __pycache__/
 *.pyc

@@ -56,6 +56,48 @@ def _assign_from_edges(values: np.ndarray, edges: np.ndarray) -> List[int]:
     return raw.astype(int).tolist()
 
 
+def compute_bins_right_closed(
+    fst_values: Sequence[float],
+    *,
+    explicit_edges: Sequence[float],
+) -> BinAssignment:
+    """Explicit-edge binning with RIGHT-CLOSED intervals (a, b], pandas-cut style.
+
+    Used by the GEPA experiment, whose task-allocation table was derived with
+    right-closed intervals: tasks sitting exactly on an edge (e.g. 60 or 180
+    minutes) belong to the LOWER bin, and the task at exactly the top edge
+    (2160 min) belongs to the top bin. Values outside the outer edges are
+    clipped into the outer bins with a warning.
+    """
+    fst = np.asarray(list(fst_values), dtype=float)
+    edges = np.asarray(list(explicit_edges), dtype=float)
+    if fst.ndim != 1 or fst.size == 0:
+        raise ValueError("fst_values must be a non-empty 1-D sequence")
+    if not np.all(np.diff(edges) > 0):
+        raise ValueError("explicit_edges must be strictly increasing")
+    n_bins = len(edges) - 1
+    # side='left': smallest i with edges[i] >= v, so edges[i-1] < v <= edges[i] -> bin i-1
+    raw = np.searchsorted(edges, fst, side="left") - 1
+    n_below = int((fst <= edges[0]).sum())
+    n_above = int((fst > edges[-1]).sum())
+    if n_below or n_above:
+        logger.warning(
+            f"compute_bins_right_closed: {n_below} value(s) at/below the bottom edge and "
+            f"{n_above} above the top edge; clipping into the outer bins."
+        )
+    idx = np.clip(raw, 0, n_bins - 1)
+    counts = np.bincount(idx, minlength=n_bins)
+    logger.info(f"Bin strategy='explicit_edges_right_closed', n_bins={n_bins}")
+    logger.info(f"Edges (min): {[round(float(e), 3) for e in edges]}")
+    logger.info(f"Counts per bin: {counts.tolist()}")
+    return BinAssignment(
+        edges_minutes=edges.tolist(),
+        bin_index_per_task=idx.astype(int).tolist(),
+        strategy="explicit_edges_right_closed",
+        n_bins=n_bins,
+    )
+
+
 def compute_bins(
     fst_values: Sequence[float],
     *,

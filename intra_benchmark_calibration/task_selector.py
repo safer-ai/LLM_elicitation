@@ -90,8 +90,11 @@ def _bin_task_ids_evaluated_by(
     task_ids: Sequence[str],
     model: str,
     outcomes: LyptusOutcomes,
+    evidence_task_ids: Optional[frozenset] = None,
 ) -> List[str]:
     in_bin = [tid for tid, b in zip(task_ids, bins.bin_index_per_task) if b == bin_idx]
+    if evidence_task_ids is not None:
+        in_bin = [tid for tid in in_bin if tid in evidence_task_ids]
     mask = outcomes.evaluated_mask(model, in_bin)
     return [tid for tid, ok in zip(in_bin, mask) if ok]
 
@@ -107,6 +110,7 @@ def select_anchor_and_easier(
     dataset: LyptusDataset,
     model: str,
     n_easier: int,
+    evidence_task_ids: Optional[frozenset] = None,
 ) -> Optional[SourceBinProfile]:
     """
     Pick anchor + n_easier tasks from `bin_idx` that are evaluated by `model`.
@@ -119,14 +123,27 @@ def select_anchor_and_easier(
       - Easier tasks: from the easier half of the bin by FST, the n_easier tasks
         with the highest representativeness score (ties broken by ascending FST).
 
+    `evidence_task_ids`, when given, restricts the pool of tasks that may be
+    SHOWN as evidence (anchor/easier and the bin pass-rate denominator) to that
+    set — used by the GEPA harness to keep held-out task outcomes out of the
+    prompts. Default None preserves the original behaviour (whole dataset).
+
     Returns None if M has no evaluated tasks in this bin.
     """
     all_ids = dataset.task_ids
     by_id = dataset.task_by_id
     outcomes = dataset.outcomes
 
-    evaluated_in_bin = _bin_task_ids_evaluated_by(bin_idx, bins, all_ids, model, outcomes)
-    n_in_bin = sum(1 for b in bins.bin_index_per_task if b == bin_idx)
+    evaluated_in_bin = _bin_task_ids_evaluated_by(
+        bin_idx, bins, all_ids, model, outcomes, evidence_task_ids
+    )
+    # Keep the "(bin contains N headline tasks total)" prompt line scoped to
+    # the same pool as the pass-rate numerator/denominator.
+    n_in_bin = sum(
+        1
+        for tid, b in zip(all_ids, bins.bin_index_per_task)
+        if b == bin_idx and (evidence_task_ids is None or tid in evidence_task_ids)
+    )
     if not evaluated_in_bin:
         return None
 
@@ -212,6 +229,7 @@ def build_cell_plans(
     n_examples_per_source_bin: int,
     n_target_tasks_per_cell: int,
     explicit_target_tasks: Optional[Dict[int, List[str]]] = None,
+    evidence_task_ids: Optional[frozenset] = None,
 ) -> List[CellPlan]:
     """
     Enumerate all admissible cells, with three source-profile modes:
@@ -292,7 +310,10 @@ def build_cell_plans(
             profiles: List[SourceBinProfile] = []
             bad = False
             for b in shown:
-                prof = select_anchor_and_easier(b, bins, dataset, M, n_examples_per_source_bin)
+                prof = select_anchor_and_easier(
+                    b, bins, dataset, M, n_examples_per_source_bin,
+                    evidence_task_ids=evidence_task_ids,
+                )
                 if prof is None:
                     bad = True
                     break
