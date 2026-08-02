@@ -40,7 +40,7 @@ All commands below are run **from the repo root**.
 | `0b_contamination_probe/` | Has the forecaster memorized Lyptus answers? | ✅ complete | No memorization → Exp I scores are genuine (validity gate passed) |
 | `II_recalibration_decomposition/` | Is the error fixable by recalibration, or is it real difficulty? | ✅ complete | Already well-calibrated (ECE 0.064); error is irreducible, not a calibration offset |
 | `H_task_variance_bin1/` | How much do forecasts vary across tasks within one difficulty bin? | ✅ complete | `summary/bin1_estimates_combined.csv` |
-| `III_gepa_optimization/` | Can automated prompt search (GEPA) beat the hand-written prompt? | 📝 planned | see `III_gepa_optimization/PLAN.md` |
+| `III_gepa_optimization/` | Can automated prompt search (GEPA) beat the hand-written prompt? | 🔶 pilot diagnostics complete | Real but modest gain (~0.013–0.017 Brier on sealed cells, vs ~0.021 claimed by val — winner's curse); overfit prompt texture was caused by our reflection instruction and is fixable for free; gate size ruled out as the noise fix — the val measurement itself (±0.015 across draws) is the binding problem. See `III_gepa_optimization/summary/ladder_2026-08-02.md` |
 
 ---
 
@@ -95,5 +95,15 @@ Output: `summary/recal_decomposition.md` + `summary/reliability_diagram.png`.
 python intra_benchmark_calibration/experiments/H_task_variance_bin1/plot_task_variance.py
 ```
 
-### `III_gepa_optimization/` — planned
-Not yet built. The full build + run plan is in `III_gepa_optimization/PLAN.md`.
+### `III_gepa_optimization/` — pilot diagnostics complete
+Runs live in the sibling `gepa` repo (branch `feat/gepa_on_LLM_estimator`;
+this repo is the estimation backend — see repo-root `README_GEPA.md`):
+```bash
+# from the gepa repo, after its one-time setup (see FORECASTER_GEPA_README.md there)
+uv run python -m forecaster_gepa.run --config configs/pilot_baseline.yaml      --phase optimize   # July baseline
+uv run python -m forecaster_gepa.run --config configs/pilot_baseline.yaml      --phase finalist   # E1 sealed-cell check
+uv run python -m forecaster_gepa.run --config configs/pilot_gate100.yaml       --phase optimize   # E3 gate-size test
+uv run python -m forecaster_gepa.run --config configs/pilot_reflection_v2.yaml --phase optimize   # E4 reflection-instruction test
+```
+Design plan and pre-run gates: `III_gepa_optimization/PLAN.md`. Verified
+results + raw-data pointers: `III_gepa_optimization/summary/ladder_2026-08-02.md`.
