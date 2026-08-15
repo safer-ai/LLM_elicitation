@@ -87,5 +87,6 @@ which-cells variance that does not vary between reruns of the same set.
 
 | File | Shows |
 | --- | --- |
+| `fig6_winner_replication.png` | **The headline figure**: seed vs each winning prompt across every paired re-measurement pass — the winners are below the seed every single time |
 | `fig3_improvements_vs_noise.png` | The two validated improvements vs the instrument's own re-measurement noise, by set |
 | `fig5_best_val_trajectory.png` | Best-so-far val curves of all three runs inside the seed's empirical re-measurement band |
