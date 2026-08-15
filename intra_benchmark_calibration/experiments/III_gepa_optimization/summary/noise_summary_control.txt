@@ -1,0 +1,2 @@
+prompt          set     repeats                         mean    sd
+always99        val     0.1334 0.1116 0.1561            0.1337  0.0222

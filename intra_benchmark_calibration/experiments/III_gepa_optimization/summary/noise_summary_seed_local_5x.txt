@@ -1,0 +1,2 @@
+prompt          set     repeats                         mean    sd
+seed            val     0.1027 0.1021 0.0956 0.1041 0.1137 0.1036  0.0065

@@ -40,7 +40,7 @@ All commands below are run **from the repo root**.
 | `0b_contamination_probe/` | Has the forecaster memorized Lyptus answers? | ✅ complete | No memorization → Exp I scores are genuine (validity gate passed) |
 | `II_recalibration_decomposition/` | Is the error fixable by recalibration, or is it real difficulty? | ✅ complete | Already well-calibrated (ECE 0.064); error is irreducible, not a calibration offset |
 | `H_task_variance_bin1/` | How much do forecasts vary across tasks within one difficulty bin? | ✅ complete | `summary/bin1_estimates_combined.csv` |
-| `III_gepa_optimization/` | Can automated prompt search (GEPA) beat the hand-written prompt? | 🔶 pilot diagnostics complete | Real but modest gain (~0.013–0.017 Brier on sealed cells, vs ~0.021 claimed by val — winner's curse); overfit prompt texture was caused by our reflection instruction and is fixable for free; gate size ruled out as the noise fix — the val measurement itself (±0.015 across draws) is the binding problem. See `III_gepa_optimization/summary/ladder_2026-08-02.md` |
+| `III_gepa_optimization/` | Can automated prompt search (GEPA) beat the hand-written prompt? | 🔶 pilots + measurement study complete | Yes, modestly — two validated wins on sealed cells: cand 20 (+0.017, replicated ×3) and cand 12 run at temperature 0 (+0.026, 5 paired passes). Key methodology finding: a single 84-cell val pass has re-measurement noise as large as the gains (sd 0.0065; can't even detect a sabotage prompt) and parse failures scored 1.0 masked real winners — multi-pass sealed evals are the reliable instrument. CVEBench/CyberGym transfer test pending (group decision). See `III_gepa_optimization/summary/measurement_study_2026-08.md` |
 
 ---
 
@@ -95,15 +95,19 @@ Output: `summary/recal_decomposition.md` + `summary/reliability_diagram.png`.
 python intra_benchmark_calibration/experiments/H_task_variance_bin1/plot_task_variance.py
 ```
 
-### `III_gepa_optimization/` — pilot diagnostics complete
-Runs live in the sibling `gepa` repo (branch `feat/gepa_on_LLM_estimator`;
-this repo is the estimation backend — see repo-root `README_GEPA.md`):
+### `III_gepa_optimization/` — pilots + measurement study complete
+Runs live in the sibling `gepa` repo (currently Madhav's fork
+`actionproject-madhav/gepa`, branch `feat/gepa_on_LLM_estimator` — PR to
+upstream `kryjak-sai/gepa` pending; this repo is the estimation backend —
+see repo-root `README_GEPA.md`):
 ```bash
 # from the gepa repo, after its one-time setup (see FORECASTER_GEPA_README.md there)
 uv run python -m forecaster_gepa.run --config configs/pilot_baseline.yaml      --phase optimize   # July baseline
 uv run python -m forecaster_gepa.run --config configs/pilot_baseline.yaml      --phase finalist   # E1 sealed-cell check
 uv run python -m forecaster_gepa.run --config configs/pilot_gate100.yaml       --phase optimize   # E3 gate-size test
 uv run python -m forecaster_gepa.run --config configs/pilot_reflection_v2.yaml --phase optimize   # E4 reflection-instruction test
+uv run python scripts/val_noise_study.py --prompts seed --repeats-val 5 --repeats-sealed 0 --tag seed5x   # measurement-noise protocol
 ```
 Design plan and pre-run gates: `III_gepa_optimization/PLAN.md`. Verified
-results + raw-data pointers: `III_gepa_optimization/summary/ladder_2026-08-02.md`.
+results + raw-data pointers: `III_gepa_optimization/summary/ladder_2026-08-02.md`
+and `III_gepa_optimization/summary/measurement_study_2026-08.md`.
