@@ -32,29 +32,15 @@ re-measurement agree.
 
 ---
 
-## Master table
+## State of every run
 
-"OPT" = the optimization stage (expensive: gate + val cells inside the GEPA
-loop). "EVAL" = post-hoc scoring of fixed prompts (cheap, repeatable).
+![parse-failure state](fig8_parse_failure_state.png)
 
-| # | Experiment | Saved at | OPT failures | OPT decisions flipped | EVAL failures | EVAL verdicts changed | Re-run OPT? | Re-run EVAL? |
-|---|---|---|---|---|---|---|---|---|
-| R1 | **`pilot_baseline`** — the July GEPA run (40 iters, 26 candidates) | `runs/pilot_baseline/`, branch `results/ladder-2026-08-02` | gate **5/1600**; val **7/2184** (incl. **the seed**) | **3** (iters 5, 11, 21 — all rejections that would become accepts) | see R1-E | see R1-E | **No** — a re-run is a new sample, not a correction; its outputs (cands 12/15/20) are already validated by re-measurement. Perturbation is a documented caveat | — |
-| R1-E | **E1: held-out re-ranking of R1's top-5 + seed** | `runs/pilot_baseline/finalist_*.{json,jsonl}` | — | — | **17/2530** (cand 12:4, 14:5, 15:5, 9:2, 20:1; **seed: 0**) | **Yes, 3 of them** — cand 12 tie→**+0.027**; **cand 15 tie→+0.012/+0.013**; cand 14 "much worse"→mildly worse | — | **cand 15: yes (~$10)** to convert it from recomputed to measured. cands 9/14 optional. cand 12/20 already re-measured |
-| R2 | **`pilot_gate100`** — E3, 100-cell acceptance gate | `runs/pilot_gate100/`, `results/ladder-2026-08-02` | gate **1/8000**; val **2/924** (cands 1, 3) | **0** | no eval phase run | — | **No** — verified: even parsed-only, cands 1/3 score 0.116/0.114 vs seed 0.0995, so "seed never beaten" holds | — |
-| R3 | **`pilot_reflection_v2`** — E4, softened reflection instruction | `runs/pilot_reflection_v2/`, `results/ladder-2026-08-02` | gate **0/1600**; val **0/1932** | **0** | — | — | **No** | — |
-| R3-E | **E4 held-out check of R3's top-5 + seed** | `runs/pilot_reflection_v2/finalist_*` | — | — | **0/1150** | none | — | **No** |
-| M1 | **Seed self-consistency**: same prompt × 5 val passes | `runs/noise_study/noise_*_seed_local_5x.*`, branch `results/priority-2026-08-10` | — | — | **0/420** | none | — | **No** |
-| M2 | **cand 20 vs seed**, 3 paired held-out passes (temp 1) | `runs/noise_study/noise_*_sealed_check.*` | — | — | **0/1380** | none | — | **No** |
-| M3 | **Sabotage control** ("always 0.99") × 3 val passes | `runs/noise_study/noise_*_control.*` | — | — | **0/252** | none | — | **No** |
-| M4 | **temp-0 arm**: seed/cand12/cand20, val+held-out | `runs/noise_study/noise_*_temp0.*` | — | — | **2/2136** (both cand 12) | none — failures are **included** in the reported +0.026, so it is understated | — | **No** |
-| M5 | **temp-0 confirmation**: cand 12 vs seed, 3 paired held-out passes | `runs/noise_study/noise_*_temp0_confirm.*` | — | — | **1/1380** (cand 12) | none — included, so conservative | — | **No** |
-| V | **verify-sign** sanity checks (N=8 fail, N=24 pass) | `runs/verify_sign_n8/`, `runs/verify_sign_n24/` | — | — | 0 | none — the N=8 failure was sampling noise, not a parse failure | — | **No** |
-
-**Totals: 32 failed cells out of ~25,500 scored cells (0.13%).** All of them
-sit in R1 and its eval (R1-E) except 3 in R2 and 3 in the temp-0 arms.
-
----
+`not fixable` on the July run means a re-run cannot correct it: at temperature
+1.0 a re-run is a different sample, so it cannot separate the fix from
+run-to-run variance. Its three flipped rejections (iters 5, 11, 21) stay a
+documented caveat; its outputs (cands 12, 15, 20) are validated by
+re-measurement instead.
 
 ## The single most consequential failure
 
