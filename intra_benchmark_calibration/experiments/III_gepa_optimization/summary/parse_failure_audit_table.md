@@ -36,11 +36,21 @@ re-measurement agree.
 
 ![parse-failure state](fig8_parse_failure_state.png)
 
-`not fixable` on the July run means a re-run cannot correct it: at temperature
-1.0 a re-run is a different sample, so it cannot separate the fix from
-run-to-run variance. Its three flipped rejections (iters 5, 11, 21) stay a
-documented caveat; its outputs (cands 12, 15, 20) are validated by
-re-measurement instead.
+Runs are named by their config, which is what you type to reproduce them
+(`configs/<name>.yaml` in the gepa repo). The earlier E1/E3/E4 labels are
+retired: they were ad hoc and had a gap.
+
+**The decisive row is the first one.** `pilot_baseline` is the only
+experiment that produced a deliverable, the prompts we actually use; every
+other run returned a negative result or a measurement. It is also the run
+the bug hit hardest, losing three children to formatting typos. So the one
+optimization worth re-running clean is that one, and not because a re-run
+repairs July (at temperature 1.0 it is a fresh sample), but because the
+prompt-producing experiment ran handicapped and a clean version can only do
+better.
+
+`pilot_gate100` is declined: it answered its question with a negative, and
+re-running it would cost more than every other action combined.
 
 ## The single most consequential failure
 
