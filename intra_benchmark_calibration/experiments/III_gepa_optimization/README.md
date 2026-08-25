@@ -31,6 +31,10 @@ that fork's branches `results/ladder-2026-08-02` and
 
 Details + verified numbers: `summary/ladder_2026-08-02.md` (the pilot ladder)
 and `summary/measurement_study_2026-08.md` (noise, control, replications).
+**Read `summary/parse_failure_audit_table.md` first** — it lists, per
+experiment, exactly which results were distorted by the Brier-1.0
+parse-failure penalty and which need re-running (answer: almost none;
+reproduce with `scripts/parse_failure_audit.py` in the gepa repo).
 The two validated winning prompts: `summary/july_cand20_prompt.txt`,
 `summary/july_cand12_prompt.txt`.
 
