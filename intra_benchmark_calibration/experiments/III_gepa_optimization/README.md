@@ -28,6 +28,7 @@ that fork's branches `results/ladder-2026-08-02` and
 | E4 `pilot_reflection_v2` + its finalist check (2026-08-02) | reflection instruction only (transferable principles, no numeric bands, decisiveness earned not forced) | is the overfit prompt texture caused by our own instruction — and does softening keep the gain? | **texture: yes, gain: no.** Winner (cand 13) has zero bands/platform rules/anti-hedging, but its sealed edge over seed is −0.0013 [−0.0083, +0.0053] — no improvement; the run's sealed winner is the seed itself |
 | Measurement study (2026-08-03 → 08-10, local + cloud) | no optimization — repeated evaluation of fixed prompts | how noisy is one evaluation pass; is the instrument valid; does cand 20's win replicate; does temp 0 help? | seed × 5 same-hour val passes: **sd 0.0065, range 0.018** (as large as the gains); a sabotage prompt ("always 0.99") landed one val pass **inside the seed's own range**; **cand 20 replicated** (better in all 3 paired sealed repeats); temp 0 not deterministic (serving noise, sd 0.005) but kills parse failures |
 | temp-0 confirmation (2026-08-15, local) | none — 3 more paired sealed passes of cand 12 @ temp 0 vs seed | is cand 12's temp-0 edge real? | **confirmed: +0.026** (edges +0.0258/+0.0289/+0.0256; pooled 5 passes: 0.1045±0.003 vs seed 0.1307±0.001, non-overlapping) — **the project's best validated result** |
+| `pilot_baseline_clean` + finalist + 3-pass sealed (2026-08-29, local) | measurement fixes only (temp 0, parse retry, halt tripwire) — search identical to `pilot_baseline` | does GEPA still find real winners on a bug-free pipeline, and does anything beat cand 12? | **zero parse failures in ~8,300 calls**; de-noised val is sober (only 2/26 beat seed); 3-pass sealed verdict: **clean cand 7 +0.0161 (3/3) — GEPA replicates**; cand 12 re-confirmed champion (+0.0266, 8/8 lifetime); cand 15 confirmed third winner (+0.0143, matching the audit's parsed-only prediction); the run's own val winner ≈ null on sealed — select finals on multi-pass sealed, never val. See `summary/clean_rerun_2026-08-29.md` |
 
 Offline (zero-cost) screening results: `summary/offline_analyses_2026-08.md`
 (prompt-feature table, acceptance-rule replay, Pareto-aggregation check).
@@ -58,10 +59,14 @@ noisy draws and must not be read as loss curves.
    test set on the final winner — cand 12 @ temperature 0 vs the seed,
    ≥2 passes each (~$100). This answers the project's actual transfer
    question and is the headline either way.
-2. Before any further optimization: retry-once-on-parse-failure patch in
-   the estimation API (failures scored 1.0 distort every metric).
-3. Jakub's replicate plan (4× default + 4× v2 + extend blue run) if still
-   wanted after 1–2: true cost ≈ $1,000–1,100 including the multi-pass
-   sealed check per run that makes it interpretable.
-4. Gate thresholds (`acceptance_criterion` knobs): choose offline from the
-   two runs' retrospective curves, not live sweeps.
+2. ~~Retry-on-parse-failure patch~~ **DONE 2026-08-29** (retry + halt
+   tripwire; clean rerun had zero failures in ~8,300 calls) — and the clean
+   rerun replicated GEPA's effect (cand 7 +0.016), so the "does GEPA
+   reliably work" question is half-answered without the $1k replicate plan.
+3. Team-gated ablations, in screened order: reflection-feedback enrichment
+   (most promising, never tried), then the joint acceptance rule
+   (`sum>0 AND wins>=8/20` — the only variant that passed offline
+   screening, see `summary/offline_analyses_2026-08.md`). Plain (model,bin)
+   Pareto aggregation should NOT run as-is (it starves cand 15's lineage).
+4. Standing protocol from two runs' evidence: final prompt selection by
+   multi-pass sealed evaluation of the top-k, never by val.
