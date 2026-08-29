@@ -73,6 +73,9 @@ class CellResult:
     raw_response: str  # full rollout text from the forecaster
     error: Optional[str]  # None on success
     duration_seconds: float
+    # Fresh samples spent recovering an unparsable response (0 = first
+    # attempt parsed). Lets audits track how often the retry fires.
+    parse_retries_used: int = 0
 
     @property
     def parsed_ok(self) -> bool:
@@ -87,6 +90,7 @@ def _failure_result(
     raw_response: str,
     error: str,
     t0: float,
+    parse_retries_used: int = 0,
 ) -> CellResult:
     return CellResult(
         cell_id=plan.cell_id,
@@ -104,6 +108,7 @@ def _failure_result(
         raw_response=raw_response,
         error=error,
         duration_seconds=time.monotonic() - t0,
+        parse_retries_used=parse_retries_used,
     )
 
 
@@ -122,6 +127,7 @@ async def _estimate_single_cell(
     include_bin_rate: bool,
     include_task_outcomes: bool,
     max_tokens: int,
+    parse_retries: int,
 ) -> CellResult:
     """One cell -> one estimation API call -> parsed percentiles + Brier."""
     t0 = time.monotonic()
@@ -156,27 +162,41 @@ async def _estimate_single_cell(
         )
 
     user_prompt = prep.estimation_user_prompt
-    response_text = await make_api_call(
-        client, semaphore, llm_settings, system_prompt, user_prompt, max_tokens
-    )
-    if response_text.startswith("Error:"):
-        return _failure_result(
-            plan,
-            system_prompt=system_prompt,
-            user_prompt=user_prompt,
-            raw_response=response_text,
-            error=f"api_error: {response_text}",
-            t0=t0,
+    # An unparsable response is almost always a one-character format typo
+    # from temperature sampling (e.g. a mismatched </p75> closing tag), so a
+    # fresh sample recovers the cell. Retry ONLY the unparsable case:
+    # api_error has already been through the client's own retry machinery,
+    # and template_format_error is deterministic (retrying cannot help).
+    attempts = 1 + max(0, parse_retries)
+    response_text = ""
+    parsed: dict = {}
+    p25 = p50 = p75 = None
+    attempt = 0
+    for attempt in range(attempts):
+        response_text = await make_api_call(
+            client, semaphore, llm_settings, system_prompt, user_prompt, max_tokens
         )
+        if response_text.startswith("Error:"):
+            return _failure_result(
+                plan,
+                system_prompt=system_prompt,
+                user_prompt=user_prompt,
+                raw_response=response_text,
+                error=f"api_error: {response_text}",
+                t0=t0,
+                parse_retries_used=attempt,
+            )
+        parsed = parse_probability_response(response_text)
+        p25 = parsed.get("percentile_25th")
+        p50 = parsed.get("percentile_50th")
+        p75 = parsed.get("percentile_75th")
+        if p50 is not None:
+            break
 
-    parsed = parse_probability_response(response_text)
-    p25 = parsed.get("percentile_25th")
-    p50 = parsed.get("percentile_50th")
-    p75 = parsed.get("percentile_75th")
     error: Optional[str] = None
     brier: Optional[float] = None
     if p50 is None:
-        error = "parse_failed: no p50 extracted from response"
+        error = f"parse_failed: no p50 extracted from response (after {attempts} attempt(s))"
     else:
         brier = (float(p50) - float(plan.target_outcome)) ** 2
 
@@ -196,6 +216,7 @@ async def _estimate_single_cell(
         raw_response=response_text,
         error=error,
         duration_seconds=time.monotonic() - t0,
+        parse_retries_used=attempt,
     )
 
 
@@ -245,12 +266,15 @@ async def estimate_cells_async(
     include_bin_rate: bool = True,
     include_task_outcomes: bool = True,
     max_tokens: int = _DEFAULT_MAX_TOKENS,
+    parse_retries: int = 1,
 ) -> List[CellResult]:
     """Evaluate `estimation_template` on every cell in `plans`, concurrently.
 
     Results align one-to-one with `plans`. Per-cell failures (template
     formatting, API errors, unparsable responses) are reported via
-    `CellResult.error`; only systemic misconfiguration raises.
+    `CellResult.error`; only systemic misconfiguration raises. An unparsable
+    response is re-sampled up to `parse_retries` times before being reported
+    as a failure (`CellResult.parse_retries_used` records what was spent).
     """
     owns_client = client is None
     if client is None:
@@ -276,6 +300,7 @@ async def estimate_cells_async(
                 include_bin_rate=include_bin_rate,
                 include_task_outcomes=include_task_outcomes,
                 max_tokens=max_tokens,
+                parse_retries=parse_retries,
             )
             for plan in plans
         ]
