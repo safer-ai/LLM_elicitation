@@ -29,6 +29,8 @@ that fork's branches `results/ladder-2026-08-02` and
 | Measurement study (2026-08-03 → 08-10, local + cloud) | no optimization — repeated evaluation of fixed prompts | how noisy is one evaluation pass; is the instrument valid; does cand 20's win replicate; does temp 0 help? | seed × 5 same-hour val passes: **sd 0.0065, range 0.018** (as large as the gains); a sabotage prompt ("always 0.99") landed one val pass **inside the seed's own range**; **cand 20 replicated** (better in all 3 paired sealed repeats); temp 0 not deterministic (serving noise, sd 0.005) but kills parse failures |
 | temp-0 confirmation (2026-08-15, local) | none — 3 more paired sealed passes of cand 12 @ temp 0 vs seed | is cand 12's temp-0 edge real? | **confirmed: +0.026** (edges +0.0258/+0.0289/+0.0256; pooled 5 passes: 0.1045±0.003 vs seed 0.1307±0.001, non-overlapping) — **the project's best validated result** |
 
+Offline (zero-cost) screening results: `summary/offline_analyses_2026-08.md`
+(prompt-feature table, acceptance-rule replay, Pareto-aggregation check).
 Details + verified numbers: `summary/ladder_2026-08-02.md` (the pilot ladder)
 and `summary/measurement_study_2026-08.md` (noise, control, replications).
 **Read `summary/parse_failure_audit_table.md` first** — it lists, per
