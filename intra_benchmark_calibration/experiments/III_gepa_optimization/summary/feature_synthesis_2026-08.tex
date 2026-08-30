@@ -7,50 +7,68 @@
 \makeatletter
 \renewcommand\section{\@startsection{section}{1}{\z@}{3.5pt}{1.0pt}{\normalsize\bfseries}}
 \makeatother
-\linespread{0.95}\setlength{\parskip}{1.2pt}\setlength{\parindent}{0pt}
+\linespread{0.93}\setlength{\parskip}{1.2pt}\setlength{\parindent}{0pt}
 \AtBeginDocument{\small}
 \usepackage[hidelinks]{hyperref}
 \pagestyle{empty}
 \begin{document}
 
-{\Large\bfseries What matters in an LLM forecasting prompt}\\[0.4mm]
-{\footnotesize One-page synthesis of the SaferAI forecaster experiments, Spring--August 2026 \quad\textperiodcentered\quad Madhav Khanal, with Jakub Kry\'s, Jeff Mohl, Matt Smith \quad\textperiodcentered\quad 2026-08-30}
+{\large\bfseries LLM forecaster prompt experiments: synthesis}\\[0.2mm]
+{\footnotesize Madhav Khanal, with Jakub Kry\'s, Jeff Mohl, Matt Smith \ \textperiodcentered\ \ SaferAI, Spring--August 2026 \ \textperiodcentered\ \ 2026-08-30}
 
-\section*{1\quad Task, data, instruments}
-A forecaster LLM (Claude Sonnet 4.6) predicts $p=\Pr[\text{model }m\text{ solves task }t\text{ in one attempt}]$ for cells $(t,m)$ of the Lyptus cyber-benchmark outcome matrix. Its evidence: example tasks with solved/failed outcomes and group pass rates from \emph{other} difficulty bins; the target's own FST difficulty bin is never shown. \textbf{Accuracy}: Brier $(p_{50}-y)^2$; CRPS of the Beta fitted to $(p_{25},p_{50},p_{75})$. \textbf{Output shift}: Wasserstein-1 ($W_1$) between $p_{50}$ distributions. \textbf{Sets} (frozen seed-42 split of 5 train benchmark families): $D_{\mathrm{search}}$ = 84 cells (selection), $D_{\mathrm{held}}$ = 230 cells (21 unseen tasks $\times$ 11 models); CVEBench+CyberGym reserved. Re-measurement noise: sd $0.0065$ per single $D_{\mathrm{search}}$ pass, $\approx0.002$ per multi-pass $D_{\mathrm{held}}$ estimate. \textbf{Reference points on $D_{\mathrm{held}}$}: hand-written minimal \texttt{seed} prompt $0.1306$; \emph{difficulty-oracle table} --- predict $m$'s leave-one-out mean pass rate over the other tasks in $t$'s FST bin, a lookup using the very label the LLM is denied --- $0.1034$.
+\section*{1\quad Setup}
+\begin{list}{\textbullet}{\setlength{\leftmargin}{1.1em}\setlength{\itemsep}{0.3pt}\setlength{\topsep}{1pt}\setlength{\parsep}{0pt}\setlength{\partopsep}{0pt}}
+\item \textbf{Task.} Predict $p=\Pr[\text{AI model }m\text{ solves benchmark task }t\text{ in one attempt}]$, one prediction per (task, model) pair; ground truth is recorded pass/fail from a suite of cybersecurity benchmarks (Lyptus). Forecaster: Claude Sonnet 4.6, temperature 0, one call per pair, reporting percentiles $p_{25}/p_{50}/p_{75}$.
+\item \textbf{Evidence in the prompt.} Example tasks with their pass/fail outcomes and group pass rates, all drawn from difficulty levels \emph{other than} the target's. The target's difficulty label is hidden from the model.
+\item \textbf{Splits} (fixed once). Search set: 84 pairs, used to select prompts. Held-out set: 230 pairs (21 unseen tasks $\times$ 11 models), used only for final scoring. Two further benchmarks reserved for a single future test.
+\item \textbf{Metrics.} Brier $(p_{50}-y)^2$ and CRPS of a Beta fitted to the three percentiles; lower is better. Noise floor from re-running the same prompt: sd $0.0065$ per single search-set pass, $\approx0.002$ per multi-pass held-out estimate.
+\item \textbf{Reference points, held-out set.} Minimal hand-written prompt (the \emph{seed}): $0.1312$. \emph{Difficulty-oracle table}: predict $m$'s mean pass rate over the other tasks at $t$'s difficulty level (leave-one-out); this no-LLM lookup reads the label the model never sees: $0.1034$.
+\end{list}
 
-\section*{2\quad Where the 82 prompts came from, and what was already known}
-GEPA (reflective evolutionary prompt search, arXiv:2507.19457) ran twice under identical configs --- July, and a clean re-run after fixing a scoring bug (unparsable responses scored Brier 1.0; now retried, then halt; 0 failures in 8{,}300 calls) --- plus two search-setting ablations: \textbf{82 evolved prompts}, 13 evaluated on $D_{\mathrm{held}}$ (7 multi-pass). Both main runs found genuine held-out winners (\texttt{cand12} $+0.027$, better than seed in 8/8 paired passes; \texttt{cand7} $+0.016$, 3/3); both times the run's \emph{own} $D_{\mathrm{search}}$ winner was $\approx$ null on $D_{\mathrm{held}}$, so final selection must use held-out multi-pass scores, never the search set. Prior context: hand-ablations of the original pipeline prompt (Exp.~I, 300 matched cells) put the whole scaffold at $0.014$ Brier --- only the stage-1 analysis call individually significant ($+0.0105$); evidence \emph{texts} load-bearing ($+0.0178$ removed, $p{=}10^{-7}$); pass-rate numbers and solved/failed tags free riders (n.s.). Exp.~II: the forecaster is already calibrated (ECE $0.064$, recalibration moves $<0.003$), so any prompt gain must buy \emph{discrimination}, not calibration.
+\section*{2\quad The 82 prompts and where they came from}
+Prompts come from GEPA, an evolutionary search that mutates a prompt with an LLM rewriter and keeps mutations that score better (arXiv:2507.19457). Every claim below uses multi-pass held-out scores: in both search runs, the prompt that looked best on the search set did not hold up on the held-out set.
 
-\section*{3\quad Feature analysis: tag every prompt, screen on two axes, then intervene}
-Each evolved prompt was tagged by a deterministic rubric with five pre-registered features; each is screened for \textbf{accuracy} ($\Delta$Brier on $D_{\mathrm{search}}$, within-run then pooled --- runs differ in temperature) and \textbf{output shift} ($W_1$ vs the same run's seed on identical cells; all features shift $0.023$--$0.028$ because prompts carry feature \emph{bundles}). The sealed-null v2 run separates the bundle observationally: its prompts carry anti-hedging + task-typing + anchoring language but \emph{no} numeric bands or nearest-example rules, and gained nothing.
-
-\begin{center}\scriptsize
-\begin{tabular}{@{}lccl@{}}
+\begin{center}\footnotesize
+\begin{tabular}{@{}p{6.9cm}ccp{6.2cm}@{}}
 \toprule
-Feature (of 82 evolved prompts) & prevalence & $\Delta$Brier, $D_{\mathrm{search}}$ & reading\\
+source & prompts & best held-out gain & note\\
 \midrule
-reference-class anchoring instruction & 82/82 & --- & universal: the optimizer's first move in every lineage\\
-nearest-example weighting (``near-twin'') & 31 & $-0.0043$ & strongest discriminator; in winners, absent in v2 nulls\\
-numeric probability bands & 45 & $-0.0008$ & in all 3 July winners, absent in v2 nulls; \textbf{causal, below}\\
-anti-hedging (ban the 0.5 default) & 46 & $-0.0025$ & in all winners \emph{and} all v2 nulls: insufficient alone\\
-task-type rules (interactive vs.\ static) & 69 & $-0.0029$ & near-universal; insufficient alone (v2)\\
+minimal hand-written prompt (\emph{seed}) & 1 & reference & task statement and output format, no guidance\\
+evolutionary search, run 1 (ran with a scoring bug: unparsable answers were scored as maximally wrong) & 25 & $+0.027^{\star}$ (8/8 paired passes) & three of its prompts verified as real gains after the fix\\
+evolutionary search, run 2 (bug fixed, otherwise identical) & 25 & $+0.016$ (3/3) & independent replication of the method\\
+two search variants (wider acceptance test; rewriter told to avoid numeric content) & 32 & none beat the seed & the no-numbers variant serves as a natural control\\
+single-feature prompts, hand-built for \S3 & 2 & $+0.020$ / $+0.006$ & seed plus exactly one feature each\\
+\bottomrule
+\end{tabular}\\[0.4mm]
+{\scriptsize $^{\star}$best evolved prompt; used in the figure below.}
+\end{center}
+
+\section*{3\quad Which prompt features matter}
+Every evolved prompt was tagged for five recurring features (deterministic keyword rubric). Features arrive in bundles, so the tag screen is directional; the intervention below is the causal test.
+
+\begin{center}\footnotesize
+\begin{tabular}{@{}lp{6.6cm}cc p{4.4cm}@{}}
+\toprule
+feature & what the prompt text says & n/82 & $\Delta$Brier & held-out evidence\\
+\midrule
+anchoring instruction & base the probability on the observed pass rates in the evidence & 82 & --- & in every evolved prompt\\
+nearest-example weighting & if one example closely matches the target, weight its outcome above its group average & 31 & $-0.0043$ & in all winners; absent from the no-numbers control\\
+numeric probability bands & explicit ranges per task kind, e.g.\ trivial lookup $0.92$--$0.99$, live exploitation $0.10$--$0.30$ & 45 & $-0.0008$ & in all winners; absent from control; causal test below\\
+anti-hedging & do not default to $0.5$ when unsure & 46 & $-0.0025$ & also in the control's null prompts: not sufficient\\
+task-type adjustment & shift down for tasks against a live service, up for static file analysis & 69 & $-0.0029$ & near-universal: not sufficient\\
 \bottomrule
 \end{tabular}
 \end{center}
 
-\textbf{Causal check} (3 paired $D_{\mathrm{held}}$ passes, same-session seed): re-injecting the winners' two halves into the seed separately gives \emph{seed+numeric bands} $0.1120$ (paired $+0.020$, better in 3/3 passes) versus \emph{seed+anchoring procedure} $0.1260$ (paired $+0.006$, 3/3). The decomposition is one-sided: the explicit numeric anchors alone recover $\sim$74\% of the full winner's edge; the reference-class procedure alone is real but $3\times$ smaller. This retro-explains the v2 null (its instruction banned numbers) and names the mechanism: \emph{the forecaster follows anchors it is given; it does not construct equivalent anchors from evidence, even when instructed step-by-step}. The full winner ($+0.027$) still beats bands alone: the procedure adds value only on top of explicit numbers. Beta-CRPS agrees everywhere (seed $0.216$, bands $0.189$, \texttt{cand12} $0.178$).
+\textbf{Causal test.} Each half of the best evolved prompt was added to the seed alone and scored on the held-out set, 3 paired passes each. The numeric bands alone recover most of the full prompt's gain; the same recipe with every number removed recovers little. CRPS agrees (seed $0.216$, bands $0.189$, best evolved $0.178$).
 
-\begin{center}
-\includegraphics[width=0.80\textwidth]{fig10_feature_synthesis.png}
-\end{center}
+\par\vspace{0.5mm}\centerline{\includegraphics[width=0.5\textwidth]{fig10_feature_synthesis.png}}\vspace{0.5mm}
 
 \section*{4\quad Conclusions}
-\textbf{(i) Anchoring is the master variable at every layer of this project.} In the spring risk-elicitation study (different task: risk-model parameter beliefs), outputs tracked any \emph{provided} number nearly linearly; removing the anchor exploded variance (Fr\'echet-mean $W_1{=}0.154$, $18\times$), personas and scaffolding inert --- anchoring as \emph{bias risk}. In forecasting, the model barely exploits evidence numbers spontaneously (Exp.~I); GEPA instructed anchoring in 82/82 evolved prompts, its winning recipe being reference-class forecasting (anchor on the closest analog group's empirical rate, correct toward near-twins) --- anchoring turned into the \emph{mechanism}.
-\textbf{(ii) The gain is resolution, exactly as Exp.~II demanded:} \texttt{cand12} vs seed decomposes as resolution $0.078{\to}0.110$, reliability unchanged; Exp.~II's open question is closed at $\approx0.03$ Brier of extractable discrimination.
-\textbf{(iii) Two independent levers hit the same ceiling.} Optimized Sonnet reaches the difficulty-oracle table ($0.104$ vs $0.103$) while blind to the difficulty label; on the spring grid the best base model (GPT-5.5, hand prompt) tied the same oracle family ($0.102$ vs bin-table $0.098$, IRT $0.093$) where Sonnet lagged ($0.124$). Prompt evolution is worth about one model generation, and both levers saturate at the oracle line --- the practical ceiling given single-run ground truth.
-\textbf{(iv) What remains}: the reserved one-shot transfer test (CVEBench+CyberGym) --- out of distribution, where the oracle table must extrapolate too, does the recipe keep its edge?
+\textbf{1. Put numbers in the prompt; asking the model to derive them does not substitute.} An explicit numeric anchor in the prompt carries most of the best prompt's gain; the same recipe with the numbers removed carries a third of it. This matches the project's oldest finding, that elicited values track whatever number the prompt provides, and turns that bias into the working mechanism. Prompt design for forecasting is deciding \emph{which numbers the model sees}, not writing better reasoning steps.
+\textbf{2. Prompt optimization is real, bounded, and stops at a lookup table.} Two independent runs improved the forecaster, entirely by improving discrimination (it was already calibrated). The optimized model matches, and never beats, the difficulty-oracle table; the strongest base model reaches the same point with a hand-written prompt. In distribution the table is the ceiling, and optimization is worth about one model generation.
+\textbf{3. What is left is transfer.} A table cannot extrapolate to new benchmarks; a model might. The reserved out-of-distribution test decides whether the learned recipe has value beyond the table.
 
-{\scriptsize\raggedright\emph{Reproducibility.} Scripts \texttt{feature\_report\_data.py}, \texttt{val\_noise\_study.py}, \texttt{parse\_failure\_audit.py} (gepa repo); raw runs on \texttt{results/*} branches; curated data, prompt texts, this document: \texttt{experiments/III\_gepa\_optimization/summary/}; spring sources \texttt{prompt\_sensitivity/}, Exp.~I/II, final report \S3.\par}
+{\scriptsize\raggedright\emph{Reproducibility.} Scripts \texttt{feature\_report\_data.py}, \texttt{val\_noise\_study.py}, \texttt{parse\_failure\_audit.py} (gepa repo); raw runs on \texttt{results/*} branches; curated data, prompt texts, this document: \texttt{experiments/III\_gepa\_optimization/summary/}; earlier stages: \texttt{prompt\_sensitivity/}, experiments I/II, final report \S3.\par}
 
 \end{document}
