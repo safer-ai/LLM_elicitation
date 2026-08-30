@@ -17,13 +17,7 @@
 
 \thepar{Splits.}Fixed once before any experiment. Search set: 84 pairs, used to select prompts during search. Held-out set: 230 pairs (21 unseen tasks $\times$ 11 models), used only for final scoring. Two whole benchmarks stay reserved for a single future out-of-distribution test.
 
-\thepar{Metrics.}Accuracy per pair is the Brier score and, for the full percentile triple, the CRPS of a fitted Beta distribution (lower is better for both):
-\begin{equation*}
-\mathrm{Brier}(t,m) = \bigl(p_{50} - y_{t,m}\bigr)^2,
-\qquad
-\mathrm{CRPS}(F, y) = \int_0^1 \bigl(F(x) - \mathbf{1}[\,y \le x\,]\bigr)^2\,dx,
-\end{equation*}
-with $F$ the Beta CDF fitted to $(p_{25},p_{50},p_{75})$. A prompt's score is the mean over the 230 held-out pairs; a prompt's \emph{gain} is the paired mean difference against the seed prompt on identical pairs in the same measurement session. Output shift between two prompts is the Wasserstein-1 distance between their $p_{50}$ distributions on identical pairs. Noise floor, from re-running a fixed prompt: sd $0.0065$ for a single search-set pass, $\approx 0.002$ for a multi-pass held-out estimate.
+\thepar{Scoring.}Accuracy is the Brier score on $p_{50}$, with the CRPS of a Beta fitted to the percentile triple as a secondary check; lower is better. A prompt's score is its mean over the 230 held-out pairs; its \emph{gain} is the paired mean difference against the seed on identical pairs in the same measurement session. Re-running a fixed prompt gives sd $0.0065$ on one search-set pass and $\approx0.002$ on a multi-pass held-out estimate, so single search-set passes cannot rank prompts.
 
 \thepar{Baselines.}(i) The \emph{seed}: a minimal hand-written prompt holding the task statement, the evidence block, and the output format, with no forecasting guidance. Held-out Brier $0.1312$ (8 passes). (ii) The \emph{difficulty-oracle table}: no LLM, predict the leave-one-out mean pass rate of model $m$ over the other tasks in the target's difficulty bin $B(t)$,
 \begin{equation*}
@@ -32,7 +26,7 @@ b(t,m) \;=\; \frac{1}{|B(t)|-1} \sum_{t' \in B(t),\, t' \neq t} y_{t',m}
 \end{equation*}
 The table reads the difficulty label that is hidden from the forecaster, so it is an oracle-informed reference rather than a fair competitor.
 
-\thepar{Prompt search.}Prompts were generated with GEPA (arXiv:2507.19457), an evolutionary search in which the prompt is the only free parameter. The search keeps a pool of prompts, initialised with the seed. Each iteration samples a parent from the pool, favouring prompts that hold the best score on at least one search-set pair. An LLM rewriter (Claude Opus 4.8) reads the parent and its scored outputs on a fresh 20-pair batch and proposes a revision, which enters the pool if it outscores the parent on that batch. One run makes 40 proposals, about 4{,}000 forecaster calls. Search-set scores steer the run, but a single 84-pair pass has noise comparable to the effects, and in the replication run the prompt ranked first on the search set showed no held-out gain while the fourth-ranked prompt was the real winner. Final ranking therefore always uses $\geq 3$ full held-out passes, paired with the seed.
+\thepar{Prompt search.}GEPA (arXiv:2507.19457), with these choices: the only evolving component is the instruction text; the rewriter is Claude Opus 4.8, shown the parent prompt with its scored outputs on a fresh 20-pair batch; a proposal joins the pool if it beats its parent on that batch; one run makes 40 proposals, about 4{,}000 forecaster calls. Given the noise floor, final ranking always uses $\geq3$ paired held-out passes: in run 2 the search set's first-ranked prompt had no held-out gain, while its fourth-ranked one was the real winner.
 
 \section*{2\quad The prompts}
 
