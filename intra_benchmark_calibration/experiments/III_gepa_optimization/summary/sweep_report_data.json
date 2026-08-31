@@ -1,0 +1,557 @@
+{
+ "meta": {
+  "date": "2026-08-31",
+  "runs_pooled": [
+   "pilot_baseline",
+   "pilot_baseline_clean"
+  ],
+  "scoring": "parsed-only pairs; truth = child parsed val < parent",
+  "frontier_scoring": "raw engine scores, ties shared"
+ },
+ "acceptance": {
+  "per_run": {
+   "pilot_baseline": {
+    "n_accept": 25,
+    "n_good": 12,
+    "n_bad": 13,
+    "n_reject": 15
+   },
+   "pilot_baseline_clean": {
+    "n_accept": 25,
+    "n_good": 6,
+    "n_bad": 19,
+    "n_reject": 15
+   }
+  },
+  "pooled": {
+   "n_good": 18,
+   "n_bad": 32,
+   "n_reject": 27
+  },
+  "n_bug_rejects_excluded": 3,
+  "wins_only": {
+   "0": {
+    "good_kept": 18,
+    "bad_kept": 32,
+    "rejects_admitted": 27,
+    "decisions_changed": 27
+   },
+   "1": {
+    "good_kept": 18,
+    "bad_kept": 32,
+    "rejects_admitted": 27,
+    "decisions_changed": 27
+   },
+   "2": {
+    "good_kept": 18,
+    "bad_kept": 32,
+    "rejects_admitted": 27,
+    "decisions_changed": 27
+   },
+   "3": {
+    "good_kept": 18,
+    "bad_kept": 32,
+    "rejects_admitted": 26,
+    "decisions_changed": 26
+   },
+   "4": {
+    "good_kept": 18,
+    "bad_kept": 32,
+    "rejects_admitted": 24,
+    "decisions_changed": 24
+   },
+   "5": {
+    "good_kept": 18,
+    "bad_kept": 30,
+    "rejects_admitted": 21,
+    "decisions_changed": 23
+   },
+   "6": {
+    "good_kept": 17,
+    "bad_kept": 28,
+    "rejects_admitted": 20,
+    "decisions_changed": 25
+   },
+   "7": {
+    "good_kept": 16,
+    "bad_kept": 27,
+    "rejects_admitted": 16,
+    "decisions_changed": 23
+   },
+   "8": {
+    "good_kept": 15,
+    "bad_kept": 22,
+    "rejects_admitted": 13,
+    "decisions_changed": 26
+   },
+   "9": {
+    "good_kept": 12,
+    "bad_kept": 15,
+    "rejects_admitted": 10,
+    "decisions_changed": 33
+   },
+   "10": {
+    "good_kept": 9,
+    "bad_kept": 13,
+    "rejects_admitted": 6,
+    "decisions_changed": 34
+   },
+   "11": {
+    "good_kept": 8,
+    "bad_kept": 12,
+    "rejects_admitted": 3,
+    "decisions_changed": 33
+   },
+   "12": {
+    "good_kept": 7,
+    "bad_kept": 5,
+    "rejects_admitted": 2,
+    "decisions_changed": 40
+   },
+   "13": {
+    "good_kept": 5,
+    "bad_kept": 5,
+    "rejects_admitted": 1,
+    "decisions_changed": 41
+   },
+   "14": {
+    "good_kept": 4,
+    "bad_kept": 3,
+    "rejects_admitted": 1,
+    "decisions_changed": 44
+   },
+   "15": {
+    "good_kept": 4,
+    "bad_kept": 1,
+    "rejects_admitted": 0,
+    "decisions_changed": 45
+   },
+   "16": {
+    "good_kept": 3,
+    "bad_kept": 0,
+    "rejects_admitted": 0,
+    "decisions_changed": 47
+   },
+   "17": {
+    "good_kept": 1,
+    "bad_kept": 0,
+    "rejects_admitted": 0,
+    "decisions_changed": 49
+   },
+   "18": {
+    "good_kept": 0,
+    "bad_kept": 0,
+    "rejects_admitted": 0,
+    "decisions_changed": 50
+   },
+   "19": {
+    "good_kept": 0,
+    "bad_kept": 0,
+    "rejects_admitted": 0,
+    "decisions_changed": 50
+   },
+   "20": {
+    "good_kept": 0,
+    "bad_kept": 0,
+    "rejects_admitted": 0,
+    "decisions_changed": 50
+   }
+  },
+  "joint": {
+   "0": {
+    "good_kept": 18,
+    "bad_kept": 32,
+    "rejects_admitted": 0,
+    "decisions_changed": 0
+   },
+   "1": {
+    "good_kept": 18,
+    "bad_kept": 32,
+    "rejects_admitted": 0,
+    "decisions_changed": 0
+   },
+   "2": {
+    "good_kept": 18,
+    "bad_kept": 32,
+    "rejects_admitted": 0,
+    "decisions_changed": 0
+   },
+   "3": {
+    "good_kept": 18,
+    "bad_kept": 32,
+    "rejects_admitted": 0,
+    "decisions_changed": 0
+   },
+   "4": {
+    "good_kept": 18,
+    "bad_kept": 32,
+    "rejects_admitted": 0,
+    "decisions_changed": 0
+   },
+   "5": {
+    "good_kept": 18,
+    "bad_kept": 30,
+    "rejects_admitted": 0,
+    "decisions_changed": 2
+   },
+   "6": {
+    "good_kept": 17,
+    "bad_kept": 28,
+    "rejects_admitted": 0,
+    "decisions_changed": 5
+   },
+   "7": {
+    "good_kept": 16,
+    "bad_kept": 27,
+    "rejects_admitted": 0,
+    "decisions_changed": 7
+   },
+   "8": {
+    "good_kept": 15,
+    "bad_kept": 22,
+    "rejects_admitted": 0,
+    "decisions_changed": 13
+   },
+   "9": {
+    "good_kept": 12,
+    "bad_kept": 15,
+    "rejects_admitted": 0,
+    "decisions_changed": 23
+   },
+   "10": {
+    "good_kept": 9,
+    "bad_kept": 13,
+    "rejects_admitted": 0,
+    "decisions_changed": 28
+   },
+   "11": {
+    "good_kept": 8,
+    "bad_kept": 12,
+    "rejects_admitted": 0,
+    "decisions_changed": 30
+   },
+   "12": {
+    "good_kept": 7,
+    "bad_kept": 5,
+    "rejects_admitted": 0,
+    "decisions_changed": 38
+   },
+   "13": {
+    "good_kept": 5,
+    "bad_kept": 5,
+    "rejects_admitted": 0,
+    "decisions_changed": 40
+   },
+   "14": {
+    "good_kept": 4,
+    "bad_kept": 3,
+    "rejects_admitted": 0,
+    "decisions_changed": 43
+   },
+   "15": {
+    "good_kept": 4,
+    "bad_kept": 1,
+    "rejects_admitted": 0,
+    "decisions_changed": 45
+   },
+   "16": {
+    "good_kept": 3,
+    "bad_kept": 0,
+    "rejects_admitted": 0,
+    "decisions_changed": 47
+   },
+   "17": {
+    "good_kept": 1,
+    "bad_kept": 0,
+    "rejects_admitted": 0,
+    "decisions_changed": 49
+   },
+   "18": {
+    "good_kept": 0,
+    "bad_kept": 0,
+    "rejects_admitted": 0,
+    "decisions_changed": 50
+   },
+   "19": {
+    "good_kept": 0,
+    "bad_kept": 0,
+    "rejects_admitted": 0,
+    "decisions_changed": 50
+   },
+   "20": {
+    "good_kept": 0,
+    "bad_kept": 0,
+    "rejects_admitted": 0,
+    "decisions_changed": 50
+   }
+  }
+ },
+ "frontier": {
+  "pilot_baseline": {
+   "cells_won": {
+    "0": 17,
+    "1": 5,
+    "2": 14,
+    "3": 5,
+    "4": 6,
+    "5": 9,
+    "6": 5,
+    "7": 13,
+    "8": 3,
+    "9": 6,
+    "10": 1,
+    "11": 2,
+    "12": 28,
+    "13": 1,
+    "14": 13,
+    "15": 3,
+    "16": 9,
+    "17": 7,
+    "19": 4,
+    "20": 16,
+    "21": 11,
+    "22": 13,
+    "23": 5,
+    "24": 14,
+    "25": 3
+   },
+   "n_candidates": 26,
+   "eligible_vs_k": {
+    "1": 25,
+    "2": 23,
+    "3": 22,
+    "4": 19,
+    "5": 18,
+    "6": 14,
+    "7": 12,
+    "8": 11
+   },
+   "sealed_candidates": {
+    "12": {
+     "cells_won": 28,
+     "sealed": 0.0266,
+     "drops_at_k": 29
+    },
+    "20": {
+     "cells_won": 16,
+     "sealed": 0.0173,
+     "drops_at_k": 17
+    },
+    "15": {
+     "cells_won": 3,
+     "sealed": 0.0143,
+     "drops_at_k": 4
+    },
+    "9": {
+     "cells_won": 6,
+     "sealed": 0.0046,
+     "drops_at_k": 7
+    },
+    "14": {
+     "cells_won": 13,
+     "sealed": -0.0071,
+     "drops_at_k": 14
+    }
+   },
+   "first_divergence_iter": {
+    "2": 34,
+    "3": 19,
+    "4": 19
+   }
+  },
+  "pilot_baseline_clean": {
+   "cells_won": {
+    "0": 17,
+    "1": 9,
+    "2": 4,
+    "3": 15,
+    "4": 1,
+    "5": 3,
+    "6": 10,
+    "7": 6,
+    "8": 6,
+    "9": 15,
+    "10": 1,
+    "11": 14,
+    "13": 20,
+    "14": 13,
+    "15": 4,
+    "16": 5,
+    "17": 25,
+    "18": 2,
+    "19": 17,
+    "20": 18,
+    "21": 5,
+    "22": 14,
+    "23": 12,
+    "24": 3,
+    "25": 2
+   },
+   "n_candidates": 26,
+   "eligible_vs_k": {
+    "1": 25,
+    "2": 23,
+    "3": 21,
+    "4": 19,
+    "5": 17,
+    "6": 15,
+    "7": 13,
+    "8": 13
+   },
+   "sealed_candidates": {
+    "7": {
+     "cells_won": 6,
+     "sealed": 0.0161,
+     "drops_at_k": 7
+    },
+    "3": {
+     "cells_won": 15,
+     "sealed": 0.0027,
+     "drops_at_k": 16
+    }
+   },
+   "first_divergence_iter": {
+    "2": 28,
+    "3": 19,
+    "4": 19
+   }
+  }
+ },
+ "pareto_instance": {
+  "pilot_baseline": {
+   "n_cell_instances": 77,
+   "n_group_instances": 20,
+   "cell_wins": {
+    "0": 14,
+    "1": 4,
+    "2": 10,
+    "3": 5,
+    "4": 6,
+    "5": 7,
+    "6": 3,
+    "7": 10,
+    "8": 3,
+    "9": 4,
+    "10": 1,
+    "11": 2,
+    "12": 25,
+    "13": 1,
+    "14": 9,
+    "15": 2,
+    "16": 7,
+    "17": 7,
+    "20": 12,
+    "21": 10,
+    "22": 8,
+    "23": 3,
+    "24": 10,
+    "25": 2
+   },
+   "group_wins": {
+    "0": 1,
+    "8": 1,
+    "12": 5,
+    "14": 2,
+    "17": 2,
+    "20": 1,
+    "21": 3,
+    "22": 1,
+    "24": 2,
+    "25": 2
+   },
+   "spearman_cell": 0.16171822762412585,
+   "spearman_group": 0.319861681428593,
+   "sealed": {
+    "12": 0.0266,
+    "20": 0.0173,
+    "15": 0.0143,
+    "9": 0.0046,
+    "14": -0.0071
+   }
+  },
+  "pilot_baseline_clean": {
+   "n_cell_instances": 84,
+   "n_group_instances": 20,
+   "cell_wins": {
+    "0": 17,
+    "1": 9,
+    "2": 4,
+    "3": 15,
+    "4": 1,
+    "5": 3,
+    "6": 10,
+    "7": 6,
+    "8": 6,
+    "9": 15,
+    "10": 1,
+    "11": 14,
+    "13": 20,
+    "14": 13,
+    "15": 4,
+    "16": 5,
+    "17": 25,
+    "18": 2,
+    "19": 17,
+    "20": 18,
+    "21": 5,
+    "22": 14,
+    "23": 12,
+    "24": 3,
+    "25": 2
+   },
+   "group_wins": {
+    "0": 1,
+    "4": 1,
+    "5": 1,
+    "8": 1,
+    "9": 2,
+    "13": 1,
+    "14": 3,
+    "15": 1,
+    "17": 1,
+    "18": 1,
+    "19": 1,
+    "20": 3,
+    "23": 2,
+    "24": 1,
+    "25": 1
+   },
+   "spearman_cell": 0.16127394593955735,
+   "spearman_group": -0.04304341241739533,
+   "sealed": {
+    "7": 0.0161,
+    "3": 0.0027
+   }
+  }
+ },
+ "gate_size": {
+  "runs": [
+   {
+    "label": "search run 1",
+    "gate_cells": 20,
+    "best_gain": 0.0266,
+    "passes": "8 paired passes",
+    "run_dir": "pilot_baseline"
+   },
+   {
+    "label": "search run 2",
+    "gate_cells": 20,
+    "best_gain": 0.0161,
+    "passes": "3 paired passes",
+    "run_dir": "pilot_baseline_clean"
+   },
+   {
+    "label": "100-cell run",
+    "gate_cells": 100,
+    "best_gain": null,
+    "passes": "no prompt beat the seed on the search set",
+    "run_dir": "pilot_gate100"
+   }
+  ],
+  "subsample_flip_rate": {
+   "20": 0.3,
+   "40": 0.22,
+   "60": 0.15
+  }
+ }
+}
