@@ -17,7 +17,7 @@
 
 \thepar{Splits.}Fixed once before any experiment. Search set: 84 pairs, used to select prompts during search. Held-out set: 230 pairs (21 unseen tasks $\times$ 11 models), used only for final scoring. Two whole benchmarks stay reserved for a single future out-of-distribution test.
 
-\thepar{Scoring.}Accuracy is the Brier score on $p_{50}$, with the CRPS of a Beta fitted to the percentile triple as a secondary check; lower is better. A prompt's score is its mean over the 230 held-out pairs; its \emph{gain} is the paired mean difference against the seed on identical pairs in the same measurement session. Re-running a fixed prompt gives sd $0.0065$ on one search-set pass and $\approx0.002$ on a multi-pass held-out estimate, so single search-set passes cannot rank prompts.
+\thepar{Scoring.}Accuracy is the Brier score on $p_{50}$, with the CRPS of a Beta fitted to the percentile triple as a secondary check; lower is better. A prompt's score is its mean over the 230 held-out pairs. Its \emph{gain} is the paired mean difference in Brier against the seed, $\mathrm{gain}(\pi)=\overline{\mathrm{Brier}_{\mathrm{seed}}-\mathrm{Brier}_{\pi}}$ over identical pairs in the same measurement session (positive = better); every gain in this document is this statistic. Re-running a fixed prompt gives sd $0.0065$ on one search-set pass and $\approx0.002$ on a multi-pass held-out estimate, so single search-set passes cannot rank prompts.
 
 \thepar{Baselines.}(i) The \emph{seed}: a minimal hand-written prompt holding the task statement, the evidence block, and the output format, with no forecasting guidance. Held-out Brier $0.1312$ (8 passes). (ii) The \emph{difficulty-oracle table}: no LLM, predict the leave-one-out mean pass rate of model $m$ over the other tasks in the target's difficulty bin $B(t)$,
 \begin{equation*}
@@ -50,12 +50,12 @@ single-feature probes (\S3) & 2 & $+0.020$ / $+0.006$ & seed plus exactly one fe
 
 \section*{3\quad Which prompt features matter}
 
-Every evolved prompt was tagged for five recurring features with a fixed keyword rubric. Features arrive together in the same prompts, so the tag screen is directional evidence only; the probe experiment below is the causal test.
+Every evolved prompt was tagged for five recurring features with a fixed keyword rubric. Features arrive together in the same prompts, so the tag screen is directional evidence only; the probe experiment below is the causal test. Re-tagging all 82 prompts with an LLM instead of the keyword rubric (Sonnet 4.6, temperature 0) reproduces the screen: every feature keeps its direction, nearest-example and numeric bands strengthen ($-0.0066$, $-0.0037$), and the anchoring instruction remains universal under both methods.
 
 \begin{center}\small
 \begin{tabular}{@{}lp{5.6cm}cc p{4.2cm}@{}}
 \toprule
-feature & what the prompt text says & n/82 & $\Delta$Brier & held-out evidence\\
+feature & what the prompt text says & n/82 & with$-$without & held-out evidence\\
 \midrule
 anchoring instruction & base the probability on the observed pass rates in the evidence & 82 & --- & in every evolved prompt\\
 nearest-example weighting & if one example closely matches the target, weight its outcome above its group average & 31 & $-0.0043$ & in all winners; absent from the no-numbers control\\
@@ -76,7 +76,7 @@ task-type adjustment & shift down for tasks against a live service, up for stati
 
 \thepar{1. Numeric anchors in the prompt do the work.}Adding the winner's numbers to the seed recovers about three quarters of its gain; adding the same procedure with the numbers removed recovers a quarter. This agrees with the spring elicitation studies, where model outputs followed whatever number the prompt supplied and removing anchors mainly increased variance. For this task, prompt design reduces to choosing which numbers the model sees; instructions that tell the model how to derive its own numbers are a weak substitute.
 
-\thepar{2. A lookup table bounds what optimization buys.}The search improved the forecaster in two independent runs, in both cases by improving discrimination rather than calibration. The best evolved prompt matches the difficulty-oracle table and does not beat it, and the strongest base model tested in the spring reached the same level from a hand-written prompt. Within the training distribution the table is the practical ceiling, and optimization recovered about one model generation of accuracy.
+\thepar{2. A lookup table bounds what optimization buys.}The search improved the forecaster in two independent runs, in both cases by improving discrimination rather than calibration. The best evolved prompt matches the difficulty-oracle table and does not beat it, and the strongest base model tested in the spring (GPT-5.5) reached the same level from a hand-written prompt. Within the training distribution the table is the practical ceiling, and optimization recovered about one model generation of accuracy.
 
 \thepar{3. The open question is transfer.}A lookup table cannot extrapolate to unseen benchmarks. Whether the evolved prompt can is the remaining question, and the reserved benchmarks exist for that single test.
 
