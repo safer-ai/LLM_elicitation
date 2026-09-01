@@ -101,14 +101,33 @@ logged test cells, paired vs seed:
 | joint cand 5 | +0.0565 worse (t = 6.8) | +0.0771 worse (t = 9.7) |
 | v2 cand 13 | −0.0019 (n.s.) | +0.0021 (n.s.) |
 
-- The deficit is already large and highly significant at the capped
-  difficulty shift: **domain transfer fails on its own; extra difficulty
-  amplifies it (~40 % larger on the hard slice) but does not cause it.**
-- Clean internal control: the seed's absolute Brier is identical on the two
-  slices (0.164 vs 0.163) — the slices are equally hard for a prompt with
-  nothing memorized, yet the tuned prompts degrade more on hard CyberGym.
-- Within CVEBench alone (14 tasks) the comparison stays a wash — too small
-  to power, and possibly a genuinely milder shift.
+Task-level clustered (conservative), split further by family:
+
+| arm | CVEBench (15 tasks) | CyberGym < 2 h (33) | CyberGym ≥ 2 h (46) |
+|---|---|---|---|
+| july cand 12 | +0.0009 (t = 0.1) | +0.0428 (t = 3.4) | +0.0428 (t = 4.4) |
+| clean cand 7 | +0.0104 (t = 1.1) | +0.0229 (t = 2.4) | +0.0289 (t = 3.3) |
+| joint cand 5 | +0.0063 (t = 0.5) | +0.0793 (t = 4.4) | +0.0771 (t = 5.0) |
+
+- **The deficit is a domain effect and is flat in difficulty once the domain
+  is fixed** — within CyberGym, < 2 h and ≥ 2 h tasks show the same deficit
+  (cand 12: identical +0.0428 on both). An earlier pooled-slice reading
+  ("difficulty amplifies by ~40 %") was a composition artifact — the easy
+  slice mixed in CVEBench, which shows no deficit — and is retracted here.
+- **Domain distance shows a dose–response:** CVEBench (modest shift,
+  median ~67 min, programmatic validation) — no significant deficit for any
+  winner, CIs excluding a CyberGym-sized effect; CyberGym (memory-safety
+  PoC, the far shift) — full deficit at every difficulty.
+- Combined with the in-distribution result (winners best on the hardest
+  training bins), both frozen-axis comparisons now exist: freeze domain,
+  vary difficulty → deficit unchanged (or absent); freeze the FST band,
+  vary domain → the sign flips. Under the FST definition of difficulty the
+  team's design uses, the failing axis is domain.
+- Definitional caveat: under model-experienced difficulty (solve rate), the
+  axes are inherently entangled — the same FST band being less solvable IS
+  part of the domain shift — so the separation claim is stated under the
+  FST definition only; the design doc's joint-shift framing remains the
+  headline.
 
 **Standing caveats:** one reserved test set; the two axes remain correlated
 in this dataset by construction (the design doc's own resolution: the joint
