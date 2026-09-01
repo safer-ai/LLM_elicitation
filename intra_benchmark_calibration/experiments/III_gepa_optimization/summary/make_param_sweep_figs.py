@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
 """fig12-16: one figure per search parameter considered for the next runs.
 
-Each figure names the exact parameter, states offline/online in the corner
-chip, and reads from sweep_report_data.json (produced by gepa repo
-scripts/sweep_report_data.py — a replay of the logged runs, no simulation).
+Wording is calibrated against five zero-context reviewer passes (agents shown
+only the image): every term is defined on-figure in the labels themselves —
+question, starting prompt, parent prompt, win, tie handling, denominators —
+and each figure states in the corner chip whether it is recomputed from the
+logs of completed runs or comes from completed runs directly.
+
+Data: sweep_report_data.json (gepa repo scripts/sweep_report_data.py — a
+replay of recorded runs, no simulation).
 """
 import json
 from pathlib import Path
@@ -20,13 +25,26 @@ plt.rcParams.update({"font.family": "Geist", "figure.facecolor": "white",
 D = json.load(open(Path(__file__).parent / "sweep_report_data.json"))
 R1, R2 = "pilot_baseline", "pilot_baseline_clean"
 
+QUESTION = "a question = will one AI model solve one benchmark task? (scored by Brier; lower = better)"
 
-def header(fig, n, code, title, chip):
-    fig.text(0.055, 0.955, f"PARAMETER {n} OF 5  ·  {code}",
-             fontsize=8, color=MUTED, ha="left", va="top")
-    fig.text(0.055, 0.915, title, fontsize=13, color=INK, ha="left", va="top",
+
+def header(fig, n, code, title, frame, chip, gloss=""):
+    # the exact code parameter name, highlighted in a monospace chip
+    t1 = fig.text(0.055, 0.968, f"PARAMETER {n} OF 5", fontsize=8, color=MUTED,
+                  ha="left", va="top")
+    renderer = fig.canvas.get_renderer()
+    x = t1.get_window_extent(renderer).x1 / (fig.get_figwidth() * fig.dpi) + 0.012
+    t2 = fig.text(x, 0.974, code, fontsize=9, color=INK, ha="left", va="top",
+                  fontweight="bold",
+                  fontfamily=["JetBrains Mono", "Menlo", "monospace"],
+                  bbox=dict(boxstyle="round,pad=0.32", fc="#f2f0ea", ec=MUTED, lw=0.8))
+    if gloss:
+        x2 = t2.get_window_extent(renderer).x1 / (fig.get_figwidth() * fig.dpi) + 0.014
+        fig.text(x2, 0.968, gloss, fontsize=8, color=MUTED, ha="left", va="top")
+    fig.text(0.055, 0.922, title, fontsize=12.5, color=INK, ha="left", va="top",
              fontweight="bold")
-    fig.text(0.965, 0.955, chip, fontsize=8.5, color=INK, ha="right",
+    fig.text(0.055, 0.862, frame, fontsize=8.5, color=MUTED, ha="left", va="top")
+    fig.text(0.965, 0.974, chip, fontsize=8, color=INK, ha="right",
              va="top", fontweight="bold",
              bbox=dict(boxstyle="round,pad=0.4", fc="white", ec=INK, lw=1.1))
 
@@ -44,139 +62,179 @@ def clean_axes(ax):
 
 # ---------------------------------------------------------------- fig12
 def fig12():
-    fig, ax = plt.subplots(figsize=(8.6, 4.0), dpi=220)
-    fig.subplots_adjust(top=0.76, bottom=0.20, left=0.10, right=0.965)
-    header(fig, 1, "n_train_tasks_per_iter  —  number of cells in the accept/reject test",
-           "Best verified held-out gain, by size of the accept/reject test",
-           "COMPLETED LIVE RUNS")
-    runs = D["gate_size"]["runs"]
-    xs = range(3)
-    for x, r in zip(xs, runs):
-        if r["best_gain"] is not None:
-            ax.bar(x, r["best_gain"], width=0.52, color=GREEN)
-            ax.text(x, r["best_gain"] + 0.0008, f"+{r['best_gain']:.3f}",
-                    ha="center", fontsize=11, color=INK, fontweight="bold")
-            ax.text(x, r["best_gain"] + 0.0032, r["passes"],
+    fig, ax = plt.subplots(figsize=(8.6, 4.4), dpi=220)
+    fig.subplots_adjust(top=0.775, bottom=0.21, left=0.115, right=0.965)
+    header(fig, 1, "n_train_tasks_per_iter",
+           "Best confirmed improvement, by size of the entry test",
+           "a proposed prompt joins the pool only if it beats its parent prompt "
+           "(the prompt it was edited from) on this test",
+           "FROM COMPLETED RUNS",
+           gloss="value 1 → a 20-question test · value 5 → 100")
+    G = D["gate_size"]
+    for x, r in enumerate(G["runs"]):
+        b = r["best"]
+        if b is not None:
+            ax.bar(x, b["mean"], width=0.5, color=GREEN,
+                   yerr=[[b["mean"] - b["min"]], [b["max"] - b["mean"]]],
+                   capsize=4, error_kw={"lw": 1.1, "ecolor": INK})
+            ax.text(x, b["mean"] - 0.0018, f"+{b['mean']:.3f}",
+                    ha="center", va="top", fontsize=11, color="white",
+                    fontweight="bold")
+            ax.text(x, b["max"] + 0.0012, f"{b['n_repeats']} repeat evaluations",
                     ha="center", fontsize=7.5, color=SOFT)
         else:
-            ax.bar(x, 0.0004, width=0.52, color=HAIR, edgecolor=MUTED,
+            ax.bar(x, 0.0004, width=0.5, color=HAIR, edgecolor=MUTED,
                    lw=1.0, ls="--")
-            ax.text(x, 0.0022, "no prompt beat the seed;\nnothing to verify held-out",
-                    ha="center", fontsize=9, color=MUTED)
-    ax.set_xticks(list(xs), ["20-cell test\nsearch run 1", "20-cell test\nsearch run 2",
-                             "100-cell test\none run"],
-                  fontsize=9.5, color=INK)
-    ax.set_ylim(0, 0.032)
-    ax.set_ylabel("best verified held-out gain vs seed\n(Brier, higher = better)",
+            ax.text(x, 0.0035, "none of its 40 proposals beat the starting\nprompt even "
+                    "on the search questions —\nnothing to evaluate held-out",
+                    ha="center", fontsize=8.5, color=MUTED)
+    ax.set_xticks([0, 1, 2], ["20-question test\nrun 1", "20-question test\nrun 2",
+                              "100-question test\nrun 3"], fontsize=9.5, color=INK)
+    ax.set_ylim(0, 0.034)
+    ax.set_ylabel("improvement in held-out Brier score\nover the starting prompt",
                   fontsize=9)
     clean_axes(ax); ax.tick_params(axis="x", length=0)
-    footer(fig, "gain = paired mean Brier improvement vs the seed on the 230 held-out pairs, "
-                "≥3 paired passes")
+    footer(fig, "improvement = starting prompt's Brier − this prompt's Brier, on the same 230 "
+                "held-out questions never used during the search · bar = mean, whisker = "
+                "min–max\nover repeat evaluations · confirmed = better in every repeat · "
+                "starting prompt's held-out Brier ≈ 0.131 · every run proposes 40 prompts\n"
+                + QUESTION + " · an entry test = (value × 5 difficulty bins) tasks × 4 AI models")
     fig.savefig("fig12_sweep_gate_size.png")
     plt.close(fig)
 
 
 # ---------------------------------------------------------------- fig13/14
+FRAME_1314 = ("today's entry rule: a proposed prompt joins the pool if its total score on 20 "
+              "questions beats its parent prompt's\n(parent = the prompt it was edited from) · "
+              "a win = a better score than the parent on one question")
+
+
 def _accept_lines(ax, table, pooled, reject_label):
     ks = list(range(0, 21))
     g = [100 * table[str(k)]["good_kept"] / pooled["n_good"] for k in ks]
     b = [100 * table[str(k)]["bad_kept"] / pooled["n_bad"] for k in ks]
     a = [100 * table[str(k)]["rejects_admitted"] / pooled["n_reject"] for k in ks]
-    ax.plot(ks, g, color=GREEN, lw=2.2,
-            label=f"accepted — later measured better than parent  (n={pooled['n_good']})")
-    ax.plot(ks, b, color=VERM, lw=2.2,
-            label=f"accepted — later measured worse than parent  (n={pooled['n_bad']})")
-    ax.plot(ks, a, color=INK, lw=1.6, ls=":", label=reject_label)
+    ax.plot(ks, g, color=GREEN, lw=2, marker="o", ms=3.5,
+            label=f"accepted then — later confirmed better than its parent  (n={pooled['n_good']})")
+    ax.plot(ks, b, color=VERM, lw=2, marker="o", ms=3.5,
+            label=f"accepted then — later found worse than its parent  (n={pooled['n_bad']})")
+    ax.plot(ks, a, color=INK, lw=1.4, ls=":", marker="o", ms=3, label=reject_label)
     ax.legend(loc="upper right", frameon=False, fontsize=8.5,
-              handlelength=2.4, labelcolor=INK, borderaxespad=0.2)
-    ax.set_xlim(0, 20); ax.set_ylim(-4, 108)
+              handlelength=2.2, labelcolor=INK, borderaxespad=0.2)
+    ax.set_xlim(-0.3, 20.3); ax.set_ylim(-4, 108)
     ax.set_xticks(range(0, 21, 4))
-    ax.set_xlabel("required cell wins  k  (of the 20 test cells)", fontsize=9.5)
-    ax.set_ylabel("proposals accepted by this rule (%)", fontsize=9.5)
+    ax.set_xlabel("required question wins,  k  (of the 20 entry-test questions)", fontsize=9.5)
+    ax.set_ylabel("share of each group this rule\nwould accept (%)", fontsize=9.5)
 
 
 def fig13():
-    fig, ax = plt.subplots(figsize=(8.6, 4.3), dpi=220)
-    fig.subplots_adjust(top=0.76, bottom=0.145, left=0.09, right=0.965)
-    header(fig, 2, "acceptance_criterion: min_task_wins  —  accept a new prompt "
-                   "if it wins ≥ k of the 20 test cells",
-           "What this rule, on its own, would have accepted at each k",
-           "OFFLINE REPLAY")
+    fig, ax = plt.subplots(figsize=(8.6, 4.8), dpi=220)
+    fig.subplots_adjust(top=0.75, bottom=0.185, left=0.105, right=0.965)
+    header(fig, 2, "acceptance_criterion: min_task_wins",
+           "Entry by “win at least k of the 20 questions” alone, replayed",
+           FRAME_1314, "RECOMPUTED FROM RUN LOGS", gloss="swept: k")
     A = D["acceptance"]
     _accept_lines(ax, A["wins_only"], A["pooled"],
-                  f"originally rejected  (n={A['pooled']['n_reject']})")
+                  f"rejected then  (n={A['pooled']['n_reject']})")
     clean_axes(ax)
-    footer(fig, "replay of the 77 recorded accept/reject decisions from the two completed "
-                "20-cell-test runs")
+    footer(fig, "replays the 77 recorded accept/reject decisions of the two completed searches "
+                "under the alternative rule · better/worse = the prompt's later score on all 84 "
+                "search questions\n(different tasks from the entry tests — no overlap) · "
+                "rejected prompts never got that evaluation, so the dotted line carries no "
+                "better/worse label\n" + QUESTION)
     fig.savefig("fig13_sweep_wins_only_gate.png")
     plt.close(fig)
 
 
 def fig14():
-    fig, ax = plt.subplots(figsize=(8.6, 4.3), dpi=220)
-    fig.subplots_adjust(top=0.76, bottom=0.145, left=0.09, right=0.965)
-    header(fig, 3, "aggregate_sum_and_min_task_wins  —  current rule AND wins ≥ k of 20",
-           "What the combined rule would have accepted at each k",
-           "OFFLINE REPLAY · LIVE RUN PLANNED")
+    fig, ax = plt.subplots(figsize=(8.6, 4.8), dpi=220)
+    fig.subplots_adjust(top=0.75, bottom=0.185, left=0.105, right=0.965)
+    header(fig, 3, "aggregate_sum_and_min_task_wins",
+           "Keeping today's rule AND requiring k question wins, replayed",
+           FRAME_1314, "RECOMPUTED FROM RUN LOGS · NEW RUN PLANNED",
+           gloss="swept: k · new run: k = 8")
     A = D["acceptance"]
     _accept_lines(ax, A["joint"], A["pooled"],
-                  "originally rejected — none accepted, at any k")
-    ax.axvline(8, color=GREEN, lw=1.2, ls="--", ymax=0.88)
-    ax.text(8, 103, "k = 8 · planned live run",
-            fontsize=8.5, color=GREEN, ha="center", fontweight="bold")
+                  f"rejected then (n={A['pooled']['n_reject']}) — none re-accepted; "
+                  "the AND only tightens")
+    ax.axvline(8, color=GREEN, lw=1.2, ls="--", ymax=0.80)
+    ax.text(7.7, 32, "k = 8, chosen for the new run:\nkeeps 15 of 18 better,\n"
+            "22 of 32 worse", fontsize=8.5, color=GREEN, ha="right",
+            fontweight="bold")
     clean_axes(ax)
-    footer(fig, "same replay as parameter 2 · the added condition can only reject more than "
-                "the current rule, never accept more")
+    footer(fig, "replays the 77 recorded accept/reject decisions of the two completed searches "
+                "· better/worse = the prompt's later score on all 84 search questions, not the "
+                "20 entry-test\nquestions ('task' in the parameter name = question) · k = 8 is "
+                "the largest k keeping ≥ 80% of the confirmed-better group · a changed early "
+                "acceptance\nchanges every later proposal, so the full-run effect needs the new "
+                "run · " + QUESTION)
     fig.savefig("fig14_sweep_joint_gate.png")
     plt.close(fig)
 
 
 # ---------------------------------------------------------------- fig15
 def fig15():
-    fig, axes = plt.subplots(2, 1, figsize=(8.6, 4.8), dpi=220, sharex=True)
-    fig.subplots_adjust(top=0.74, bottom=0.22, left=0.055, right=0.965, hspace=0.35)
-    header(fig, 4, "n_cells_won_needed_for_pareto_frontier  —  minimum cells won "
-                   "to be eligible as a parent",
-           "Cells won per prompt vs. its verified held-out gain",
-           "OFFLINE REPLAY")
-    fig.text(0.5, 0.795, "prompts with fewer than k cells won are ineligible as parents "
-             "(current setting: k = 1)", fontsize=8.5, color=MUTED, ha="center")
-    for ax, run, row_label in ((axes[0], R1, "search run 1"), (axes[1], R2, "search run 2")):
+    fig, ax = plt.subplots(figsize=(8.6, 4.9), dpi=220)
+    fig.subplots_adjust(top=0.775, bottom=0.225, left=0.105, right=0.965)
+    header(fig, 4, "n_cells_won_needed_for_pareto_frontier",
+           "Questions won vs confirmed improvement, per measured prompt",
+           "only prompts winning ≥ k questions may be edited further · "
+           "win = best, or tied for best, score on one question among the pool",
+           "RECOMPUTED FROM RUN LOGS",
+           gloss="current: 1 · 'cell' = question")
+    pts = {"o": [], "^": []}
+    for marker, run in (("o", R1), ("^", R2)):
         F = D["frontier"][run]
-        verified = {int(i): d for i, d in F["sealed_candidates"].items()}
-        others = [w for i, w in F["cells_won"].items() if int(i) not in verified and int(i) != 0]
-        ax.plot(others, [0] * len(others), marker="|", ms=13, mew=1.3, lw=0,
+        for i, d in F["sealed_candidates"].items():
+            pts[marker].append((d["cells_won"], d["sealed"]))
+        rug = [w for i, w in F["cells_won"].items()
+               if i not in F["sealed_candidates"] and int(i) != 0]
+        ax.plot(rug, [-0.0135] * len(rug), marker="|", ms=8, mew=1.2, lw=0,
                 color=SOFT, alpha=0.8)
-        for idx, d in sorted(verified.items(), key=lambda kv: kv[1]["cells_won"]):
-            gain = d["sealed"]
-            c = GREEN if gain >= 0.01 else (VERM if gain < 0 else MUTED)
-            ax.plot(d["cells_won"], 0, "o", ms=11, color=c, zorder=3)
-            ax.annotate(f"{gain:+.3f}", (d["cells_won"], 0), xytext=(0, 11),
-                        textcoords="offset points", ha="center", fontsize=9,
-                        color=c, fontweight="bold")
-        ax.set_ylim(-0.6, 1.1); ax.set_yticks([])
-        ax.set_xlim(0, 30)
-        ax.text(29.7, 0.75, row_label, fontsize=9, color=INK, ha="right")
-        ax.spines[["top", "right", "left"]].set_visible(False)
-        ax.spines["bottom"].set_color(MUTED)
-        ax.tick_params(colors=MUTED, labelsize=8.5)
-    axes[1].set_xlabel("cells where the prompt is the current best  (of the 84 search-set cells)",
-                       fontsize=9.5)
-    footer(fig, "dot = prompt measured held-out (label: gain vs seed) · gray tick = never "
-                "measured held-out · at k = 2 both runs are unchanged through iteration "
-                "34 / 28 of 40")
+    for marker, data in pts.items():
+        xs, ys = zip(*data)
+        ax.plot(xs, ys, marker, ms=9, color=INK, lw=0,
+                label={"o": "run 1", "^": "run 2"}[marker])
+    ax.axhline(0, color=MUTED, lw=0.9)
+    ax.text(29.6, 0.0008, "no better than\nstarting prompt", fontsize=7.5,
+            color=SOFT, ha="right", va="bottom")
+    ax.legend(loc="upper left", frameon=False, fontsize=8.5, labelcolor=INK,
+              borderaxespad=0.2)
+    ax.set_xlim(0, 30); ax.set_ylim(-0.016, 0.032)
+    ax.set_xlabel("questions won at the end of the run  (of 84) — a threshold at k removes "
+                  "prompts left of k from parenthood", fontsize=9.5)
+    ax.set_ylabel("confirmed held-out improvement\nover the starting prompt (Brier)",
+                  fontsize=9)
+    clean_axes(ax)
+    footer(fig, "| = prompt never measured held-out (improvement unknown) · the 7 measured "
+                "prompts were the promising-looking ones, not a random sample\n"
+                "ties count for every tied prompt · raising the bar to k = 2 leaves run 1 "
+                "unchanged through iteration 34 of 40, run 2 through 28 of 40; beyond that the "
+                "logs cannot say\n" + QUESTION)
     fig.savefig("fig15_sweep_frontier_bar.png")
     plt.close(fig)
 
 
 # ---------------------------------------------------------------- fig16
 def fig16():
-    fig, axes = plt.subplots(1, 2, figsize=(8.6, 4.8), dpi=220, sharey=True)
-    fig.subplots_adjust(top=0.74, bottom=0.16, left=0.09, right=0.965, wspace=0.14)
-    header(fig, 5, "pareto_instance: model_bin  —  what parents are scored on",
-           "Parent-selection weight under the two instance definitions",
-           "OFFLINE REPLAY · LIVE RUN PLANNED")
-    for ax, run, panel in ((axes[0], R1, "search run 1"), (axes[1], R2, "search run 2")):
+    fig, axes = plt.subplots(1, 2, figsize=(8.6, 5.0), dpi=220, sharey=True)
+    fig.subplots_adjust(top=0.745, bottom=0.175, left=0.09, right=0.965, wspace=0.18)
+    header(fig, 5, "pareto_instance",
+           "Who gets edited further, under the two scoring units",
+           "a prompt's share = fraction of scoring units where it has the best (or "
+           "tied-best) score; prompts are picked for further editing in proportion to it",
+           "RECOMPUTED FROM RUN LOGS · NEW RUN PLANNED",
+           gloss="current value: cell · new run: model_bin")
+    fig.text(0.055, 0.795, "prompt color:", fontsize=8, color=INK)
+    fig.text(0.145, 0.795, "confirmed better than starting prompt", fontsize=8,
+             color=GREEN, fontweight="bold")
+    fig.text(0.39, 0.795, "≈ no difference", fontsize=8, color=MUTED,
+             fontweight="bold")
+    fig.text(0.50, 0.795, "confirmed worse", fontsize=8, color=VERM,
+             fontweight="bold")
+    fig.text(0.625, 0.795, "thin gray = never measured held-out", fontsize=8,
+             color=SOFT)
+    for ax, run, panel in ((axes[0], R1, "run 1"), (axes[1], R2, "run 2")):
         P = D["pareto_instance"][run]
         cw, gw = P["cell_wins"], P["group_wins"]
         tc, tg = sum(cw.values()), sum(gw.values())
@@ -205,16 +263,23 @@ def fig16():
             ax.annotate(t, (0, y0), xytext=(-0.07, y), ha="right", va="center",
                         fontsize=8.5, color=c, fontweight="bold")
         ax.set_xlim(-0.45, 1.25); ax.set_ylim(-1.5, 30)
-        ax.set_xticks([0, 1], ["84 single\ncells", "20 (model ×\ndifficulty) groups"],
-                      fontsize=9, color=INK)
+        ax.set_xticks([0, 1], ["84 single questions\n(current:  cell)",
+                               "20 groups of questions,\none per AI model ×\ndifficulty level "
+                               "(model_bin)"], fontsize=8.5, color=INK)
         ax.set_title(panel, fontsize=9.5, color=INK, pad=8)
-        clean_axes(ax); ax.tick_params(axis="x", length=0)
-    axes[0].set_ylabel("share of parent-selection weight (%)", fontsize=9.5)
-    axes[0].text(0.03, 0.985, "one line = one prompt · label = its measured held-out gain vs seed",
-                 transform=axes[0].transAxes, fontsize=7.5, color=SOFT, va="top")
-    footer(fig, "run 1: the +0.027 prompt rises 15 → 25%; the +0.014 and +0.005 prompts drop "
-                "to 0; the −0.007 prompt rises 6 → 10%\n"
-                "run 2: the only prompt measured better than the seed (+0.016) drops to 0")
+        clean_axes(ax)
+        ax.tick_params(axis="x", length=0, labelsize=8.5)
+        ax.tick_params(axis="y", labelleft=True)
+    axes[0].set_ylabel("share of scoring units where the prompt\nis best — its editing weight (%)",
+                       fontsize=9)
+    footer(fig, "line = one prompt; label = its confirmed held-out improvement over the starting "
+                "prompt (≥3 repeat evaluations; ≈ no difference = repeats straddle zero)\n"
+                "run 1 / run 2 = independent searches, same settings, shares at the final state "
+                "· a group's score = the mean over its member questions\n"
+                "run 1: grouping lifts the +0.027 prompt (15 → 25%) and the −0.007 prompt "
+                "(5 → 10%), zeroes +0.014 and +0.005 · run 2: the only confirmed-better prompt "
+                "(+0.016) drops to zero;\nthe largest group shares go to never-measured prompts · "
+                + QUESTION)
     fig.savefig("fig16_sweep_pareto_instance.png")
     plt.close(fig)
 

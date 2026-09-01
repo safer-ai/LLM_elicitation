@@ -525,27 +525,35 @@
   }
  },
  "gate_size": {
+  "seed_heldout_brier": 0.13116244565217391,
   "runs": [
    {
-    "label": "search run 1",
+    "label": "run 1",
     "gate_cells": 20,
-    "best_gain": 0.0266,
-    "passes": "8 paired passes",
-    "run_dir": "pilot_baseline"
+    "run_dir": "pilot_baseline",
+    "best": {
+     "mean": 0.026119391304347827,
+     "min": 0.020354347826086958,
+     "max": 0.030451739130434793,
+     "n_repeats": 5
+    }
    },
    {
-    "label": "search run 2",
+    "label": "run 2",
     "gate_cells": 20,
-    "best_gain": 0.0161,
-    "passes": "3 paired passes",
-    "run_dir": "pilot_baseline_clean"
+    "run_dir": "pilot_baseline_clean",
+    "best": {
+     "mean": 0.016075362318840585,
+     "min": 0.011444347826086956,
+     "max": 0.021238260869565234,
+     "n_repeats": 3
+    }
    },
    {
-    "label": "100-cell run",
+    "label": "run 3",
     "gate_cells": 100,
-    "best_gain": null,
-    "passes": "no prompt beat the seed on the search set",
-    "run_dir": "pilot_gate100"
+    "run_dir": "pilot_gate100",
+    "best": null
    }
   ],
   "subsample_flip_rate": {
