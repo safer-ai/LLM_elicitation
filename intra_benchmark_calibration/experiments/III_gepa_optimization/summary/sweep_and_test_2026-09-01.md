@@ -87,9 +87,33 @@ seed's test measurements (zero failures):
 - Across all six measured evolved/probe prompts, in-distribution gain
   roughly predicts out-of-distribution harm.
 
-**Standing caveats:** one reserved test set that shifts domain and difficulty
-jointly by construction; one measurement day; preliminary insights, not
-conclusions.
+## 5. Pre-registered slice analysis — bounding the two axes ($0, offline)
+
+The split-design doc pre-registered separate scores on
+CVEBench ∪ {CyberGym | FST < 2 h} (domain shift with capped difficulty
+shift) vs {CyberGym | FST ≥ 2 h} (the full joint shift). Recomputed from the
+logged test cells, paired vs seed:
+
+| arm | EASY slice (48 tasks, 527 cells) | HARD slice (46 tasks, 506 cells) |
+|---|---|---|
+| july cand 12 | +0.0298 worse (t = 5.3) | +0.0428 worse (t = 7.9) |
+| clean cand 7 | +0.0190 worse (t = 4.1) | +0.0289 worse (t = 5.6) |
+| joint cand 5 | +0.0565 worse (t = 6.8) | +0.0771 worse (t = 9.7) |
+| v2 cand 13 | −0.0019 (n.s.) | +0.0021 (n.s.) |
+
+- The deficit is already large and highly significant at the capped
+  difficulty shift: **domain transfer fails on its own; extra difficulty
+  amplifies it (~40 % larger on the hard slice) but does not cause it.**
+- Clean internal control: the seed's absolute Brier is identical on the two
+  slices (0.164 vs 0.163) — the slices are equally hard for a prompt with
+  nothing memorized, yet the tuned prompts degrade more on hard CyberGym.
+- Within CVEBench alone (14 tasks) the comparison stays a wash — too small
+  to power, and possibly a genuinely milder shift.
+
+**Standing caveats:** one reserved test set; the two axes remain correlated
+in this dataset by construction (the design doc's own resolution: the joint
+shift is the deployment-relevant target distribution); one measurement day;
+preliminary insights, not conclusions.
 
 ## Reproduce
 
