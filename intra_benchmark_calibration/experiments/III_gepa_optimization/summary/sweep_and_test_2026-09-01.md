@@ -71,9 +71,12 @@ seed's test measurements (zero failures):
 | bands-only probe (in-dist +0.020) | 0.1686 | +0.0053 worse (t = 2.3) |
 | procedure-only probe (in-dist +0.006) | 0.1831 | +0.0197 worse (t = 7.0) |
 | joint cand 5 (arm A winner; in-dist +0.0248) | 0.2300 | +0.0666 worse (t = 11.5) |
+| modelbin cand 18 (arm B winner; in-dist +0.0217; measured 2026-09-01 pm) | 0.1718 | +0.0085 worse (t = 3.7) |
 
-- **Generality: confirmed and amplified.** A third confirmed winner (cand 5)
-  transfers worst of all — the strictest-gate champion overfits hardest.
+- **Generality: every winner is significantly worse out of domain, with a
+  wide per-prompt spread** — from cand 18's mild +0.0085 to cand 5's +0.0666.
+  The strictest-gate champion overfits hardest; the model_bin winner
+  degrades least.
 - **Mechanism, refined:** both halves of the winning recipe fail out of
   domain, and their order flips — the aggressive number-free *procedure*
   (anchoring, nearest-example weighting, task-type rules, anti-hedging)
@@ -139,4 +142,5 @@ preliminary insights, not conclusions.
 - Runs: `uv run python -m forecaster_gepa.run --config configs/pilot_accept_joint.yaml --phase optimize` (then `--phase finalist`); same for `pilot_pareto_modelbin.yaml`.
 - Sealed studies: `scripts/val_noise_study.py --config <arm yaml> --prompts-dir configs/noise_study_prompts_<arm> --repeats-val 0 --repeats-sealed 3 --tag <arm>`.
 - Test: `scripts/val_noise_study.py --config configs/pilot_baseline_clean.yaml --prompts seed,july_cand12,clean_cand7 --repeats-val 0 --repeats-sealed 0 --repeats-test 2 --tag test_set`.
-- Figures: `make_param_sweep_figs.py` (figs 12–16, pre-run screen), `make_fig17.py` (test result); data `sweep_report_data.json`.
+- Figures: `make_param_sweep_figs.py` (figs 12–16, pre-run screen), `make_fig17.py` (test detail), `make_fig18.py` (all runs, sealed), `make_fig19.py` (set C × three sets, the grand comparison); data `sweep_report_data.json`.
+- Set-C completion (2026-09-01 pm): tags `grand_val` (6 prompts × 3 search-set passes), `v2_sealed` (v2 + seed, 3 sealed passes: v2 null, −0.0004), `test_ext_modelbin` (cand 18, 2 test passes).
