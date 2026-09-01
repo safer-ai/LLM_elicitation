@@ -1,0 +1,75 @@
+# Sweep arms A/B and the reserved test — 2026-09-01
+
+Record of the three paid experiments run 2026-09-01, all pre-declared in
+`FORECASTER_GEPA_RUNS.md` (gepa repo) and screened offline first (figs 12–16).
+Raw data: gepa branch `results/sweep-arms-2026-09-01`. Total spend ≈ $290.
+
+## 1. Sweep arm A — joint acceptance gate (`aggregate_sum_and_min_task_wins`, k = 8)
+
+One change vs the clean baseline: a proposed prompt must beat its parent on the
+20-question total AND win ≥ 8 of the 20. Full run (40 proposals) + finalist +
+3-pass paired sealed study (`tag accept_joint`).
+
+- 18/40 accepted (native rule: 25/40 in both prior runs) — the gate is visibly stricter; zero cell failures.
+- Val-based selection misled for the third straight run: the val winner (cand 16) ranked worst of the top-5 on the finalist set.
+- **Sealed verdict: joint cand 5 +0.0248 vs seed (3/3 passes) — champion-level**, indistinguishable from july cand 12 (+0.0254 same session); joint cand 16 +0.0165 (3/3).
+
+## 2. Sweep arm B — (model × bin) Pareto instances (`pareto_instance: model_bin`)
+
+One change vs the clean baseline: parents compete on 20 (model × difficulty)
+group means instead of 84 single questions. One Anthropic server-500 tripped
+the halt tripwire mid-run (its designed purpose); resumed cleanly from the
+per-iteration checkpoint.
+
+- 22/40 accepted, zero parse failures. Group-val and finalist winners agreed (cand 18, ρ = 0.6) — selection tracked better under aggregation, but the field is weaker (best finalist 0.1144 vs arm A's 0.1026; the seed itself sat in the top-5 by group-val).
+- **Sealed verdict: modelbin cand 18 +0.0217 (3/3); modelbin cand 10 +0.0115 (3/3)**; july cand 12 re-confirmed +0.0256 (now 14/14 lifetime paired passes).
+
+**Sweep conclusion (one run per arm, preliminary):** every setting — native,
+joint k = 8, model_bin — produces real sealed winners (+0.016 to +0.026), and
+the differences between arms sit within the search's own run-to-run spread
+(the two native runs drew +0.026 and +0.016). No acceptance/frontier setting
+is clearly better; the binding constraints are final selection and transfer.
+
+## 3. The reserved test — CVEBench + CyberGym, first and only use
+
+Pre-registered one-shot transfer test, spent by group go-ahead: seed,
+july cand 12, clean cand 7; 2 paired repeats × 1,033 questions (94 frozen
+tasks × 11-model panel, all usable tasks of both benchmarks — no difficulty
+filter; the families are intrinsically hard, bins 2–4). Zero failures in
+6,198 calls. Fig 17.
+
+| arm | test Brier | paired vs seed |
+|---|---|---|
+| GT LOO bin-mean table (no LLM) | 0.1488 | — |
+| seed | 0.1634 | — |
+| clean cand 7 | 0.1872 | +0.0238 worse (t = 6.9) |
+| july cand 12 | 0.1995 | +0.0362 worse (t = 9.3) |
+
+**The in-distribution ordering inverts: the optimized prompts do not
+transfer.** Robustness (all recomputed from logged cells): survives
+task-level clustering (t = 5.2/4.2, n = 94; seed better on 70 %/65 % of
+tasks), model-level clustering (worse for 9/11 models), both repeats;
+carried by cybergym (869 cells) while cvebench alone (164 cells) is a wash.
+
+Mechanism, consistent with the causal feature ablation: the winners' edge is
+numeric anchors encoding the training families' bin → solve-rate mapping.
+That mapping does not transfer (same difficulty bin, share solved: 0.96 → 0.50
+in bin 1, 0.84 → 0.40 in bin 2), and on unsolved test questions the winners
+forecast too high (mean p50 0.41/0.38 vs seed 0.30 at base rate 0.24). It is
+not a hardness effect — in-distribution the winners' largest gains are on the
+hardest bins (+0.05 on bin 4) — and not a design artifact: all arms see
+identical evidence (training-family evidence only, the deployment condition).
+
+**Standing caveats:** one reserved test set that shifts domain and difficulty
+jointly by construction; one measurement session; two evolved prompts.
+Preliminary insight, not a conclusion. A follow-up (on hold) adds
+joint cand 5, v2 cand 13 (number-free evolved prompt), and the bands-only /
+procedure-only probes to the test set to check generality and pin the
+mechanism causally.
+
+## Reproduce
+
+- Runs: `uv run python -m forecaster_gepa.run --config configs/pilot_accept_joint.yaml --phase optimize` (then `--phase finalist`); same for `pilot_pareto_modelbin.yaml`.
+- Sealed studies: `scripts/val_noise_study.py --config <arm yaml> --prompts-dir configs/noise_study_prompts_<arm> --repeats-val 0 --repeats-sealed 3 --tag <arm>`.
+- Test: `scripts/val_noise_study.py --config configs/pilot_baseline_clean.yaml --prompts seed,july_cand12,clean_cand7 --repeats-val 0 --repeats-sealed 0 --repeats-test 2 --tag test_set`.
+- Figures: `make_param_sweep_figs.py` (figs 12–16, pre-run screen), `make_fig17.py` (test result); data `sweep_report_data.json`.
