@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""fig12-16: one figure per search parameter in the points-4/5 sweep decision.
+"""fig12-16: one figure per search parameter considered for the next runs.
 
-Each figure answers one question, states online/offline in the corner chip,
-and reads from sweep_report_data.json (produced by gepa repo
-scripts/sweep_report_data.py — pure replay of the logged runs).
+Each figure names the exact parameter, states offline/online in the corner
+chip, and reads from sweep_report_data.json (produced by gepa repo
+scripts/sweep_report_data.py — a replay of the logged runs, no simulation).
 """
 import json
 from pathlib import Path
@@ -21,14 +21,14 @@ D = json.load(open(Path(__file__).parent / "sweep_report_data.json"))
 R1, R2 = "pilot_baseline", "pilot_baseline_clean"
 
 
-def header(fig, n, code, title, chip, chip_color):
+def header(fig, n, code, title, chip):
     fig.text(0.055, 0.955, f"PARAMETER {n} OF 5  ·  {code}",
              fontsize=8, color=MUTED, ha="left", va="top")
     fig.text(0.055, 0.915, title, fontsize=13, color=INK, ha="left", va="top",
              fontweight="bold")
-    fig.text(0.965, 0.955, chip, fontsize=8.5, color=chip_color, ha="right",
+    fig.text(0.965, 0.955, chip, fontsize=8.5, color=INK, ha="right",
              va="top", fontweight="bold",
-             bbox=dict(boxstyle="round,pad=0.4", fc="white", ec=chip_color, lw=1.2))
+             bbox=dict(boxstyle="round,pad=0.4", fc="white", ec=INK, lw=1.1))
 
 
 def footer(fig, text):
@@ -46,9 +46,9 @@ def clean_axes(ax):
 def fig12():
     fig, ax = plt.subplots(figsize=(8.6, 4.0), dpi=220)
     fig.subplots_adjust(top=0.76, bottom=0.20, left=0.10, right=0.965)
-    header(fig, 1, "n_train_tasks_per_iter  —  size of the accept/reject test",
-           "A 5× bigger accept test did not find a better prompt",
-           "LIVE RUNS · COMPLETE → SETTLED", INK)
+    header(fig, 1, "n_train_tasks_per_iter  —  number of cells in the accept/reject test",
+           "Best verified held-out gain, by size of the accept/reject test",
+           "COMPLETED LIVE RUNS")
     runs = D["gate_size"]["runs"]
     xs = range(3)
     for x, r in zip(xs, runs):
@@ -61,53 +61,53 @@ def fig12():
         else:
             ax.bar(x, 0.0004, width=0.52, color=HAIR, edgecolor=MUTED,
                    lw=1.0, ls="--")
-            ax.text(x, 0.0022, "no prompt beat the seed,\neven on the search set",
-                    ha="center", fontsize=9, color=VERM, fontweight="bold")
+            ax.text(x, 0.0022, "no prompt beat the seed;\nnothing to verify held-out",
+                    ha="center", fontsize=9, color=MUTED)
     ax.set_xticks(list(xs), ["20-cell test\nsearch run 1", "20-cell test\nsearch run 2",
-                             "100-cell test\none run · 5× cost per decision"],
+                             "100-cell test\none run"],
                   fontsize=9.5, color=INK)
     ax.set_ylim(0, 0.032)
     ax.set_ylabel("best verified held-out gain vs seed\n(Brier, higher = better)",
                   fontsize=9)
     clean_axes(ax); ax.tick_params(axis="x", length=0)
     footer(fig, "gain = paired mean Brier improvement vs the seed on the 230 held-out pairs, "
-                "≥3 paired passes (run-1 winner: 8)")
+                "≥3 paired passes")
     fig.savefig("fig12_sweep_gate_size.png")
     plt.close(fig)
 
 
 # ---------------------------------------------------------------- fig13/14
-def _accept_lines(ax, table, pooled, admit_label):
+def _accept_lines(ax, table, pooled, reject_label):
     ks = list(range(0, 21))
     g = [100 * table[str(k)]["good_kept"] / pooled["n_good"] for k in ks]
     b = [100 * table[str(k)]["bad_kept"] / pooled["n_bad"] for k in ks]
     a = [100 * table[str(k)]["rejects_admitted"] / pooled["n_reject"] for k in ks]
     ax.plot(ks, g, color=GREEN, lw=2.2,
-            label=f"known-GOOD pool entries kept  (n={pooled['n_good']})")
+            label=f"accepted — later measured better than parent  (n={pooled['n_good']})")
     ax.plot(ks, b, color=VERM, lw=2.2,
-            label=f"known-BAD pool entries kept  (n={pooled['n_bad']})")
-    ax.plot(ks, a, color=INK, lw=1.6, ls=":", label=admit_label)
+            label=f"accepted — later measured worse than parent  (n={pooled['n_bad']})")
+    ax.plot(ks, a, color=INK, lw=1.6, ls=":", label=reject_label)
     ax.legend(loc="upper right", frameon=False, fontsize=8.5,
               handlelength=2.4, labelcolor=INK, borderaxespad=0.2)
     ax.set_xlim(0, 20); ax.set_ylim(-4, 108)
     ax.set_xticks(range(0, 21, 4))
     ax.set_xlabel("required cell wins  k  (of the 20 test cells)", fontsize=9.5)
-    ax.set_ylabel("share of each group (%)", fontsize=9.5)
+    ax.set_ylabel("proposals accepted by this rule (%)", fontsize=9.5)
 
 
 def fig13():
     fig, ax = plt.subplots(figsize=(8.6, 4.3), dpi=220)
     fig.subplots_adjust(top=0.76, bottom=0.145, left=0.09, right=0.965)
-    header(fig, 2, "acceptance_criterion: min_task_wins  —  pool entry by cell wins alone",
-           "“Win ≥ k cells” alone cannot replace “better on average”",
-           "OFFLINE REPLAY → DEAD", VERM)
+    header(fig, 2, "acceptance_criterion: min_task_wins  —  accept a new prompt "
+                   "if it wins ≥ k of the 20 test cells",
+           "What this rule, on its own, would have accepted at each k",
+           "OFFLINE REPLAY")
     A = D["acceptance"]
     _accept_lines(ax, A["wins_only"], A["pooled"],
-                  f"formerly-REJECTED proposals it would admit  (n={A['pooled']['n_reject']})")
+                  f"originally rejected  (n={A['pooled']['n_reject']})")
     clean_axes(ax)
-    footer(fig, "replay of all 77 recorded accept/reject decisions from the two completed "
-                "20-cell-gate searches · no k reproduces the recorded gate (≥23 of 77 "
-                "decisions change at every k)")
+    footer(fig, "replay of the 77 recorded accept/reject decisions from the two completed "
+                "20-cell-test runs")
     fig.savefig("fig13_sweep_wins_only_gate.png")
     plt.close(fig)
 
@@ -115,19 +115,18 @@ def fig13():
 def fig14():
     fig, ax = plt.subplots(figsize=(8.6, 4.3), dpi=220)
     fig.subplots_adjust(top=0.76, bottom=0.145, left=0.09, right=0.965)
-    header(fig, 3, "aggregate_sum_and_min_task_wins  —  current rule AND ≥ k cell wins",
-           "Tighter pool entry, admits nothing new — only a live run can judge it",
-           "OFFLINE REPLAY → LIVE RUN · ARM A", GREEN)
+    header(fig, 3, "aggregate_sum_and_min_task_wins  —  current rule AND wins ≥ k of 20",
+           "What the combined rule would have accepted at each k",
+           "OFFLINE REPLAY · LIVE RUN PLANNED")
     A = D["acceptance"]
     _accept_lines(ax, A["joint"], A["pooled"],
-                  "formerly-rejected admitted — 0 at every k")
+                  "originally rejected — none accepted, at any k")
     ax.axvline(8, color=GREEN, lw=1.2, ls="--", ymax=0.88)
-    ax.text(8, 103, "arm A:  k = 8\nkeeps 15/18 good · cuts 10/32 bad",
+    ax.text(8, 103, "k = 8 · planned live run",
             fontsize=8.5, color=GREEN, ha="center", fontweight="bold")
     clean_axes(ax)
-    footer(fig, "same replay as parameter 2 · the added condition only tightens: it can "
-                "block accepts, never admit rejects · whether tighter breeding helps is "
-                "path-dependent → live run")
+    footer(fig, "same replay as parameter 2 · the added condition can only reject more than "
+                "the current rule, never accept more")
     fig.savefig("fig14_sweep_joint_gate.png")
     plt.close(fig)
 
@@ -136,12 +135,12 @@ def fig14():
 def fig15():
     fig, axes = plt.subplots(2, 1, figsize=(8.6, 4.8), dpi=220, sharex=True)
     fig.subplots_adjust(top=0.74, bottom=0.22, left=0.055, right=0.965, hspace=0.35)
-    header(fig, 4, "n_cells_won_needed_for_pareto_frontier  —  bar to be bred (parent eligibility)",
-           "The eligibility bar removes verified winners before verified losers",
-           "OFFLINE REPLAY → DEAD", VERM)
-    fig.text(0.5, 0.795, "a bar at k makes every prompt LEFT of k ineligible for breeding "
-             "— the current setting (k = 1) keeps all", fontsize=8.5, color=MUTED,
-             ha="center")
+    header(fig, 4, "n_cells_won_needed_for_pareto_frontier  —  minimum cells won "
+                   "to be eligible as a parent",
+           "Cells won per prompt vs. its verified held-out gain",
+           "OFFLINE REPLAY")
+    fig.text(0.5, 0.795, "prompts with fewer than k cells won are ineligible as parents "
+             "(current setting: k = 1)", fontsize=8.5, color=MUTED, ha="center")
     for ax, run, row_label in ((axes[0], R1, "search run 1"), (axes[1], R2, "search run 2")):
         F = D["frontier"][run]
         verified = {int(i): d for i, d in F["sealed_candidates"].items()}
@@ -161,12 +160,11 @@ def fig15():
         ax.spines[["top", "right", "left"]].set_visible(False)
         ax.spines["bottom"].set_color(MUTED)
         ax.tick_params(colors=MUTED, labelsize=8.5)
-    axes[1].set_xlabel("cells where the prompt is the current best  (of 84 search cells)",
+    axes[1].set_xlabel("cells where the prompt is the current best  (of the 84 search-set cells)",
                        fontsize=9.5)
-    footer(fig, "dot = held-out-verified prompt, labeled with its gain vs seed · gray tick = "
-                "never held-out-measured\nany k ≥ 4 removes a +0.014 winner while keeping a "
-                "−0.007 prompt to k = 13 · k = 2 leaves both runs unchanged until iteration "
-                "34 / 28 of 40, then unknown")
+    footer(fig, "dot = prompt measured held-out (label: gain vs seed) · gray tick = never "
+                "measured held-out · at k = 2 both runs are unchanged through iteration "
+                "34 / 28 of 40")
     fig.savefig("fig15_sweep_frontier_bar.png")
     plt.close(fig)
 
@@ -175,9 +173,9 @@ def fig15():
 def fig16():
     fig, axes = plt.subplots(1, 2, figsize=(8.6, 4.8), dpi=220, sharey=True)
     fig.subplots_adjust(top=0.74, bottom=0.16, left=0.09, right=0.965, wspace=0.14)
-    header(fig, 5, "pareto_instance: model_bin  —  what prompts compete on for breeding rights",
-           "Group-level competition reshuffles breeding — evidence points both ways",
-           "OFFLINE REPLAY → LIVE RUN · ARM B", GREEN)
+    header(fig, 5, "pareto_instance: model_bin  —  what parents are scored on",
+           "Parent-selection weight under the two instance definitions",
+           "OFFLINE REPLAY · LIVE RUN PLANNED")
     for ax, run, panel in ((axes[0], R1, "search run 1"), (axes[1], R2, "search run 2")):
         P = D["pareto_instance"][run]
         cw, gw = P["cell_wins"], P["group_wins"]
@@ -185,11 +183,10 @@ def fig16():
         sealed = {int(i): v for i, v in P["sealed"].items()}
         n_cand = max(int(i) for i in list(cw) + list(gw)) + 1
         for i in range(1, n_cand):
-            x0 = 100 * cw.get(str(i), 0) / tc
-            x1 = 100 * gw.get(str(i), 0) / tg
             if i in sealed:
                 continue
-            ax.plot([0, 1], [x0, x1], color=SOFT, lw=0.9, alpha=0.55)
+            ax.plot([0, 1], [100 * cw.get(str(i), 0) / tc, 100 * gw.get(str(i), 0) / tg],
+                    color=SOFT, lw=0.9, alpha=0.55)
         labels = []
         for i, gain in sorted(sealed.items(), key=lambda kv: -kv[1]):
             x0 = 100 * cw.get(str(i), 0) / tc
@@ -198,7 +195,6 @@ def fig16():
             ax.plot([0, 1], [x0, x1], color=c, lw=2.4, zorder=3)
             ax.plot([0, 1], [x0, x1], "o", ms=6, color=c, zorder=4)
             labels.append((x0, f"{gain:+.3f}", c))
-        # de-overlap left-side gain labels
         labels.sort(key=lambda t: t[0])
         ys = []
         for y, _t, _c in labels:
@@ -207,20 +203,18 @@ def fig16():
             ys.append(y)
         for (y0, t, c), y in zip(labels, ys):
             ax.annotate(t, (0, y0), xytext=(-0.07, y), ha="right", va="center",
-                        fontsize=8.5, color=c, fontweight="bold",
-                        arrowprops=None)
+                        fontsize=8.5, color=c, fontweight="bold")
         ax.set_xlim(-0.45, 1.25); ax.set_ylim(-1.5, 30)
         ax.set_xticks([0, 1], ["84 single\ncells", "20 (model ×\ndifficulty) groups"],
                       fontsize=9, color=INK)
         ax.set_title(panel, fontsize=9.5, color=INK, pad=8)
         clean_axes(ax); ax.tick_params(axis="x", length=0)
-    axes[0].set_ylabel("share of breeding-lottery tickets (%)", fontsize=9.5)
-    axes[0].text(0.03, 0.985, "one line = one prompt · label = its verified held-out gain vs seed",
+    axes[0].set_ylabel("share of parent-selection weight (%)", fontsize=9.5)
+    axes[0].text(0.03, 0.985, "one line = one prompt · label = its measured held-out gain vs seed",
                  transform=axes[0].transAxes, fontsize=7.5, color=SOFT, va="top")
-    footer(fig, "run 1: grouping promotes the +0.027 champion (15 → 25% of tickets) but zeroes "
-                "the +0.014 and +0.005 prompts and lifts a −0.007 prompt (6 → 10%)\n"
-                "run 2: the only verified winner (+0.016) drops to zero — "
-                "unverified prompts take over the lottery")
+    footer(fig, "run 1: the +0.027 prompt rises 15 → 25%; the +0.014 and +0.005 prompts drop "
+                "to 0; the −0.007 prompt rises 6 → 10%\n"
+                "run 2: the only prompt measured better than the seed (+0.016) drops to 0")
     fig.savefig("fig16_sweep_pareto_instance.png")
     plt.close(fig)
 
