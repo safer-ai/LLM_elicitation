@@ -60,12 +60,36 @@ not a hardness effect — in-distribution the winners' largest gains are on the
 hardest bins (+0.05 on bin 4) — and not a design artifact: all arms see
 identical evidence (training-family evidence only, the deployment condition).
 
+## 4. Test extension — generality and mechanism (same day, ~$100)
+
+Four more arms, 2 repeats each on the same 1,033 cells, paired against the
+seed's test measurements (zero failures):
+
+| arm | test Brier | paired vs seed |
+|---|---|---|
+| v2 cand 13 (evolved, no-numbers rewriter; in-dist null) | 0.1634 | +0.0001 (t = 0.0) |
+| bands-only probe (in-dist +0.020) | 0.1686 | +0.0053 worse (t = 2.3) |
+| procedure-only probe (in-dist +0.006) | 0.1831 | +0.0197 worse (t = 7.0) |
+| joint cand 5 (arm A winner; in-dist +0.0248) | 0.2300 | +0.0666 worse (t = 11.5) |
+
+- **Generality: confirmed and amplified.** A third confirmed winner (cand 5)
+  transfers worst of all — the strictest-gate champion overfits hardest.
+- **Mechanism, refined:** both halves of the winning recipe fail out of
+  domain, and their order flips — the aggressive number-free *procedure*
+  (anchoring, nearest-example weighting, task-type rules, anti-hedging)
+  hurts more (+0.0197) than the numeric bands (+0.0053), the reverse of
+  in-distribution where the bands carried the gain. So the failure is not
+  only wrong memorized numbers; the whole tuned recipe is domain-specific.
+- **The number-free evolved prompt (v2 cand 13) is exactly neutral** — no
+  in-distribution gain, no out-of-distribution damage. The v2 run's null
+  result gains a reframe: soft-constrained evolution bought nothing but
+  also broke nothing.
+- Across all six measured evolved/probe prompts, in-distribution gain
+  roughly predicts out-of-distribution harm.
+
 **Standing caveats:** one reserved test set that shifts domain and difficulty
-jointly by construction; one measurement session; two evolved prompts.
-Preliminary insight, not a conclusion. A follow-up (on hold) adds
-joint cand 5, v2 cand 13 (number-free evolved prompt), and the bands-only /
-procedure-only probes to the test set to check generality and pin the
-mechanism causally.
+jointly by construction; one measurement day; preliminary insights, not
+conclusions.
 
 ## Reproduce
 
