@@ -1,0 +1,49 @@
+\documentclass[10pt]{article}
+\usepackage[margin=0.68in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{helvet}\renewcommand{\familydefault}{\sfdefault}
+\usepackage{booktabs,array,xcolor}
+\definecolor{ink}{HTML}{1a1a1a}\definecolor{mut}{HTML}{736f6c}\definecolor{grn}{HTML}{034f46}
+\color{ink}\setlength{\parindent}{0pt}\setlength{\parskip}{4pt}
+\pagestyle{empty}
+\begin{document}
+
+{\large\textbf{One idea from the full audit: set the forecast's level with statistics, not with the LLM}}\\
+{\small\color{mut}GEPA forecaster project · audit of 2026-09-02 (13 read-everything dossiers, 5 independently verified re-analyses, 1 pre-registered fresh run) · \$8.30 of the \$100 budget used}
+
+{\small\color{mut}Setup, so every number below is readable: we forecast the probability that each of 11 AI models solves each cyber benchmark task; a \emph{cell} = one (model, task) pair; Brier scores the forecast against the observed pass/fail, lower is better. Sets: \emph{eval} = 84 cells the search optimized on; \emph{sealed} = 230 held-out cells from the same 5 training benchmarks; \emph{reserved test} = 1{,}033 cells from the 2 held-out benchmarks (CVEBench, CyberGym). GEPA is the automated prompt optimizer we ran; the \emph{seed} is its hand-written starting prompt.}
+
+\textbf{The idea, in one breath.} Let simple statistics set each forecast's \emph{level} --- that is the part that transfers --- keep the LLM at most for \emph{ordering} tasks within a level, and \emph{audit the training data first}. Concretely:
+
+\begin{enumerate}\setlength{\itemsep}{1pt}\setlength{\topsep}{2pt}
+\item \textbf{Anchor.} A 12-parameter curve --- one ability number per model, one shared ``success falls with human solve time'' slope --- fit \emph{only} on the 5 training benchmarks, sets the level. It beats the seed on eval, sealed, and the reserved test.
+\item \textbf{Guardrail (one prompt line).} Tasks are binned by human solve time, and every prompt already prints the model's per-bin pass rates; cap the forecast at the printed rate of the adjacent easier bin. This improves the seed on sealed ($0.131\!\to\!0.111$) and on the reserved test ($0.163\!\to\!0.156$, $t=-3.4$).
+\item \textbf{Audit.} Refit the curve leaving out one training benchmark at a time: this measures our own data's bias. It exposed InterCode-CTF as contamination-inflated (its solve rate is flat at $0.88$--$1.00$ regardless of difficulty). With that one benchmark removed from the fit, the curve's level matched the reserved test's base rate to $0.001$ ($0.241$ vs.\ $0.240$) --- using zero labels from the test benchmarks.
+\end{enumerate}
+
+\begin{center}\small
+\begin{tabular}{@{}lcc@{}}
+\toprule
+Brier & reserved test (labels already examined offline) & \textbf{fresh check: 297 never-prompted cells}\\
+\midrule
+seed prompt & 0.163 & 0.190\\
+the 7 GEPA-optimized prompts & best ties the seed, worst 0.230 & ---\\
+curve, audited (zero test labels) & \textcolor{grn}{0.147} & \textcolor{grn}{0.155 \ ($-0.035$ vs.\ seed, $t=-2.6$)}\\
+blend $0.64$ curve $+~0.36$ seed, log-odds & \textcolor{grn}{0.140--0.145} & \textcolor{grn}{0.159 \ ($-0.031$ vs.\ seed, $t=-3.6$)}\\
+per-(model, bin) table fit \emph{on} the test labels & 0.149 & ---\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+{\small Blend weights were chosen on training benchmarks only and frozen before the fresh run; its 0.140--0.145 range spans the audited/unaudited fit. It \emph{matches} the label-fit table (a coarse reference, not an upper bound; the difference is within noise, so ``matches'' is the defensible word). The fresh check (pre-registered, gepa \texttt{runs/holdout27\_prereg.md}): 27 tasks from the same two held-out benchmarks --- 7 CVEBench + 20 CyberGym excluded from the original test only for lacking curated difficulty labels, never prompted before, $\sim$\$8. Both benchmarks' \emph{offsets} (the one number you would add to the curve's log-odds to fit that benchmark: $+0.04$, $-0.08$) landed inside the $\pm0.40$ spread predicted from the training benchmarks alone, and the unaudited curve overshot in the predicted direction (mean forecast $0.401$ vs.\ realized solve rate $0.320$). Note the blend trails the curve on the fresh cells ($+0.003$, not significant) --- see limits.}
+
+\textbf{Why GEPA inverted (diagnosis, not blame).} Its acceptance rule never scored a candidate on a benchmark held out from the search, so its edits distilled training statistics into the prompt's confidence \emph{level} --- the one component that does not transfer. The optimized prompts' \emph{rankings} of cells transferred fine; every measured harm was a level error (across all 8 measured prompts, higher mean forecast $\Rightarrow$ worse test Brier, rank correlation $1.00$).
+
+\textbf{Honest limits.} Two held-out benchmarks only, and 80 of the 94 test tasks are CyberGym. The left column was computed after those labels had been examined --- that is why we bought the fresh check. ``The LLM still adds ordering value on top of the curve'' is supported on the left column ($t=-2.3$) but did \emph{not} appear on the fresh cells ($+0.003$, n.s., $\sim$13\% power): treat it as an open question, not a result.
+
+\textbf{If the team wants the follow-up.} (a) One GEPA rerun ($\sim$\$150) whose acceptance rule holds out one training benchmark per fold --- you get what you gate on --- promotion bar: beat the frozen blend. (b) In deployment, once $\sim$20 real outcomes from a new benchmark resolve, one global recalibration parameter should close most of the remaining gap (offline replay: robust from $k{=}20$; standard practice in operational forecasting).
+
+\vspace{2pt}
+{\footnotesize\color{mut}Every number above was reproduced by at least two independent derivations from the raw logs. Trail: gepa \texttt{FORECASTER\_GEPA\_RUNS.md} (holdout row), \texttt{runs/holdout27\_prereg.md} (frozen coefficients, committed before launch), results branch (raw cells); errata from the audit appended to \texttt{sweep\_and\_test\_2026-09-01.md}. Preliminary throughout: one dataset, one harness, one 11-model panel.}
+
+\end{document}

@@ -144,3 +144,28 @@ preliminary insights, not conclusions.
 - Test: `scripts/val_noise_study.py --config configs/pilot_baseline_clean.yaml --prompts seed,july_cand12,clean_cand7 --repeats-val 0 --repeats-sealed 0 --repeats-test 2 --tag test_set`.
 - Figures: `make_param_sweep_figs.py` (figs 12–16, pre-run screen), `make_fig17.py` (test detail), `make_fig18.py` (all runs, sealed), `make_fig19.py` (set C × three sets, the grand comparison); data `sweep_report_data.json`.
 - Set-C completion (2026-09-01 pm): tags `grand_val` (6 prompts × 3 search-set passes), `v2_sealed` (v2 + seed, 3 sealed passes: v2 null, −0.0004), `test_ext_modelbin` (cand 18, 2 test passes).
+
+## Errata (2026-09-02 multi-agent audit; every item recomputed from raw logs
+## by at least two independent derivations — conclusions strengthened or unchanged)
+
+1. §3/§5 family split: task `oss-fuzz:42535042` is CyberGym (Lyptus
+   `task_family`), not CVEBench. Corrected: CVEBench 14 tasks / 153 cells,
+   CyberGym 80 / 880. Under the correct split cand 12 on CVEBench is −0.0075
+   (n.s. BETTER than seed) — the winner deficit is entirely CyberGym; the
+   "identical +0.0428 on both" coincidence becomes +0.0451 vs +0.0428
+   (flat-in-difficulty conclusion unchanged).
+2. §3 "bins 2–4": the reserved test spans bins 1–4 (2 CVEBench tasks / 22
+   cells in bin 1); the bin-1 "0.96 → 0.50" statistic rests on those 2 tasks.
+3. The 0.1034 sealed baseline (figs 10/18) is the TRAIN-families-only pooled
+   LOO table, not an "all-benchmarks" table; within-set LOO tables are
+   eval 0.0774 / sealed 0.1179 / test 0.1488. The "0.96/0.84 train" shares
+   quoted in §3 are specifically the SEALED set's shares (full train pool:
+   0.87/0.59).
+4. §3 "largest gains are on the hardest bins": the sealed gain profile is
+   U-shaped — cand 12's largest gain is +0.058 on bin 1; the "+0.05 on bin 4"
+   sub-claim holds.
+5. Seed test Brier is 0.1633 (0.163333); cand 12's "14/14 lifetime" sealed
+   passes: 11 exist in the retained logs (all positive).
+6. fig17 omits the 8th tested arm (modelbin cand 18, the mildest deficit);
+   §4's "in-distribution gain predicts harm" is fragile (Spearman 0.68 → 0.49
+   without the v2 point).
