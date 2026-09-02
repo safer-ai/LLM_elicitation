@@ -48,20 +48,29 @@ for (t, m), y in outcome.items():
 TABLE = statistics.mean(gt)
 
 SOFTBAR = "#b7b4b1"
-bars = [("seed", "starting\nprompt", MUTED),
-        ("v2_cand13", "evolved,\nnumbers banned\n(v2_cand13)", SOFTBAR),
-        ("ablate_numeric_bands_only", "seed +\nnumeric bands\n(probe)", SOFTBAR),
-        ("ablate_procedure_only", "seed +\nprocedure\n(probe)", SOFTBAR),
-        ("clean_cand7", "winner, run 2\n(clean_cand7,\nin-dist +0.016)", VERM),
-        ("july_cand12", "winner, run 1\n(july_cand12,\nin-dist +0.026)", VERM),
-        ("joint_cand5", "winner, gate k=8\n(joint_cand5,\nin-dist +0.025)", VERM)]
+bars = [("seed", "seed", MUTED),
+        ("v2_cand13", "v2_cand13", SOFTBAR),
+        ("ablate_numeric_bands_only", "bands\nprobe", SOFTBAR),
+        ("ablate_procedure_only", "procedure\nprobe", SOFTBAR),
+        ("clean_cand7", "cand 7", VERM),
+        ("july_cand12", "cand 12", VERM),
+        ("joint_cand5", "cand 5", VERM)]
+ROSTER = ("PROMPTS\n"
+          "seed — hand-written baseline\n"
+          "cand 12 — winner, run 1 (default);\n    sealed gain +0.026\n"
+          "cand 7 — winner, run 2 (default);\n    sealed gain +0.016\n"
+          "cand 5 — winner, stricter\n    acceptance (k = 8); +0.025\n"
+          "v2_cand13 — evolved,\n    numbers banned\n"
+          "bands probe — seed + winner's\n    numeric ranges only\n"
+          "procedure probe — seed +\n    winner's reasoning rules only")
 
-fig, ax = plt.subplots(figsize=(9.4, 4.8), dpi=220)
-fig.subplots_adjust(top=0.76, bottom=0.20, left=0.09, right=0.965)
+fig, ax = plt.subplots(figsize=(11.0, 4.8), dpi=220)
+fig.subplots_adjust(top=0.76, bottom=0.13, left=0.08, right=0.74)
+fig.text(0.76, 0.70, ROSTER, fontsize=8.0, color=INK, ha="left", va="top",
+         linespacing=1.5)
 fig.text(0.055, 0.965, "THE RESERVED TEST  ·  CVEBench + CyberGym, first and only use",
          fontsize=8, color=MUTED, ha="left", va="top")
-fig.text(0.055, 0.925, "On the reserved benchmarks, the optimized prompts fall behind "
-         "the starting prompt", fontsize=12.5, color=INK, ha="left", va="top",
+fig.text(0.055, 0.925, "On the reserved benchmarks, the optimized prompts fall behind the seed", fontsize=12.5, color=INK, ha="left", va="top",
          fontweight="bold")
 fig.text(0.055, 0.862, "1,033 questions = 94 frozen tasks × 11 AI models · a question = will "
          "one AI model solve one benchmark task? (Brier; lower = better)",
@@ -90,8 +99,7 @@ ax.grid(axis="y", color=HAIR, lw=0.8); ax.set_axisbelow(True)
 ax.tick_params(colors=MUTED, labelsize=8.5); ax.tick_params(axis="x", length=0)
 fig.text(0.05, 0.012,
          "whisker = min–max over 2 repeat evaluations (repeats differ by ≤0.003) · on the "
-         "in-distribution held-out set the order reverses: every red bar beats the starting "
-         "prompt there\npaired on the same cells, all three winners are significantly worse "
+         "in-distribution held-out set the order reverses: every red bar beats the seed there\npaired on the same cells, all three winners are significantly worse "
          "than the starting prompt here (t = 6.9–11.5, n = 1,033) · every prompt sees evidence "
          "from the training benchmarks only\npreliminary: one reserved test set, one "
          "measurement day",

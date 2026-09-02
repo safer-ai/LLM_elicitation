@@ -77,12 +77,20 @@ COLORS = {"search": GRAY, "sealed": GREEN, "test": VERM}
 LABELS = {"search": "eval set (84 questions, used during the search)",
           "sealed": "sealed set, held out, same benchmarks (230 questions)",
           "test": "reserved test, new benchmarks (1,033 questions)"}
-XLAB = {"seed": "starting\nprompt", "v2_cand13": "v2_cand13\n(numbers banned)",
-        "clean_cand7": "cand 7\n(run 2 · native)", "modelbin_cand18": "cand 18\n(model_bin)",
-        "joint_cand5": "cand 5\n(gate k = 8)", "july_cand12": "cand 12\n(run 1 · native)"}
+XLAB = {"seed": "seed", "v2_cand13": "v2_cand13", "clean_cand7": "cand 7",
+        "modelbin_cand18": "cand 18", "joint_cand5": "cand 5", "july_cand12": "cand 12"}
+ROSTER = ("PROMPTS\n"
+          "seed — hand-written baseline\n"
+          "cand 12 — winner, run 1 (default)\n"
+          "cand 7 — winner, run 2 (default)\n"
+          "cand 5 — winner, stricter\n    acceptance (k = 8)\n"
+          "cand 18 — winner, grouped\n    ranking (model_bin)\n"
+          "v2_cand13 — evolved,\n    numbers banned")
 
-fig, ax = plt.subplots(figsize=(9.6, 5.2), dpi=220)
-fig.subplots_adjust(top=0.775, bottom=0.155, left=0.085, right=0.965)
+fig, ax = plt.subplots(figsize=(11.0, 5.2), dpi=220)
+fig.subplots_adjust(top=0.775, bottom=0.155, left=0.075, right=0.755)
+fig.text(0.775, 0.70, ROSTER, fontsize=8.2, color=INK, ha="left", va="top",
+         linespacing=1.55)
 fig.text(0.05, 0.968, "SET C  ·  every candidate prompt × every evaluation set",
          fontsize=8, color=MUTED, ha="left", va="top")
 fig.text(0.05, 0.928, "Gains hold on held-out questions from the training benchmarks "
