@@ -100,7 +100,7 @@ ax.tick_params(colors=MUTED, labelsize=8.5); ax.tick_params(axis="x", length=0)
 fig.text(0.05, 0.012,
          "whisker = min–max over 2 repeat evaluations (repeats differ by ≤0.003) · on the "
          "in-distribution held-out set the order reverses: every red bar beats the seed there\npaired on the same cells, all three winners are significantly worse "
-         "than the starting prompt here (t = 6.9–11.5, n = 1,033) · every prompt sees evidence "
+         "than the seed here (t = 6.9–11.5, n = 1,033) · every prompt sees evidence "
          "from the training benchmarks only\npreliminary: one reserved test set, one "
          "measurement day",
          fontsize=7, color=SOFT, ha="left", va="bottom")
