@@ -74,8 +74,8 @@ def loo_table(cells):
 
 TABLES = {s: loo_table(gt_cells[s]) for s in FILES if s in gt_cells}
 COLORS = {"search": GRAY, "sealed": GREEN, "test": VERM}
-LABELS = {"search": "search set (84 questions, used during optimization)",
-          "sealed": "held-out, same benchmarks (230 questions)",
+LABELS = {"search": "eval set (84 questions, used during the search)",
+          "sealed": "sealed set, held out, same benchmarks (230 questions)",
           "test": "reserved test, new benchmarks (1,033 questions)"}
 XLAB = {"seed": "starting\nprompt", "v2_cand13": "v2_cand13\n(numbers banned)",
         "clean_cand7": "cand 7\n(run 2 · native)", "modelbin_cand18": "cand 18\n(model_bin)",
@@ -120,9 +120,9 @@ ax.spines["top"].set_visible(False); ax.spines["right"].set_visible(False)
 ax.grid(axis="y", color=HAIR, lw=0.8); ax.set_axisbelow(True)
 ax.tick_params(colors=MUTED, labelsize=8.5); ax.tick_params(axis="x", length=0)
 fig.text(0.05, 0.012,
-         "passes: search 3 · held-out 3–17 · test 2 · dashed line = leave-one-out bin-mean "
+         "passes: eval 3 · sealed 3–17 · reserved test 2 · dashed line = leave-one-out bin-mean "
          "of ground-truth solve rates over that set's own tasks\n"
-         "the all-benchmarks table of earlier figures scores 0.103 on the held-out set · "
+         "the all-benchmarks table of earlier figures scores 0.103 on the sealed set · "
          "preliminary: one reserved test set, one measurement day per set",
          fontsize=7, color=SOFT, ha="left", va="bottom")
 fig.savefig("fig19_grand_comparison.png")
