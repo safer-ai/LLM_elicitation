@@ -50,7 +50,7 @@ for ai, (label, (color, sealed, test)) in enumerate(vals.items()):
     for si, v in enumerate([sealed, test]):
         ax.bar(si + (ai - 1) * W, v, width=W - 0.03, color=color,
                label=label if si == 0 else None)
-        ax.text(si + (ai - 1) * W, v + 0.002, f"{v:.3f}", ha="center",
+        ax.text(si + (ai - 1) * W, v + 0.002, f"{v:.4f}", ha="center",
                 fontsize=8.5, color=INK)
 for si, t in enumerate(TABLES):
     ax.hlines(t, si - 1.5 * W, si + 1.5 * W, ls="--", lw=1.2, color=GOLD,
