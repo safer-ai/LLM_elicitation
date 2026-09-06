@@ -45,8 +45,8 @@ for key, label, color in SHOW:
         if m.sum() >= 15:
             xs.append(c["p50"][m].mean()); ys.append(c["y"][m].mean())
     ax.plot(xs, ys, marker="o", ms=4, lw=1.8, color=color, label=label)
-ax.set_xlabel("Mean predicted P(solve)", fontsize=10)
-ax.set_ylabel("Observed solve rate", fontsize=10)
+ax.set_xlabel("Mean predicted P(solve) per bin — reserved test, 1,033 cells", fontsize=9.5)
+ax.set_ylabel("Observed solve rate per bin", fontsize=9.5)
 ax.set_xlim(0, 1); ax.set_ylim(0, 1); ax.set_aspect("equal")
 ax.legend(loc="upper left", frameon=False, fontsize=9, labelcolor=INK)
 ax.grid(color=HAIR, lw=0.8); ax.set_axisbelow(True)
